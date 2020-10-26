@@ -1,16 +1,31 @@
 import * as THREE from '/build/three.module.js';
-import { OrbitControls } from '/jsm/controls/OrbitControls';
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-const controls = new OrbitControls(camera, renderer.domElement);
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
-camera.position.z = 2;
+let scene;
+let camera;
+let renderer;
+// let controls: OrbitControls
+let boxGeometry;
+let basicMaterial;
+let cube;
+const CUBE_X_SPEED = 0.01;
+const CUBE_Y_SPEED = 0.01;
+const UP_ARROW_KEY = 38;
+const DOWN_ARROW_KEY = 40;
+const LEFT_ARROW_KEY = 37;
+const RIGHT_ARROW_KEY = 39;
+function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 2;
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    // controls = new OrbitControls(camera, renderer.domElement)
+    boxGeometry = new THREE.BoxGeometry;
+    basicMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+    cube = new THREE.Mesh(boxGeometry, basicMaterial);
+    scene.add(cube);
+}
+/* EVENTS */
 window.addEventListener('resize', onWindowResize, false);
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -18,14 +33,35 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     render();
 }
-var animate = function () {
-    requestAnimationFrame(animate);
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-    controls.update();
+document.addEventListener('keydown', onDocumentKeyDown, false);
+function onDocumentKeyDown(event) {
+    let keyCode = event.keyCode;
+    switch (keyCode) {
+        case UP_ARROW_KEY:
+            cube.position.y += CUBE_Y_SPEED;
+            break;
+        case DOWN_ARROW_KEY:
+            cube.position.y -= CUBE_Y_SPEED;
+            break;
+        case LEFT_ARROW_KEY:
+            cube.position.x -= CUBE_X_SPEED;
+            break;
+        case RIGHT_ARROW_KEY:
+            cube.position.x += CUBE_X_SPEED;
+            break;
+    }
     render();
-};
+}
+/* END EVENTS */
+function animate() {
+    requestAnimationFrame(animate);
+    // controls.update()
+    render();
+}
+;
 function render() {
     renderer.render(scene, camera);
 }
-animate();
+init();
+render();
+// animate(); // only render when updating to improve performance
