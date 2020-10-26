@@ -1,9 +1,11 @@
 import * as THREE from '/build/three.module.js';
-import * as Task1 from './webgl_modelling_1.js';
-import * as Task2 from './webgl_modelling_2.js';
+import { OrbitControls } from '/jsm/controls/OrbitControls';
+import * as Task1 from './webgl_modeling_triangle.js';
+import * as Task2 from './webgl_modeling_table.js';
 let camera;
 let scene;
 const renderer = new THREE.WebGLRenderer();
+let controls;
 init();
 animate();
 function init() {
@@ -11,12 +13,14 @@ function init() {
     camera.position.z = 5;
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
     // Choosing default scene
-    scene = Task1.scene;
+    scene = Task2.scene;
 }
 function animate() {
     requestAnimationFrame(animate);
     render();
+    controls.update();
 }
 function render() {
     Task1.render();

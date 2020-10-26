@@ -1,12 +1,14 @@
 import * as THREE from '/build/three.module.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls'
 
-import * as Task1 from './webgl_modelling_1.js'
-import * as Task2 from './webgl_modelling_2.js'
+import * as Task1 from './webgl_modeling_triangle.js'
+import * as Task2 from './webgl_modeling_table.js'
 
 let camera: THREE.PerspectiveCamera
 let scene: THREE.Scene
 const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer()
+let controls: OrbitControls
+
 
 init()
 animate()
@@ -19,13 +21,17 @@ function init() {
 
     document.body.appendChild(renderer.domElement)
 
+    controls = new OrbitControls(camera, renderer.domElement)
+
+
     // Choosing default scene
-    scene = Task1.scene
+    scene = Task2.scene
 }
 
 function animate() {
     requestAnimationFrame(animate)
     render()
+    controls.update()
 }
 
 function render() {
