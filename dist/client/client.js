@@ -62,10 +62,10 @@ function onDocumentKeyDown(event) {
     console.log(keyCode);
     switch (keyCode) {
         case W_KEY:
-            spotLight.position.y -= SPOTLIGHT_Y_SPEED;
+            spotLight.position.y += SPOTLIGHT_Y_SPEED;
             break;
         case S_KEY:
-            spotLight.position.y += SPOTLIGHT_Y_SPEED;
+            spotLight.position.y -= SPOTLIGHT_Y_SPEED;
             break;
         case A_KEY:
             spotLight.position.x -= SPOTLIGHT_X_SPEED;
