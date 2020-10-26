@@ -1,62 +1,39 @@
 import * as THREE from '/build/three.module.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls'
 
-let scene: THREE.Scene
+import * as Task1 from './webgl_modelling_1.js'
+import * as Task2 from './webgl_modelling_2.js'
+
 let camera: THREE.PerspectiveCamera
-let pointLight: THREE.PointLight
-let spotLight: THREE.SpotLight
-let renderer: THREE.WebGLRenderer
-let controls: OrbitControls
-let boxGeometry: THREE.BoxGeometry
-let basicMaterial: THREE.MeshBasicMaterial
-let standardMaterial: THREE.MeshStandardMaterial
-let cube: THREE.Mesh
-const SPOTLIGHT_X_SPEED: number = 0.01
-const SPOTLIGHT_Y_SPEED: number = 0.01
-const W_KEY: number = 87
-const S_KEY: number = 83
-const A_KEY: number = 65
-const D_KEY: number = 68
+let scene: THREE.Scene
+const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer()
+
+init()
+animate()
 
 function init() {
-    scene = new THREE.Scene()
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-    camera.position.z = 4
-    camera.position.y = 4
-    camera.position.x = 4
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000)
+    camera.position.z = 5
 
-    const axesHelper = new THREE.AxesHelper(5)
-    scene.add(axesHelper)
-
-    renderer = new THREE.WebGLRenderer()
     renderer.setSize(window.innerWidth, window.innerHeight)
+
     document.body.appendChild(renderer.domElement)
 
-    controls = new OrbitControls(camera, renderer.domElement)
+    // Choosing default scene
+    scene = Task1.scene
+}
 
-    spotLight = new THREE.SpotLight()
-    spotLight.color.setHex(0x00ffff)
-    spotLight.intensity = 7
-    spotLight.angle = Math.PI/4
-    const spotLightHelper: THREE.SpotLightHelper = new THREE.SpotLightHelper(spotLight);
-    scene.add(spotLightHelper)
-    scene.add(spotLight)
+function animate() {
+    requestAnimationFrame(animate)
+    render()
+}
 
-    pointLight = new THREE.PointLight()
-    pointLight.color.setHex(0xff0000)
-    pointLight.intensity = 5
-    pointLight.position.x = 1
-    const pointLightHelper: THREE.PointLightHelper = new THREE.PointLightHelper(pointLight);
-    scene.add(pointLightHelper);
-    scene.add(pointLight)
+function render() {
+    Task1.render()
+    Task2.render()
 
-    boxGeometry = new THREE.BoxGeometry()
+    renderer.render(scene, camera)
 
-    basicMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: false })
-    standardMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, wireframe: false })
-
-    cube = new THREE.Mesh(boxGeometry, standardMaterial)
-    scene.add(cube)
 }
 
 /* EVENTS */
@@ -68,44 +45,15 @@ function onWindowResize() {
     // render()
 }
 
-document.addEventListener('keydown', onDocumentKeyDown, false);
-function onDocumentKeyDown(event: KeyboardEvent) {
-    let keyCode: number = event.keyCode;
-    console.log(keyCode)
+/* Buttons to handle scene switch */
+const button1: HTMLElement = document.getElementById('task1')!
+const button2: HTMLElement = document.getElementById('task2')!
 
-    switch (keyCode) {
-        case W_KEY:
-            spotLight.position.y += SPOTLIGHT_Y_SPEED
-            break
-        case S_KEY:
-            spotLight.position.y -= SPOTLIGHT_Y_SPEED
-            break
-        case A_KEY:
-            spotLight.position.x -= SPOTLIGHT_X_SPEED
-            break
-        case D_KEY:
-            spotLight.position.x += SPOTLIGHT_X_SPEED
-            break
-    }
-
-    render()
+button1.onclick = function () {
+    scene = Task1.scene
 }
+button2.onclick = function () {
+    scene = Task2.scene
+}
+
 /* END EVENTS */
-
-function animate() {
-    requestAnimationFrame(animate)
-
-    // cube.rotation.x +=0.01
-    // cube.rotation.y +=0.01
-
-    controls.update()
-    render()
-};
-
-function render() {
-    renderer.render(scene, camera)
-}
-
-init()
-// render()
-animate() // only render when updating to improve performance
