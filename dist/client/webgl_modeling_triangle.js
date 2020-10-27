@@ -3,7 +3,7 @@ import * as Helper from './helpers.js';
 import * as THREE from '/build/three.module.js';
 export const scene = new THREE.Scene();
 export let gui;
-let mesh;
+let triangle;
 const geometry = new THREE.Geometry();
 const material = new THREE.MeshNormalMaterial();
 init();
@@ -17,12 +17,12 @@ export function init() {
     geometry.vertices.push(v3);
     geometry.faces.push(new THREE.Face3(0, 1, 2));
     geometry.computeFaceNormals();
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
+    triangle = new THREE.Mesh(geometry, material);
+    scene.add(triangle);
 }
 export function createDatGUI() {
     gui = new GUI();
-    Helper.createObjectGUIFolder(gui, mesh, "Triangle");
+    Helper.createObjectGUIFolder(gui, triangle, "Triangle");
 }
 export function render() {
 }

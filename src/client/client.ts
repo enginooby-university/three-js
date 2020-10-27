@@ -10,7 +10,7 @@ let currentScene: THREE.Scene
 let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true })
-// const gui = new GUI()
+const gui = new GUI()
 let statsGUIs: Stats[] = []
 let controls: OrbitControls
 let sourceLink: string
@@ -35,20 +35,33 @@ function init() {
     camera.position.z = 5
     camera.position.y = 3
     camera.position.x = 3
-    // cameraHelper = new THREE.CameraHelper(camera)
+    cameraHelper = new THREE.CameraHelper(camera)
+    cameraHelper.visible = false
 
-    // Helper.createObjectGUIFolder(gui, camera, 'Camera')
+    Helper.createObjectGUIFolder(gui, camera, 'Camera')
 
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(renderer.domElement)
 
     controls = new OrbitControls(camera, renderer.domElement)
 
-    createStatsGUI();
+    createStatsGUI()
+    // statsGUIs[0].dom.style.display = 'none'
 
-    // (Array.from(Tasks)[1][0].gui as GUI).destroy()
-    switchScene(1);
+    switchScene(1)
+
+    createHelperGUIFolder()
 }
+
+function createHelperGUIFolder(){
+    const helperFolder = gui.addFolder("Helpers")
+    helperFolder.addFolder("Axes").add(axesHelper, "visible", true)
+    helperFolder.addFolder("Grid").add(gridHelper, "visible", true)
+    helperFolder.addFolder("Camera").add(cameraHelper, "visible", false)
+
+    helperFolder.open()
+}
+
 
 function switchScene(scenceIndex: number) {
     // destroy Dat GUI for previous scene (if it exists)
@@ -63,8 +76,9 @@ function switchScene(scenceIndex: number) {
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1]
     currentScene.add(axesHelper)
     currentScene.add(gridHelper)
-    // currentScene.add(cameraHelper)
+    currentScene.add(cameraHelper)
 }
+
 
 function createStatsGUI() {
     for (let i = 0; i < 3; i++) {

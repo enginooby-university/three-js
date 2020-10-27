@@ -16,11 +16,11 @@ const LEG_Z: number = 0.3
 const faceGeometry = new THREE.BoxGeometry(2, 0.2, 1)
 const legGeometry = new THREE.CylinderGeometry(LEG_WIDTH, LEG_WIDTH, LEG_HEIGHT, 32)
 
-let faceMesh: THREE.Mesh
-let leg1Mesh: THREE.Mesh
-let leg2Mesh: THREE.Mesh
-let leg3Mesh: THREE.Mesh
-let leg4Mesh: THREE.Mesh
+let face: THREE.Mesh
+let leg1: THREE.Mesh
+let leg2: THREE.Mesh
+let leg3: THREE.Mesh
+let leg4: THREE.Mesh
 
 const faceMaterial: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial()
 const leg1Material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -31,27 +31,27 @@ const leg4Material = new THREE.MeshBasicMaterial({ color: 0xf000ff });
 init()
 
 export function init() {
-    faceMesh = new THREE.Mesh(faceGeometry, faceMaterial)
-    leg1Mesh = new THREE.Mesh(legGeometry, leg1Material)
-    leg2Mesh = new THREE.Mesh(legGeometry, leg2Material)
-    leg3Mesh = new THREE.Mesh(legGeometry, leg3Material)
-    leg4Mesh = new THREE.Mesh(legGeometry, leg4Material)
+    face = new THREE.Mesh(faceGeometry, faceMaterial)
+    leg1 = new THREE.Mesh(legGeometry, leg1Material)
+    leg2 = new THREE.Mesh(legGeometry, leg2Material)
+    leg3 = new THREE.Mesh(legGeometry, leg3Material)
+    leg4 = new THREE.Mesh(legGeometry, leg4Material)
 
-    faceMesh.position.y = 0.8
-    leg1Mesh.position.x = LEG_X
-    leg1Mesh.position.z = LEG_Z
-    leg2Mesh.position.x = -LEG_X
-    leg2Mesh.position.z = -LEG_Z
-    leg3Mesh.position.x = -LEG_X
-    leg3Mesh.position.z = LEG_Z
-    leg4Mesh.position.x = LEG_X
-    leg4Mesh.position.z = -LEG_Z
+    face.position.y = 0.8
+    leg1.position.x = LEG_X
+    leg1.position.z = LEG_Z
+    leg2.position.x = -LEG_X
+    leg2.position.z = -LEG_Z
+    leg3.position.x = -LEG_X
+    leg3.position.z = LEG_Z
+    leg4.position.x = LEG_X
+    leg4.position.z = -LEG_Z
 
-    table.add(faceMesh)
-    table.add(leg1Mesh)
-    table.add(leg2Mesh)
-    table.add(leg3Mesh)
-    table.add(leg4Mesh)
+    table.add(face)
+    table.add(leg1)
+    table.add(leg2)
+    table.add(leg3)
+    table.add(leg4)
 
     table.position.y = 0.8
 
@@ -61,10 +61,10 @@ export function init() {
 export function createDatGUI(){
     gui = new GUI()
     Helper.createObjectGUIFolder(gui, table, "Table")
-    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 1")
-    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 2")
-    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 3")
-    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 4")
+    Helper.createObjectGUIFolder(gui, leg1, "Leg 1")
+    Helper.createObjectGUIFolder(gui, leg1, "Leg 2")
+    Helper.createObjectGUIFolder(gui, leg1, "Leg 3")
+    Helper.createObjectGUIFolder(gui, leg1, "Leg 4")
 }
 
 export function render() {

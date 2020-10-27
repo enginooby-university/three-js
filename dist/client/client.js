@@ -2,12 +2,14 @@ import * as THREE from '/build/three.module.js';
 import { Tasks } from './tasks.js';
 import { OrbitControls } from '/jsm/controls/OrbitControls';
 import Stats from '/jsm/libs/stats.module';
+import { GUI } from '/jsm/libs/dat.gui.module';
+import * as Helper from './helpers.js';
 let camera;
 let currentScene;
 let currentSceneIndex = 0;
 const canvas = document.getElementById("threejs-canvas");
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-// const gui = new GUI()
+const gui = new GUI();
 let statsGUIs = [];
 let controls;
 let sourceLink;
@@ -28,14 +30,23 @@ function init() {
     camera.position.z = 5;
     camera.position.y = 3;
     camera.position.x = 3;
-    // cameraHelper = new THREE.CameraHelper(camera)
-    // Helper.createObjectGUIFolder(gui, camera, 'Camera')
+    cameraHelper = new THREE.CameraHelper(camera);
+    cameraHelper.visible = false;
+    Helper.createObjectGUIFolder(gui, camera, 'Camera');
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
     controls = new OrbitControls(camera, renderer.domElement);
     createStatsGUI();
-    // (Array.from(Tasks)[1][0].gui as GUI).destroy()
+    // statsGUIs[0].dom.style.display = 'none'
     switchScene(1);
+    createHelperGUIFolder();
+}
+function createHelperGUIFolder() {
+    const helperFolder = gui.addFolder("Helpers");
+    helperFolder.addFolder("Axes").add(axesHelper, "visible", true);
+    helperFolder.addFolder("Grid").add(gridHelper, "visible", true);
+    helperFolder.addFolder("Camera").add(cameraHelper, "visible", false);
+    helperFolder.open();
 }
 function switchScene(scenceIndex) {
     // destroy Dat GUI for previous scene (if it exists)
@@ -49,7 +60,7 @@ function switchScene(scenceIndex) {
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1];
     currentScene.add(axesHelper);
     currentScene.add(gridHelper);
-    // currentScene.add(cameraHelper)
+    currentScene.add(cameraHelper);
 }
 function createStatsGUI() {
     for (let i = 0; i < 3; i++) {

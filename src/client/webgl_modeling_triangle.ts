@@ -6,7 +6,7 @@ import * as THREE from '/build/three.module.js'
 export const scene: THREE.Scene = new THREE.Scene()
 export let gui: GUI
 
-let mesh: THREE.Mesh
+let triangle: THREE.Mesh
 const geometry: THREE.Geometry =  new THREE.Geometry()
 const material: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial()
 
@@ -25,14 +25,14 @@ export function init(){
     geometry.faces.push( new THREE.Face3( 0, 1, 2 ) );
     geometry.computeFaceNormals();
     
-    mesh = new THREE.Mesh( geometry, material )
+    triangle = new THREE.Mesh( geometry, material )
 
-    scene.add(mesh)
+    scene.add(triangle)
 }
 
 export function createDatGUI(){
     gui = new GUI()
-    Helper.createObjectGUIFolder(gui, mesh, "Triangle")
+    Helper.createObjectGUIFolder(gui, triangle, "Triangle")
 }
 
 export function render(){
