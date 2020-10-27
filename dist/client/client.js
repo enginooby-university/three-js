@@ -66,7 +66,7 @@ function createStatsGUI() {
     for (let i = 0; i < 3; i++) {
         const statsGUI = Stats();
         statsGUI.showPanel(i); // 0: fps, 1: ms, 2: mb, 3+: custom
-        statsGUI.dom.style.top = `${60 * i + 50}px`;
+        statsGUI.dom.style.top = `${60 * i + 100}px`;
         statsGUIs.push(statsGUI);
         document.body.appendChild(statsGUI.dom);
         const children = statsGUI.dom.childNodes;
@@ -108,3 +108,24 @@ sourceButton.onclick = function () {
     window.open(sourceLink, '_blank');
 };
 /* END EVENTS */
+const sidebarOpenButton = document.querySelector(".openbtn");
+sidebarOpenButton.addEventListener('click', openNav, false);
+const sidebarCloseButton = document.querySelector(".closebtn");
+sidebarCloseButton.addEventListener('click', closeNav, false);
+const sidebarElement = document.getElementById("mySidebar");
+const mainElement = document.getElementById("main");
+function openNav() {
+    sidebarElement.style.width = "250px";
+    mainElement.style.marginLeft = "250px";
+    statsGUIs.forEach(stat => {
+        stat.dom.style.marginLeft = "250px";
+    });
+}
+openNav();
+function closeNav() {
+    sidebarElement.style.width = "0";
+    mainElement.style.marginLeft = "0";
+    statsGUIs.forEach(stat => {
+        stat.dom.style.marginLeft = "0";
+    });
+}

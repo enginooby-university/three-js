@@ -13,6 +13,8 @@ const material: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial()
 init()
 
 export function init(){
+    scene.background = new THREE.Color(0x333333)
+
     var geometry = new THREE.Geometry();
     const v1 = new THREE.Vector3(0,0,0);
     const v2 = new THREE.Vector3(1,0,0);

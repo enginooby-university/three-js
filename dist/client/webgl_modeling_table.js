@@ -22,6 +22,7 @@ const leg3Material = new THREE.MeshBasicMaterial({ color: 0x0f00f0 });
 const leg4Material = new THREE.MeshBasicMaterial({ color: 0xf000ff });
 init();
 export function init() {
+    scene.background = new THREE.Color(0x333333);
     face = new THREE.Mesh(faceGeometry, faceMaterial);
     leg1 = new THREE.Mesh(legGeometry, leg1Material);
     leg2 = new THREE.Mesh(legGeometry, leg2Material);

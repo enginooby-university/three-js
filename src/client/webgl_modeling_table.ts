@@ -31,6 +31,8 @@ const leg4Material = new THREE.MeshBasicMaterial({ color: 0xf000ff });
 init()
 
 export function init() {
+    scene.background = new THREE.Color(0x333333)
+
     face = new THREE.Mesh(faceGeometry, faceMaterial)
     leg1 = new THREE.Mesh(legGeometry, leg1Material)
     leg2 = new THREE.Mesh(legGeometry, leg2Material)
@@ -58,7 +60,7 @@ export function init() {
     scene.add(table)
 }
 
-export function createDatGUI(){
+export function createDatGUI() {
     gui = new GUI()
     Helper.createObjectGUIFolder(gui, table, "Table")
     Helper.createObjectGUIFolder(gui, leg1, "Leg 1")
