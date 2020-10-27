@@ -1,12 +1,14 @@
 import * as THREE from '/build/three.module.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls'
+import Stats from '/jsm/libs/stats.module'
 
 import * as Task1 from './webgl_modeling_triangle.js'
 import * as Task2 from './webgl_modeling_table.js'
 
 let camera: THREE.PerspectiveCamera
 let scene: THREE.Scene
-const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer()
+const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ antialias: true })
+let statsGUIs: Stats[] = []
 // let controls: OrbitControls
 
 init()
@@ -20,16 +22,37 @@ function init() {
 
     document.body.appendChild(renderer.domElement)
 
+    createStatsGUI()
+
     // controls = new OrbitControls(camera, renderer.domElement)
 
-    // Choosing default scene
+    // default scene
     scene = Task2.scene
+}
+
+function createStatsGUI() {
+    for (let i = 0; i < 3; i++) {
+        const statsGUI = Stats()
+        statsGUI.showPanel(i); // 0: fps, 1: ms, 2: mb, 3+: custom
+        statsGUI.dom.style.top = `${60 * i + 30}px`
+        statsGUIs.push(statsGUI)
+        document.body.appendChild(statsGUI.dom)
+
+        const children = statsGUI.dom.childNodes as NodeListOf<HTMLCanvasElement>
+        children.forEach(child => {
+            child.style.width = '110%'
+            child.style.height = '110%'
+        })
+    }
 }
 
 function animate() {
     requestAnimationFrame(animate)
     render()
     // controls.update()
+    for (let i = 0; i < statsGUIs.length; i++) {
+        statsGUIs[i].update()
+    }
 }
 
 function render() {

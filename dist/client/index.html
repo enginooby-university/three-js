@@ -2,8 +2,17 @@
 <html>
 
 <head>
-    <title>Three.js TypeScript Template</title>
+    <title>ThreeJS</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
     <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
         body {
             overflow: hidden;
             margin: 0px;
@@ -12,12 +21,33 @@
         /* canvas {
             position: relative;
         } */
+
+        .float {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            bottom: 40px;
+            right: 40px;
+            background-color: #0C9;
+            color: #FFF;
+            border-radius: 50px;
+            text-align: center;
+            box-shadow: 2px 2px 3px #999;
+        }
+
+        .my-float {
+            margin-top: 22px;
+        }
     </style>
 </head>
 
 <body>
     <button id="task1">Triangle</button>
     <button id="task2">Table</button>
+
+    <!-- <a href="#" class="float">
+        <i class="fa fa-plus my-float"></i>
+    </a> -->
 
     <script type="module" src="client.js"></script>
 </body>

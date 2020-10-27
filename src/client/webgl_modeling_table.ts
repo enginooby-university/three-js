@@ -32,7 +32,6 @@ export function init() {
     leg3Mesh = new THREE.Mesh(legGeometry, leg3Material)
     leg4Mesh = new THREE.Mesh(legGeometry, leg4Material)
 
-
     faceMesh.position.y = 0.8
     leg1Mesh.position.x = LEG_X
     leg1Mesh.position.z = LEG_Z
