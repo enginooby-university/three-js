@@ -1,12 +1,11 @@
 import * as THREE from '/build/three.module.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls'
 import Stats from '/jsm/libs/stats.module'
-
-import * as Task1 from './webgl_modeling_triangle.js'
-import * as Task2 from './webgl_modeling_table.js'
+import { Tasks } from './tasks.js'
 
 let camera: THREE.PerspectiveCamera
 let currentScene: THREE.Scene
+let currentSceneIndex: number
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true })
 let statsGUIs: Stats[] = []
@@ -33,8 +32,9 @@ function init() {
     controls = new OrbitControls(camera, renderer.domElement)
 
     // default scene
-    currentScene = Task2.scene
-    sourceLink = SOURCE_LINK_BASE + 'webgl_modeling_table.ts'
+    currentSceneIndex = 1
+    currentScene = Array.from(Tasks)[currentSceneIndex][0].scene
+    sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1]
 }
 
 function createStatsGUI() {
@@ -63,11 +63,8 @@ function animate() {
 }
 
 function render() {
-    Task1.render()
-    Task2.render()
-
+    Array.from(Tasks)[currentSceneIndex][0].render()
     renderer.render(currentScene, camera)
-
 }
 
 /* EVENTS */
@@ -80,24 +77,20 @@ function onWindowResize() {
 }
 
 /* Buttons to handle scene switch */
-const button1: HTMLElement = document.getElementById('task1')!
-const button2: HTMLElement = document.getElementById('task2')!
+const taskButtons = document.querySelectorAll(".task")
+for (let i = 0; i < taskButtons.length; i++) {
+    taskButtons[i].addEventListener('click', function () {
+        currentSceneIndex = i
+        currentScene = Array.from(Tasks)[currentSceneIndex][0].scene
+        sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1]
+    })
+}
+
 const sourceButton: HTMLElement = document.getElementById('source-link')!
-
-button1.onclick = function () {
-    currentScene = Task1.scene
-    sourceLink = SOURCE_LINK_BASE + 'webgl_modeling_triangle.ts'
-}
-button2.onclick = function () {
-    currentScene = Task2.scene
-    sourceLink = SOURCE_LINK_BASE + 'webgl_modeling_table.ts'
-}
-
 sourceButton.onclick = function () {
     window.open(
         sourceLink,
         '_blank'
     )
 }
-
 /* END EVENTS */

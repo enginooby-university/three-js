@@ -52,5 +52,4 @@ export function init() {
 export function render() {
     scene.rotation.x += 0.01
     scene.rotation.y += 0.01
-
 }
