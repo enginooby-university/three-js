@@ -1,12 +1,16 @@
 import * as THREE from '/build/three.module.js';
+import { OrbitControls } from '/jsm/controls/OrbitControls';
 import Stats from '/jsm/libs/stats.module';
 import * as Task1 from './webgl_modeling_triangle.js';
 import * as Task2 from './webgl_modeling_table.js';
 let camera;
-let scene;
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+let currentScene;
+const canvas = document.getElementById("threejs-canvas");
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
 let statsGUIs = [];
-// let controls: OrbitControls
+const STATS_WIDTH = '110%';
+const STATS_HEIGHT = '110%';
+let controls;
 init();
 animate();
 function init() {
@@ -15,28 +19,28 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
     createStatsGUI();
-    // controls = new OrbitControls(camera, renderer.domElement)
+    controls = new OrbitControls(camera, renderer.domElement);
     // default scene
-    scene = Task2.scene;
+    currentScene = Task2.scene;
 }
 function createStatsGUI() {
     for (let i = 0; i < 3; i++) {
         const statsGUI = Stats();
         statsGUI.showPanel(i); // 0: fps, 1: ms, 2: mb, 3+: custom
-        statsGUI.dom.style.top = `${60 * i + 30}px`;
+        statsGUI.dom.style.top = `${60 * i + 50}px`;
         statsGUIs.push(statsGUI);
         document.body.appendChild(statsGUI.dom);
         const children = statsGUI.dom.childNodes;
         children.forEach(child => {
-            child.style.width = '110%';
-            child.style.height = '110%';
+            child.style.width = STATS_WIDTH;
+            child.style.height = STATS_HEIGHT;
         });
     }
 }
 function animate() {
     requestAnimationFrame(animate);
     render();
-    // controls.update()
+    controls.update();
     for (let i = 0; i < statsGUIs.length; i++) {
         statsGUIs[i].update();
     }
@@ -44,7 +48,7 @@ function animate() {
 function render() {
     Task1.render();
     Task2.render();
-    renderer.render(scene, camera);
+    renderer.render(currentScene, camera);
 }
 /* EVENTS */
 window.addEventListener('resize', onWindowResize, false);
@@ -58,9 +62,9 @@ function onWindowResize() {
 const button1 = document.getElementById('task1');
 const button2 = document.getElementById('task2');
 button1.onclick = function () {
-    scene = Task1.scene;
+    currentScene = Task1.scene;
 };
 button2.onclick = function () {
-    scene = Task2.scene;
+    currentScene = Task2.scene;
 };
 /* END EVENTS */

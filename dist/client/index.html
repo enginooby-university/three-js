@@ -38,12 +38,28 @@
         .my-float {
             margin-top: 22px;
         }
+
+        /* #threejs-canvas:focus {
+            margin-top: 200px;
+            margin-left: 100px;
+        } */
+
+        #menu {
+            position: fixed;
+            width: 100vw;
+            height: 60px;
+        }
     </style>
 </head>
 
 <body>
-    <button id="task1">Triangle</button>
-    <button id="task2">Table</button>
+    <div id="menu">
+        <button id="task1">Triangle</button>
+        <button id="task2">Table</button>
+        <br>
+    </div>
+
+    <canvas id="threejs-canvas" onmousedown="return false" unselectable="on"></canvas>
 
     <!-- <a href="#" class="float">
         <i class="fa fa-plus my-float"></i>
