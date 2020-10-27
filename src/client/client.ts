@@ -10,10 +10,12 @@ let currentScene: THREE.Scene
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true })
 let statsGUIs: Stats[] = []
+let controls: OrbitControls
+let sourceLink: string
+
+const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/'
 const STATS_WIDTH: string = '110%'
 const STATS_HEIGHT: string = '110%'
-let controls: OrbitControls
-
 
 init()
 animate()
@@ -32,6 +34,7 @@ function init() {
 
     // default scene
     currentScene = Task2.scene
+    sourceLink = SOURCE_LINK_BASE + 'webgl_modeling_table.ts'
 }
 
 function createStatsGUI() {
@@ -79,12 +82,22 @@ function onWindowResize() {
 /* Buttons to handle scene switch */
 const button1: HTMLElement = document.getElementById('task1')!
 const button2: HTMLElement = document.getElementById('task2')!
+const sourceButton: HTMLElement = document.getElementById('source-link')!
 
 button1.onclick = function () {
     currentScene = Task1.scene
+    sourceLink = SOURCE_LINK_BASE + 'webgl_modeling_triangle.ts'
 }
 button2.onclick = function () {
     currentScene = Task2.scene
+    sourceLink = SOURCE_LINK_BASE + 'webgl_modeling_table.ts'
+}
+
+sourceButton.onclick = function () {
+    window.open(
+        sourceLink,
+        '_blank'
+    )
 }
 
 /* END EVENTS */
