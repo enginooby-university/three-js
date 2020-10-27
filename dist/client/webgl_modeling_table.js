@@ -1,5 +1,6 @@
 import * as THREE from '/build/three.module.js';
 export const scene = new THREE.Scene();
+const table = new THREE.Group();
 const LEG_WIDTH = 0.05;
 const LEG_HEIGHT = 1.5;
 const LEG_X = 0.8;
@@ -32,13 +33,15 @@ export function init() {
     leg3Mesh.position.z = LEG_Z;
     leg4Mesh.position.x = LEG_X;
     leg4Mesh.position.z = -LEG_Z;
-    scene.add(faceMesh);
-    scene.add(leg1Mesh);
-    scene.add(leg2Mesh);
-    scene.add(leg3Mesh);
-    scene.add(leg4Mesh);
+    table.add(faceMesh);
+    table.add(leg1Mesh);
+    table.add(leg2Mesh);
+    table.add(leg3Mesh);
+    table.add(leg4Mesh);
+    scene.add(table);
 }
 export function render() {
-    scene.rotation.x += 0.01;
-    scene.rotation.y += 0.01;
+    table.rotation.y += 0.01;
+    // table.rotation.y += 0.01
+    // table.rotation.z += 0.01
 }

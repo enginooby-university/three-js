@@ -30,6 +30,9 @@ animate()
 function init() {
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000)
     camera.position.z = 5
+    camera.position.y = 3
+    camera.position.x = 3
+
     cameraHelper = new THREE.CameraHelper( camera )
 
     renderer.setSize(window.innerWidth, window.innerHeight)
