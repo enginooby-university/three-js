@@ -1,5 +1,8 @@
+import { GUI } from '/jsm/libs/dat.gui.module';
+import * as Helper from './helpers.js';
 import * as THREE from '/build/three.module.js';
 export const scene = new THREE.Scene();
+export let gui;
 let mesh;
 const geometry = new THREE.Geometry();
 const material = new THREE.MeshNormalMaterial();
@@ -16,6 +19,10 @@ export function init() {
     geometry.computeFaceNormals();
     mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
+}
+export function createDatGUI() {
+    gui = new GUI();
+    Helper.createObjectGUIFolder(gui, mesh, "Triangle");
 }
 export function render() {
 }

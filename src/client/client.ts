@@ -1,13 +1,16 @@
 import * as THREE from '/build/three.module.js'
+import { Tasks } from './tasks.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls'
 import Stats from '/jsm/libs/stats.module'
-import { Tasks } from './tasks.js'
+import { GUI } from '/jsm/libs/dat.gui.module'
+import * as Helper from './helpers.js'
 
 let camera: THREE.PerspectiveCamera
 let currentScene: THREE.Scene
-let currentSceneIndex: number
+let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true })
+// const gui = new GUI()
 let statsGUIs: Stats[] = []
 let controls: OrbitControls
 let sourceLink: string
@@ -32,29 +35,35 @@ function init() {
     camera.position.z = 5
     camera.position.y = 3
     camera.position.x = 3
+    // cameraHelper = new THREE.CameraHelper(camera)
 
-    cameraHelper = new THREE.CameraHelper( camera )
+    // Helper.createObjectGUIFolder(gui, camera, 'Camera')
 
     renderer.setSize(window.innerWidth, window.innerHeight)
-
     document.body.appendChild(renderer.domElement)
-
-    createStatsGUI()
 
     controls = new OrbitControls(camera, renderer.domElement)
 
-    // default scene
-    switchScene(1)
+    createStatsGUI();
+
+    // (Array.from(Tasks)[1][0].gui as GUI).destroy()
+    switchScene(1);
 }
 
 function switchScene(scenceIndex: number) {
+    // destroy Dat GUI for previous scene (if it exists)
+    if (typeof (Array.from(Tasks)[currentSceneIndex][0].gui) !== 'undefined') {
+        (Array.from(Tasks)[currentSceneIndex][0].gui as GUI).destroy()
+    }
     currentSceneIndex = scenceIndex
+    // create Dat GUI for current scene
+    Array.from(Tasks)[currentSceneIndex][0].createDatGUI()
+
     currentScene = Array.from(Tasks)[currentSceneIndex][0].scene
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1]
     currentScene.add(axesHelper)
     currentScene.add(gridHelper)
-    currentScene.add(cameraHelper)
-
+    // currentScene.add(cameraHelper)
 }
 
 function createStatsGUI() {
@@ -76,7 +85,7 @@ function createStatsGUI() {
 function animate() {
     requestAnimationFrame(animate)
     render()
-    controls.update()
+    // controls.update()
     for (let i = 0; i < statsGUIs.length; i++) {
         statsGUIs[i].update()
     }

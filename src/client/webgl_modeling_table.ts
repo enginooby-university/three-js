@@ -1,8 +1,11 @@
 import * as THREE from '/build/three.module.js'
-import { OrbitControls } from '/jsm/controls/OrbitControls'
+import * as Helper from './helpers.js'
+import { GUI } from '/jsm/libs/dat.gui.module'
+
 
 export const scene: THREE.Scene = new THREE.Scene()
 
+export let gui: GUI
 const table = new THREE.Group()
 
 const LEG_WIDTH: number = 0.05
@@ -50,11 +53,20 @@ export function init() {
     table.add(leg3Mesh)
     table.add(leg4Mesh)
 
+    table.position.y = 0.8
+
     scene.add(table)
+}
+
+export function createDatGUI(){
+    gui = new GUI()
+    Helper.createObjectGUIFolder(gui, table, "Table")
+    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 1")
+    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 2")
+    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 3")
+    Helper.createObjectGUIFolder(gui, leg1Mesh, "Leg 4")
 }
 
 export function render() {
     table.rotation.y += 0.01
-    // table.rotation.y += 0.01
-    // table.rotation.z += 0.01
 }
