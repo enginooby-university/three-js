@@ -1,5 +1,5 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
-import * as DatHelper from './dat_helper.js'
+import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 
 export const scene: THREE.Scene = new THREE.Scene()

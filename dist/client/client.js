@@ -1,9 +1,9 @@
 import * as THREE from '/build/three.module.js';
-import { Tasks } from './tasks.js';
+import { Tasks } from './task_management.js';
 import { OrbitControls } from '/jsm/controls/OrbitControls.js';
 import Stats from '/jsm/libs/stats.module.js';
 import { GUI } from '/jsm/libs/dat.gui.module.js';
-import * as DatHelper from './dat_helper.js';
+import * as DatHelper from './helpers/dat_helper.js';
 let camera;
 const CAMERA_FOV = 50; //degrees
 const CAMERA_NEAR = 0.1;
