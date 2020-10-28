@@ -16,7 +16,7 @@ const gui = new GUI();
 let statsGUIs = [];
 let controls;
 let sourceLink;
-const SOURCE_LINK_BASE = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/';
+const SOURCE_LINK_BASE = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/tasks/';
 const STATS_WIDTH = '100%';
 const STATS_HEIGHT = '100%';
 /* HELPERS */

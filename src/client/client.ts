@@ -19,7 +19,7 @@ let statsGUIs: Stats[] = []
 let controls: OrbitControls
 let sourceLink: string
 
-const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/'
+const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/tasks/'
 const STATS_WIDTH: string = '100%'
 const STATS_HEIGHT: string = '100%'
 
