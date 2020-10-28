@@ -1,7 +1,6 @@
+import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
 import * as Helper from './helpers.js'
-import { GUI } from '/jsm/libs/dat.gui.module'
-
 
 export const scene: THREE.Scene = new THREE.Scene()
 

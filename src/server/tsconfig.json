@@ -4,9 +4,13 @@
         "module": "commonjs",
         "outDir": "../../dist/server",
         "sourceMap": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "noImplicitAny": false,
+        "allowJs": true,
     },
     "include": [
         "**/*.ts"
-    ]
+    ],
+    
+
 }

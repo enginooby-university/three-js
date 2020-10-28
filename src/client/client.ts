@@ -1,8 +1,8 @@
 import * as THREE from '/build/three.module.js'
 import { Tasks } from './tasks.js'
-import { OrbitControls } from '/jsm/controls/OrbitControls'
-import Stats from '/jsm/libs/stats.module'
-import { GUI } from '/jsm/libs/dat.gui.module'
+import { OrbitControls } from '/jsm/controls/OrbitControls.js'
+import Stats from '/jsm/libs/stats.module.js'
+import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as Helper from './helpers.js'
 
 let camera: THREE.PerspectiveCamera
