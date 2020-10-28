@@ -8,7 +8,6 @@ export let gui: GUI
 const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
 let skybox: THREE.Mesh
 
-let textureName: string
 let texture_ft: THREE.Texture
 let texture_bk: THREE.Texture
 let texture_up: THREE.Texture
@@ -16,19 +15,45 @@ let texture_dn: THREE.Texture
 let texture_rt: THREE.Texture
 let texture_lf: THREE.Texture
 
-let materialArray: THREE.Material[] = [];
+let materialArray: THREE.MeshBasicMaterial[]
+
+let Name = {
+    Skybox: "arid"
+}
+
+const options = {
+    skybox: {
+        "Arid": "arid",
+        "Cocoa": "cocoa",
+        "Dust": "dust",
+    }
+}
 
 init()
 
 export function init() {
-    textureName = 'arid'
+    generateSkybox()
+}
+
+export function createDatGUI() {
+    gui = new GUI()
+    gui.add(Name, 'Skybox', options.skybox).onChange(() => generateSkybox())
+}
+
+export function render() {
+
+}
+
+function generateSkybox() {
     loadTextures()
     loadMaterials()
-    skybox = new THREE.Mesh(skyboxGeometry, materialArray);
-    scene.add(skybox);
+    scene.remove(skybox)
+    skybox = new THREE.Mesh(skyboxGeometry, materialArray)
+    scene.add(skybox)
 }
 
 function loadMaterials() {
+    materialArray = []
     materialArray.push(new THREE.MeshBasicMaterial({ map: texture_ft }))
     materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }))
     materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }))
@@ -36,26 +61,20 @@ function loadMaterials() {
     materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }))
     materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }))
 
-    for (let i = 0; i < materialArray.length; i++)
+    for (let i = 0; i < materialArray.length; i++) {
         materialArray[i].side = THREE.BackSide
+    }
 }
 
 function loadTextures() {
-    texture_ft = new THREE.TextureLoader().load(getTexturePath(textureName, 'ft'))
-    texture_bk = new THREE.TextureLoader().load(getTexturePath(textureName, 'bk'))
-    texture_up = new THREE.TextureLoader().load(getTexturePath(textureName, 'up'))
-    texture_dn = new THREE.TextureLoader().load(getTexturePath(textureName, 'dn'))
-    texture_rt = new THREE.TextureLoader().load(getTexturePath(textureName, 'rt'))
-    texture_lf = new THREE.TextureLoader().load(getTexturePath(textureName, 'lf'))
+    texture_ft = new THREE.TextureLoader().load(getTexturePath('ft'))
+    texture_bk = new THREE.TextureLoader().load(getTexturePath('bk'))
+    texture_up = new THREE.TextureLoader().load(getTexturePath('up'))
+    texture_dn = new THREE.TextureLoader().load(getTexturePath('dn'))
+    texture_rt = new THREE.TextureLoader().load(getTexturePath('rt'))
+    texture_lf = new THREE.TextureLoader().load(getTexturePath('lf'))
 }
 
-function getTexturePath(textureName: string, texturePosition: string) {
-    return `../resources/textures/${textureName}/${textureName}_${texturePosition}.jpg`
-}
-
-export function createDatGUI() {
-    gui = new GUI()
-}
-
-export function render() {
+function getTexturePath(texturePosition: string) {
+    return `./resources/textures/${Name.Skybox}/${Name.Skybox}_${texturePosition}.jpg`
 }
