@@ -1,6 +1,6 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
-import * as Helper from './helpers.js'
+import * as DatHelper from './dat_helper.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 
@@ -61,11 +61,11 @@ export function init() {
 
 export function createDatGUI() {
     gui = new GUI()
-    Helper.createObjectGUIFolder(gui, table, "Table")
-    Helper.createObjectGUIFolder(gui, leg1, "Leg 1")
-    Helper.createObjectGUIFolder(gui, leg1, "Leg 2")
-    Helper.createObjectGUIFolder(gui, leg1, "Leg 3")
-    Helper.createObjectGUIFolder(gui, leg1, "Leg 4")
+    DatHelper.createObjectFolder(gui, table, "Table")
+    DatHelper.createObjectFolder(gui, leg1, "Leg 1")
+    DatHelper.createObjectFolder(gui, leg1, "Leg 2")
+    DatHelper.createObjectFolder(gui, leg1, "Leg 3")
+    DatHelper.createObjectFolder(gui, leg1, "Leg 4")
 }
 
 export function render() {

@@ -1,5 +1,5 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
-import * as Helper from './helpers.js';
+import * as DatHelper from './dat_helper.js';
 import * as THREE from '/build/three.module.js';
 export const scene = new THREE.Scene();
 export let gui;
@@ -23,7 +23,7 @@ export function init() {
 }
 export function createDatGUI() {
     gui = new GUI();
-    Helper.createObjectGUIFolder(gui, triangle, "Triangle");
+    DatHelper.createObjectFolder(gui, triangle, "Triangle");
 }
 export function render() {
 }

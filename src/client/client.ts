@@ -3,7 +3,7 @@ import { Tasks } from './tasks.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls.js'
 import Stats from '/jsm/libs/stats.module.js'
 import { GUI } from '/jsm/libs/dat.gui.module.js'
-import * as Helper from './helpers.js'
+import * as DatHelper from './dat_helper.js'
 
 let camera: THREE.PerspectiveCamera
 let currentScene: THREE.Scene
@@ -23,6 +23,9 @@ const GRID_DIVISIONS: number = 10
 const gridHelper: THREE.GridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS)
 let cameraHelper: THREE.CameraHelper
 
+const CAMERA_FOV: number = 50 //degrees
+const CAMERA_NEAR: number = 0.1
+const CAMERA_FAR: number = 1000
 const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/'
 const STATS_WIDTH: string = '110%'
 const STATS_HEIGHT: string = '110%'
@@ -31,14 +34,14 @@ init()
 animate()
 
 function init() {
-    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000)
+    camera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR)
     camera.position.z = 5
     camera.position.y = 3
     camera.position.x = 3
     cameraHelper = new THREE.CameraHelper(camera)
     cameraHelper.visible = false
 
-    Helper.createObjectGUIFolder(gui, camera, 'Camera')
+    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
 
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.body.appendChild(renderer.domElement)
