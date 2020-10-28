@@ -49,9 +49,9 @@ export function createDatGUI() {
     DatHelper.createObjectFolder(gui, table, "Table");
     DatHelper.createObjectFolder(gui, face, "Face");
     DatHelper.createObjectFolder(gui, leg1, "Leg 1");
-    DatHelper.createObjectFolder(gui, leg1, "Leg 2");
-    DatHelper.createObjectFolder(gui, leg1, "Leg 3");
-    DatHelper.createObjectFolder(gui, leg1, "Leg 4");
+    DatHelper.createObjectFolder(gui, leg2, "Leg 2");
+    DatHelper.createObjectFolder(gui, leg3, "Leg 3");
+    DatHelper.createObjectFolder(gui, leg4, "Leg 4");
 }
 export function render() {
     table.rotation.y += 0.01;
