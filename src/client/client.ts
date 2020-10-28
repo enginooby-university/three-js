@@ -39,8 +39,9 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight)
     //document.body.appendChild(renderer.domElement)
     controls = new OrbitControls(camera, renderer.domElement)
+    controls.maxDistance = 300
     createStatsGUI()
-    switchScene(1)
+    switchScene(2)
     createHelperGUIFolder()
     DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
 }
