@@ -25,9 +25,9 @@ function createObjectPositionFolder(parentFolder, object) {
 }
 function createObjectScaleFolder(parentFolder, object) {
     const objectScaleFolder = parentFolder.addFolder("scale");
-    objectScaleFolder.add(object.scale, "x", -5, 5, 0.1);
-    objectScaleFolder.add(object.scale, "y", -5, 5, 0.1);
-    objectScaleFolder.add(object.scale, "z", -5, 5, 0.1);
+    objectScaleFolder.add(object.scale, "x", 0, 5, 0.1);
+    objectScaleFolder.add(object.scale, "y", 0, 5, 0.1);
+    objectScaleFolder.add(object.scale, "z", 0, 5, 0.1);
     return objectScaleFolder;
 }
 function createObjectRotationFolder(parentFolder, object) {

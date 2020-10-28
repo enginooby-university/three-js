@@ -36,9 +36,9 @@ function createObjectPositionFolder(parentFolder: GUI, object: THREE.Object3D) {
 
 function createObjectScaleFolder(parentFolder: GUI, object: THREE.Object3D) {
     const objectScaleFolder = parentFolder.addFolder("scale")
-    objectScaleFolder.add(object.scale, "x", -5, 5, 0.1)
-    objectScaleFolder.add(object.scale, "y", -5, 5, 0.1)
-    objectScaleFolder.add(object.scale, "z", -5, 5, 0.1)
+    objectScaleFolder.add(object.scale, "x", 0, 5, 0.1)
+    objectScaleFolder.add(object.scale, "y", 0, 5, 0.1)
+    objectScaleFolder.add(object.scale, "z", 0, 5, 0.1)
 
     return objectScaleFolder
 }

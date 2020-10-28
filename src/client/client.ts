@@ -61,8 +61,9 @@ function createHelperGUIFolder() {
     helperFolder.addFolder("Axes").add(axesHelper, "visible", true)
     helperFolder.addFolder("Grid").add(gridHelper, "visible", true)
     helperFolder.addFolder("Camera").add(cameraHelper, "visible", false)
-
     helperFolder.open()
+
+    return helperFolder
 }
 
 function switchScene(scenceIndex: number) {
@@ -75,6 +76,7 @@ function switchScene(scenceIndex: number) {
     Array.from(Tasks)[currentSceneIndex][0].createDatGUI()
 
     currentScene = Array.from(Tasks)[currentSceneIndex][0].scene
+    // update source link corresponding to current task (scene)
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1]
     currentScene.add(axesHelper)
     currentScene.add(gridHelper)
@@ -122,8 +124,10 @@ function onWindowResize() {
 
 /* Buttons to handle scene switch */
 const taskButtons = document.querySelectorAll(".task")
+const description = document.querySelector("#info")!
 for (let i = 0; i < taskButtons.length; i++) {
     taskButtons[i].addEventListener('click', function () {
+        description.innerHTML = taskButtons[i].innerHTML
         switchScene(i)
     })
 }
