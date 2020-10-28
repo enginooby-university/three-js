@@ -29,20 +29,23 @@ let cameraHelper;
 init();
 animate();
 function init() {
-    camera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR);
-    camera.position.z = 5;
-    camera.position.y = 3;
-    camera.position.x = 3;
-    cameraHelper = new THREE.CameraHelper(camera);
-    cameraHelper.visible = false;
-    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera');
+    camera = createCamera();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    //document.body.appendChild(renderer.domElement)
     controls = new OrbitControls(camera, renderer.domElement);
     createStatsGUI();
-    // statsGUIs[0].dom.style.display = 'none'
     switchScene(1);
     createHelperGUIFolder();
+    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera');
+}
+function createCamera() {
+    const newCamera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR);
+    newCamera.position.z = 5;
+    newCamera.position.y = 3;
+    newCamera.position.x = 3;
+    cameraHelper = new THREE.CameraHelper(newCamera);
+    cameraHelper.visible = false;
+    return newCamera;
 }
 function createHelperGUIFolder() {
     const helperFolder = gui.addFolder("Helpers");
@@ -111,6 +114,7 @@ sourceButton.onclick = function () {
     window.open(sourceLink, '_blank');
 };
 /* END EVENTS */
+/* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn");
 sidebarOpenButton.addEventListener('click', openNav, false);
 const sidebarCloseButton = document.querySelector(".closebtn");

@@ -11,7 +11,7 @@ const LEG_X: number = 0.8
 const LEG_Z: number = 0.3
 const FACE_WIDTH: number = 2
 const FACE_HEIGHT: number = 0.2
-const FACE_DEPTH: number = 2 * FACE_WIDTH
+const FACE_DEPTH: number = 0.5 * FACE_WIDTH
 
 const faceGeometry = new THREE.BoxGeometry(FACE_WIDTH, FACE_HEIGHT, FACE_DEPTH)
 const legGeometry = new THREE.CylinderGeometry(LEG_WIDTH, LEG_WIDTH, LEG_HEIGHT, 32)
