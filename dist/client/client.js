@@ -5,6 +5,9 @@ import Stats from '/jsm/libs/stats.module.js';
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from './dat_helper.js';
 let camera;
+const CAMERA_FOV = 50; //degrees
+const CAMERA_NEAR = 0.1;
+const CAMERA_FAR = 1000;
 let currentScene;
 let currentSceneIndex = 0;
 const canvas = document.getElementById("threejs-canvas");
@@ -13,6 +16,9 @@ const gui = new GUI();
 let statsGUIs = [];
 let controls;
 let sourceLink;
+const SOURCE_LINK_BASE = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/';
+const STATS_WIDTH = '100%';
+const STATS_HEIGHT = '100%';
 /* HELPERS */
 const AXE_LENGHT = 5;
 const axesHelper = new THREE.AxesHelper(AXE_LENGHT);
@@ -20,12 +26,6 @@ const GRID_SIZE = 10;
 const GRID_DIVISIONS = 10;
 const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS);
 let cameraHelper;
-const CAMERA_FOV = 50; //degrees
-const CAMERA_NEAR = 0.1;
-const CAMERA_FAR = 1000;
-const SOURCE_LINK_BASE = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/';
-const STATS_WIDTH = '110%';
-const STATS_HEIGHT = '110%';
 init();
 animate();
 function init() {

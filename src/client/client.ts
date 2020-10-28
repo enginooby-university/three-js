@@ -6,6 +6,10 @@ import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from './dat_helper.js'
 
 let camera: THREE.PerspectiveCamera
+const CAMERA_FOV: number = 50 //degrees
+const CAMERA_NEAR: number = 0.1
+const CAMERA_FAR: number = 1000
+
 let currentScene: THREE.Scene
 let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
@@ -15,6 +19,10 @@ let statsGUIs: Stats[] = []
 let controls: OrbitControls
 let sourceLink: string
 
+const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/'
+const STATS_WIDTH: string = '100%'
+const STATS_HEIGHT: string = '100%'
+
 /* HELPERS */
 const AXE_LENGHT: number = 5
 const axesHelper: THREE.AxesHelper = new THREE.AxesHelper(AXE_LENGHT)
@@ -22,13 +30,6 @@ const GRID_SIZE: number = 10
 const GRID_DIVISIONS: number = 10
 const gridHelper: THREE.GridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS)
 let cameraHelper: THREE.CameraHelper
-
-const CAMERA_FOV: number = 50 //degrees
-const CAMERA_NEAR: number = 0.1
-const CAMERA_FAR: number = 1000
-const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/'
-const STATS_WIDTH: string = '110%'
-const STATS_HEIGHT: string = '110%'
 
 init()
 animate()
@@ -54,6 +55,7 @@ function init() {
     switchScene(1)
 
     createHelperGUIFolder()
+
 }
 
 function createHelperGUIFolder() {

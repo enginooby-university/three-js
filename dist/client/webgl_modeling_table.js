@@ -3,51 +3,51 @@ import * as THREE from '/build/three.module.js';
 import * as DatHelper from './dat_helper.js';
 export const scene = new THREE.Scene();
 export let gui;
-const table = new THREE.Group();
 const LEG_WIDTH = 0.05;
 const LEG_HEIGHT = 1.5;
 const LEG_X = 0.8;
 const LEG_Z = 0.3;
-const faceGeometry = new THREE.BoxGeometry(2, 0.2, 1);
+const FACE_WIDTH = 2;
+const FACE_HEIGHT = 0.2;
+const FACE_DEPTH = 2 * FACE_WIDTH;
+const faceGeometry = new THREE.BoxGeometry(FACE_WIDTH, FACE_HEIGHT, FACE_DEPTH);
 const legGeometry = new THREE.CylinderGeometry(LEG_WIDTH, LEG_WIDTH, LEG_HEIGHT, 32);
+const table = new THREE.Group();
 let face;
 let leg1;
 let leg2;
 let leg3;
 let leg4;
-const faceMaterial = new THREE.MeshNormalMaterial();
-const leg1Material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const leg2Material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-const leg3Material = new THREE.MeshBasicMaterial({ color: 0x0f00f0 });
-const leg4Material = new THREE.MeshBasicMaterial({ color: 0xf000ff });
 init();
 export function init() {
+    face = createFace();
+    leg1 = createLeg(0x00ff00, LEG_X, 0, LEG_Z);
+    leg2 = createLeg(0xffff00, -LEG_X, 0, -LEG_Z);
+    leg3 = createLeg(0x00fff0, LEG_X, 0, -LEG_Z);
+    leg4 = createLeg(0xf000ff, -LEG_X, 0, LEG_Z);
     scene.background = new THREE.Color(0x333333);
-    face = new THREE.Mesh(faceGeometry, faceMaterial);
-    leg1 = new THREE.Mesh(legGeometry, leg1Material);
-    leg2 = new THREE.Mesh(legGeometry, leg2Material);
-    leg3 = new THREE.Mesh(legGeometry, leg3Material);
-    leg4 = new THREE.Mesh(legGeometry, leg4Material);
-    face.position.y = 0.8;
-    leg1.position.x = LEG_X;
-    leg1.position.z = LEG_Z;
-    leg2.position.x = -LEG_X;
-    leg2.position.z = -LEG_Z;
-    leg3.position.x = -LEG_X;
-    leg3.position.z = LEG_Z;
-    leg4.position.x = LEG_X;
-    leg4.position.z = -LEG_Z;
-    table.add(face);
-    table.add(leg1);
-    table.add(leg2);
-    table.add(leg3);
-    table.add(leg4);
     table.position.y = 0.8;
     scene.add(table);
+}
+function createFace() {
+    const face = new THREE.Mesh(faceGeometry, new THREE.MeshNormalMaterial());
+    face.position.y = 0.8;
+    table.add(face);
+    return face;
+}
+function createLeg(color, x, y, z) {
+    const legMaterial = new THREE.MeshBasicMaterial({ color: color });
+    const leg = new THREE.Mesh(legGeometry, legMaterial);
+    leg.position.x = x;
+    leg.position.y = y;
+    leg.position.z = z;
+    table.add(leg);
+    return leg;
 }
 export function createDatGUI() {
     gui = new GUI();
     DatHelper.createObjectFolder(gui, table, "Table");
+    DatHelper.createObjectFolder(gui, face, "Face");
     DatHelper.createObjectFolder(gui, leg1, "Leg 1");
     DatHelper.createObjectFolder(gui, leg1, "Leg 2");
     DatHelper.createObjectFolder(gui, leg1, "Leg 3");
