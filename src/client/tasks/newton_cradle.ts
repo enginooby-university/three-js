@@ -47,8 +47,8 @@ export function render() {
 function generateSkybox() {
     loadTextures()
     loadMaterials()
-    scene.remove(skybox)
     skybox = new THREE.Mesh(skyboxGeometry, materialArray)
+    scene.remove(skybox)
     scene.add(skybox)
 }
 

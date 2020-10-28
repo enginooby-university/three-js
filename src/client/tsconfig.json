@@ -10,6 +10,8 @@
             "/jsm/libs/dat.gui.module.js":["../../node_modules/three/examples/jsm/libs/dat.gui.module"],
             "/jsm/controls/OrbitControls.js": ["../../node_modules/three/examples/jsm/controls/OrbitControls"],
             "/jsm/libs/stats.module.js":["../../node_modules/three/examples/jsm/libs/stats.module"],
+            "/jsm/webxr/VRButton.js":["../../node_modules/three/examples/jsm/webxr/VRButton"],
+
         },
         "moduleResolution": "node",
         "strict": true,

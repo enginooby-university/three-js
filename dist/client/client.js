@@ -4,6 +4,7 @@ import { OrbitControls } from '/jsm/controls/OrbitControls.js';
 import Stats from '/jsm/libs/stats.module.js';
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from './helpers/dat_helper.js';
+import { VRButton } from '/jsm/webxr/VRButton.js';
 let camera;
 const CAMERA_FOV = 50; //degrees
 const CAMERA_NEAR = 0.1;
@@ -16,6 +17,7 @@ const gui = new GUI();
 let statsGUIs = [];
 let controls;
 let sourceLink;
+const vrButton = VRButton.createButton(renderer);
 const SOURCE_LINK_BASE = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/tasks/';
 const STATS_WIDTH = '100%';
 const STATS_HEIGHT = '100%';
@@ -31,6 +33,9 @@ animate();
 function init() {
     camera = createCamera();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(vrButton);
+    vrButton.style.marginBottom = "80px";
     //document.body.appendChild(renderer.domElement)
     controls = new OrbitControls(camera, renderer.domElement);
     controls.maxDistance = 300;
