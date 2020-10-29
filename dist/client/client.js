@@ -7,7 +7,7 @@ import * as DatHelper from './helpers/dat_helper.js';
 import { VRButton } from '/jsm/webxr/VRButton.js';
 let camera;
 const CAMERA_FOV = 50; //degrees
-const CAMERA_NEAR = 0.1;
+const CAMERA_NEAR = 0.001;
 const CAMERA_FAR = 1000;
 let currentScene;
 let currentSceneIndex = 0;

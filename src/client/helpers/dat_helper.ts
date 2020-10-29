@@ -3,7 +3,6 @@ import * as THREE from '/build/three.module.js'
 
 export function createObjectFolder(gui: GUI, object: THREE.Object3D, objectName: string) {
     const objectFolder = gui.addFolder(objectName)
-
     createObjectPositionFolder(objectFolder, object)
     createObjectRotationFolder(objectFolder, object)
     createObjectScaleFolder(objectFolder, object)
@@ -12,17 +11,16 @@ export function createObjectFolder(gui: GUI, object: THREE.Object3D, objectName:
     return objectFolder
 }
 
-export function createCameraFolder(gui: GUI, object: THREE.PerspectiveCamera, objectName: string) {
-    const objectFolder = gui.addFolder(objectName)
-    objectFolder.open()
+export function createCameraFolder(gui: GUI, perspectiveCamera: THREE.PerspectiveCamera, cameraName: string) {
+    const cameraFolder = gui.addFolder(cameraName)
+    createObjectPositionFolder(cameraFolder, perspectiveCamera).open()
+    createObjectRotationFolder(cameraFolder, perspectiveCamera).open()
+    cameraFolder.add(perspectiveCamera, "fov", 40, 120, 0.1).onChange(() => perspectiveCamera.updateProjectionMatrix())
+    cameraFolder.add(perspectiveCamera, "near", 0.001, 100, 0.1).onChange(() => perspectiveCamera.updateProjectionMatrix())
+    cameraFolder.add(perspectiveCamera, "far", 100, 10000, 1).onChange(() => perspectiveCamera.updateProjectionMatrix())
+    cameraFolder.open()
 
-    createObjectPositionFolder(objectFolder, object).open()
-    createObjectRotationFolder(objectFolder, object).open()
-    objectFolder.add(object, "fov", 40, 120, 0.1).onChange(() => object.updateProjectionMatrix())
-    objectFolder.add(object, "near", 0.1, 100, 0.1).onChange(() => object.updateProjectionMatrix())
-    objectFolder.add(object, "far", 100, 10000, 1).onChange(() => object.updateProjectionMatrix())
-
-    return objectFolder
+    return cameraFolder
 }
 
 export function createMeshPhysicalMaterialFolder(gui: GUI, mesh: THREE.Mesh, meshName: string) {
@@ -33,18 +31,39 @@ export function createMeshPhysicalMaterialFolder(gui: GUI, mesh: THREE.Mesh, mes
 }
 
 export function createPhysicalMaterialFolder(gui: GUI, material: THREE.MeshPhysicalMaterial) {
-    const materialFolder = gui.addFolder("Physical material")
-    // objectFolder.addColor(object, 'color').onChange(() => { object.color.setHex(Number(object.color.getHex().toString().replace('#', '0x'))) });
-    // objectFolder.addColor(object, 'emissive').onChange(() => { object.emissive.setHex(Number(object.emissive.getHex().toString().replace('#', '0x'))) });
+    const data = {
+        color: material.color.getHex(),
+        emissive: material.emissive.getHex(),
+    };
+
+    const materialFolder = gui.addFolder('MeshPhysicalMaterial');
     materialFolder.add(material, 'wireframe');
-    materialFolder.add(material, 'flatShading').onChange(() => updateMaterial(material))
-    materialFolder.add(material, 'reflectivity', 0, 1);
-    materialFolder.add(material, 'refractionRatio', 0, 1);
+    materialFolder.add(material, 'fog');
+    materialFolder.addColor(data, 'color').onChange(handleColorChange(material.color));
+    materialFolder.addColor(data, 'emissive').onChange(handleColorChange(material.emissive));
     materialFolder.add(material, 'roughness', 0, 1);
     materialFolder.add(material, 'metalness', 0, 1);
-    materialFolder.add(material, 'clearcoat', 0, 1, 0.01)
-    materialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
+    materialFolder.add(material, 'reflectivity', 0, 1);
+    materialFolder.add(material, 'clearcoat', 0, 1).step(0.01);
+    materialFolder.add(material, 'clearcoatRoughness', 0, 1).step(0.01);
+    materialFolder.add(material, 'wireframeLinewidth', 0, 10);
     materialFolder.open()
+
+    return materialFolder
+}
+
+function handleColorChange(color: THREE.Color) {
+    return function (value: any) {
+        if (typeof value === 'string') {
+            value = value.replace('#', '0x');
+        }
+        color.setHex(value);
+    };
+}
+
+function updateMaterial(material: THREE.Material) {
+    material.side = Number(material.side)
+    material.needsUpdate = true
 }
 
 function createObjectPositionFolder(parentFolder: GUI, object: THREE.Object3D) {
@@ -72,9 +91,4 @@ function createObjectRotationFolder(parentFolder: GUI, object: THREE.Object3D) {
     objectRotationFolder.add(object.rotation, "z", 0, Math.PI * 2, 0.01)
 
     return objectRotationFolder
-}
-
-function updateMaterial(material: THREE.Material) {
-    material.side = Number(material.side)
-    material.needsUpdate = true
 }

@@ -8,7 +8,7 @@ import { VRButton } from '/jsm/webxr/VRButton.js'
 
 let camera: THREE.PerspectiveCamera
 const CAMERA_FOV: number = 50 //degrees
-const CAMERA_NEAR: number = 0.1
+const CAMERA_NEAR: number = 0.001
 const CAMERA_FAR: number = 1000
 
 let currentScene: THREE.Scene
