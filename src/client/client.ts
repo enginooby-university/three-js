@@ -39,6 +39,7 @@ animate()
 function init() {
     camera = createCamera()
     renderer.setSize(window.innerWidth, window.innerHeight)
+    // renderer.outputEncoding = THREE.sRGBEncoding
     renderer.xr.enabled = true
     document.body.appendChild(vrButton)
     vrButton.style.marginBottom = "80px"
@@ -143,6 +144,10 @@ for (let i = 0; i < taskButtons.length; i++) {
     })
 }
 
+
+/* END EVENTS */
+
+/* BUTTONS */
 const sourceButton: HTMLElement = document.getElementById('source-link')!
 sourceButton.onclick = function () {
     window.open(
@@ -150,7 +155,26 @@ sourceButton.onclick = function () {
         '_blank'
     )
 }
-/* END EVENTS */
+
+const captureButton = document.querySelector('#screenshot')!
+captureButton.addEventListener('click', () => {
+    render();
+    canvas.toBlob((blob) => {
+        saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
+    });
+});
+
+const saveBlob = (function () {
+    const a = document.createElement('a');
+    document.body.appendChild(a);
+    a.style.display = 'none';
+    return function saveData(blob: Blob | null, fileName: string) {
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = fileName;
+        a.click();
+    };
+}());
 
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn")!

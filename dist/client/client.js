@@ -33,6 +33,7 @@ animate();
 function init() {
     camera = createCamera();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // renderer.outputEncoding = THREE.sRGBEncoding
     renderer.xr.enabled = true;
     document.body.appendChild(vrButton);
     vrButton.style.marginBottom = "80px";
@@ -124,11 +125,30 @@ for (let i = 0; i < taskButtons.length; i++) {
         switchScene(i);
     });
 }
+/* END EVENTS */
+/* BUTTONS */
 const sourceButton = document.getElementById('source-link');
 sourceButton.onclick = function () {
     window.open(sourceLink, '_blank');
 };
-/* END EVENTS */
+const captureButton = document.querySelector('#screenshot');
+captureButton.addEventListener('click', () => {
+    render();
+    canvas.toBlob((blob) => {
+        saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
+    });
+});
+const saveBlob = (function () {
+    const a = document.createElement('a');
+    document.body.appendChild(a);
+    a.style.display = 'none';
+    return function saveData(blob, fileName) {
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = fileName;
+        a.click();
+    };
+}());
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn");
 sidebarOpenButton.addEventListener('click', openNav, false);
