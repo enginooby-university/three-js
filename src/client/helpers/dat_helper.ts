@@ -25,11 +25,33 @@ export function createCameraFolder(gui: GUI, object: THREE.PerspectiveCamera, ob
     return objectFolder
 }
 
+export function createMeshPhysicalMaterialFolder(gui: GUI, mesh: THREE.Mesh, meshName: string) {
+    const meshFolder = createObjectFolder(gui, mesh, meshName)
+    createPhysicalMaterialFolder(meshFolder, <THREE.MeshPhysicalMaterial>mesh.material)
+
+    return meshFolder
+}
+
+export function createPhysicalMaterialFolder(gui: GUI, material: THREE.MeshPhysicalMaterial) {
+    const materialFolder = gui.addFolder("Physical material")
+    // objectFolder.addColor(object, 'color').onChange(() => { object.color.setHex(Number(object.color.getHex().toString().replace('#', '0x'))) });
+    // objectFolder.addColor(object, 'emissive').onChange(() => { object.emissive.setHex(Number(object.emissive.getHex().toString().replace('#', '0x'))) });
+    materialFolder.add(material, 'wireframe');
+    materialFolder.add(material, 'flatShading').onChange(() => updateMaterial(material))
+    materialFolder.add(material, 'reflectivity', 0, 1);
+    materialFolder.add(material, 'refractionRatio', 0, 1);
+    materialFolder.add(material, 'roughness', 0, 1);
+    materialFolder.add(material, 'metalness', 0, 1);
+    materialFolder.add(material, 'clearcoat', 0, 1, 0.01)
+    materialFolder.add(material, 'clearcoatRoughness', 0, 1, 0.01)
+    materialFolder.open()
+}
+
 function createObjectPositionFolder(parentFolder: GUI, object: THREE.Object3D) {
     const objectPositionFolder = parentFolder.addFolder("position")
-    objectPositionFolder.add(object.position, "x", 0, 10, 0.01)
-    objectPositionFolder.add(object.position, "y", 0, 10, 0.01)
-    objectPositionFolder.add(object.position, "z", 0, 10, 0.01)
+    objectPositionFolder.add(object.position, "x", -10, 10, 0.01)
+    objectPositionFolder.add(object.position, "y", -10, 10, 0.01)
+    objectPositionFolder.add(object.position, "z", -10, 10, 0.01)
 
     return objectPositionFolder
 }
@@ -50,4 +72,9 @@ function createObjectRotationFolder(parentFolder: GUI, object: THREE.Object3D) {
     objectRotationFolder.add(object.rotation, "z", 0, Math.PI * 2, 0.01)
 
     return objectRotationFolder
+}
+
+function updateMaterial(material: THREE.Material) {
+    material.side = Number(material.side)
+    material.needsUpdate = true
 }

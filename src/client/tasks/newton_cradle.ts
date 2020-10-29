@@ -29,19 +29,47 @@ const options = {
     }
 }
 
+const BALL_RADIUS: number = 0.5
+let sphereGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
+let physicalMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
+
+const directionalLight = new THREE.DirectionalLight()
+const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
+
 init()
 
 export function init() {
     generateSkybox()
+
+    physicalMaterial.metalness = 1
+    physicalMaterial.roughness = 0.6
+    createBall(-2, 1, 0)
+    createBall(0, 1, 0)
+    createBall(2, 1, 0)
+
+    scene.add(directionalLight)
+    scene.add(directionalLightHelper)
 }
 
 export function createDatGUI() {
     gui = new GUI()
     gui.add(Name, 'Skybox', options.skybox).onChange(() => generateSkybox())
+    DatHelper.createPhysicalMaterialFolder(gui, physicalMaterial)
 }
 
 export function render() {
 
+}
+
+function createBall(x: number, y: number, z: number) {
+    const newBall: THREE.Mesh = new THREE.Mesh(sphereGeometry, physicalMaterial)
+    newBall.position.x = x
+    newBall.position.y = y
+    newBall.position.z = z
+
+    scene.add(newBall)
+
+    return newBall
 }
 
 function generateSkybox() {

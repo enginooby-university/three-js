@@ -1,4 +1,5 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
+import * as DatHelper from '../helpers/dat_helper.js';
 import * as THREE from '/build/three.module.js';
 export const scene = new THREE.Scene();
 export let gui;
@@ -21,15 +22,36 @@ const options = {
         "Dust": "dust",
     }
 };
+const BALL_RADIUS = 0.5;
+let sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
+let physicalMaterial = new THREE.MeshPhysicalMaterial({});
+const directionalLight = new THREE.DirectionalLight();
+const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
 init();
 export function init() {
     generateSkybox();
+    physicalMaterial.metalness = 1;
+    physicalMaterial.roughness = 0.6;
+    createBall(-2, 1, 0);
+    createBall(0, 1, 0);
+    createBall(2, 1, 0);
+    scene.add(directionalLight);
+    scene.add(directionalLightHelper);
 }
 export function createDatGUI() {
     gui = new GUI();
     gui.add(Name, 'Skybox', options.skybox).onChange(() => generateSkybox());
+    DatHelper.createPhysicalMaterialFolder(gui, physicalMaterial);
 }
 export function render() {
+}
+function createBall(x, y, z) {
+    const newBall = new THREE.Mesh(sphereGeometry, physicalMaterial);
+    newBall.position.x = x;
+    newBall.position.y = y;
+    newBall.position.z = z;
+    scene.add(newBall);
+    return newBall;
 }
 function generateSkybox() {
     loadTextures();
