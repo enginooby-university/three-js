@@ -106,7 +106,12 @@ function createStatsGUI() {
 }
 
 function animate() {
-    requestAnimationFrame(animate)
+    if (renderer.xr.isPresenting) {
+        renderer.setAnimationLoop(animate)
+    } else {
+        requestAnimationFrame(animate)
+    }
+
     render()
     // controls.update()
     for (let i = 0; i < statsGUIs.length; i++) {
