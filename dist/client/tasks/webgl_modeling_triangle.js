@@ -24,6 +24,7 @@ export function init() {
 export function createDatGUI() {
     gui = new GUI();
     DatHelper.createObjectFolder(gui, triangle, "Triangle");
+    DatHelper.createMaterialFolder(gui, material);
 }
 export function render() {
 }

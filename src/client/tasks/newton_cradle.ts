@@ -43,6 +43,7 @@ export function init() {
 
     physicalMaterial.metalness = 1
     physicalMaterial.roughness = 0.6
+    physicalMaterial.transparent = true
     createBall(-2, 1, 0)
     createBall(0, 1, 0)
     createBall(2, 1, 0)
