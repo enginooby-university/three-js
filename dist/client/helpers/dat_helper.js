@@ -42,6 +42,24 @@ export function createPhysicalMaterialFolder(gui, material) {
     // physicalMaterialFolder.open()
     return physicalMaterialFolder;
 }
+export function createDirectionalLightFolder(gui, directionalLight) {
+    const data = {
+        color: directionalLight.color.getHex(),
+        shadowMapSizeWidth: 2048,
+        shadowMapSizeHeight: 2048,
+        mapsEnabled: true
+    };
+    const directionalLightFolder = gui.addFolder('THREE.DirectionalLight');
+    directionalLightFolder.add(directionalLight.shadow.camera, "left", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix());
+    directionalLightFolder.add(directionalLight.shadow.camera, "right", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix());
+    directionalLightFolder.add(directionalLight.shadow.camera, "top", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix());
+    directionalLightFolder.add(directionalLight.shadow.camera, "bottom", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix());
+    directionalLightFolder.add(directionalLight.shadow.camera, "near", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix());
+    directionalLightFolder.add(directionalLight.shadow.camera, "far", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix());
+    directionalLightFolder.add(data, "shadowMapSizeWidth", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data));
+    directionalLightFolder.add(data, "shadowMapSizeHeight", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data));
+    createObjectPositionFolder(directionalLightFolder, directionalLight);
+}
 /* UPDATE HELPERS */
 function handleColorChange(color) {
     return function (value) {
@@ -54,6 +72,11 @@ function handleColorChange(color) {
 function updateMaterial(material) {
     material.side = Number(material.side);
     material.needsUpdate = true;
+}
+function updateShadowMapSize(directionalLight, data) {
+    directionalLight.shadow.mapSize.width = data.shadowMapSizeWidth;
+    directionalLight.shadow.mapSize.height = data.shadowMapSizeHeight;
+    directionalLight.shadow.map = null;
 }
 /* SUB-FOLDERS */
 export function createMaterialFolder(gui, material) {
@@ -77,9 +100,9 @@ export function createMaterialFolder(gui, material) {
 }
 function createObjectPositionFolder(parentFolder, object) {
     const objectPositionFolder = parentFolder.addFolder("position");
-    objectPositionFolder.add(object.position, "x", -10, 10, 0.01);
-    objectPositionFolder.add(object.position, "y", -10, 10, 0.01);
-    objectPositionFolder.add(object.position, "z", -10, 10, 0.01);
+    objectPositionFolder.add(object.position, "x", -50, 50, 0.01);
+    objectPositionFolder.add(object.position, "y", -50, 50, 0.01);
+    objectPositionFolder.add(object.position, "z", -50, 50, 0.01);
     return objectPositionFolder;
 }
 function createObjectScaleFolder(parentFolder, object) {

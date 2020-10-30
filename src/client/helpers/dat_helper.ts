@@ -53,6 +53,26 @@ export function createPhysicalMaterialFolder(gui: GUI, material: THREE.MeshPhysi
     return physicalMaterialFolder
 }
 
+export function createDirectionalLightFolder(gui: GUI, directionalLight: THREE.DirectionalLight) {
+    const data = {
+        color: directionalLight.color.getHex(),
+        shadowMapSizeWidth: 2048,
+        shadowMapSizeHeight: 2048,
+        mapsEnabled: true
+    };
+
+    const directionalLightFolder = gui.addFolder('THREE.DirectionalLight')
+    directionalLightFolder.add(directionalLight.shadow.camera, "left", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    directionalLightFolder.add(directionalLight.shadow.camera, "right", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    directionalLightFolder.add(directionalLight.shadow.camera, "top", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    directionalLightFolder.add(directionalLight.shadow.camera, "bottom", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    directionalLightFolder.add(directionalLight.shadow.camera, "near", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    directionalLightFolder.add(directionalLight.shadow.camera, "far", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    directionalLightFolder.add(data, "shadowMapSizeWidth", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data))
+    directionalLightFolder.add(data, "shadowMapSizeHeight", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data))
+    createObjectPositionFolder(directionalLightFolder, directionalLight)
+}
+
 /* UPDATE HELPERS */
 
 function handleColorChange(color: THREE.Color) {
@@ -69,16 +89,22 @@ function updateMaterial(material: THREE.Material) {
     material.needsUpdate = true
 }
 
+function updateShadowMapSize(directionalLight: THREE.DirectionalLight, data: any) {
+    directionalLight.shadow.mapSize.width = data.shadowMapSizeWidth
+    directionalLight.shadow.mapSize.height = data.shadowMapSizeHeight;
+    (directionalLight.shadow.map as any) = null;
+}
+
 /* SUB-FOLDERS */
 
 export function createMaterialFolder(gui: GUI, material: THREE.Material) {
     const materialFolder = gui.addFolder('THREE.Material');
     materialFolder.add(material, 'transparent');
     materialFolder.add(material, 'opacity', 0, 1).step(0.01);
-    materialFolder.add( material, 'blending', constants.blendingMode );
-    materialFolder.add( material, 'blendSrc', constants.destinationFactors );
-    materialFolder.add( material, 'blendDst', constants.destinationFactors );
-    materialFolder.add( material, 'blendEquation', constants.equations );
+    materialFolder.add(material, 'blending', constants.blendingMode);
+    materialFolder.add(material, 'blendSrc', constants.destinationFactors);
+    materialFolder.add(material, 'blendDst', constants.destinationFactors);
+    materialFolder.add(material, 'blendEquation', constants.equations);
     materialFolder.add(material, 'depthTest');
     materialFolder.add(material, 'depthWrite');
     materialFolder.add(material, 'polygonOffset');
@@ -94,9 +120,9 @@ export function createMaterialFolder(gui: GUI, material: THREE.Material) {
 
 function createObjectPositionFolder(parentFolder: GUI, object: THREE.Object3D) {
     const objectPositionFolder = parentFolder.addFolder("position")
-    objectPositionFolder.add(object.position, "x", -10, 10, 0.01)
-    objectPositionFolder.add(object.position, "y", -10, 10, 0.01)
-    objectPositionFolder.add(object.position, "z", -10, 10, 0.01)
+    objectPositionFolder.add(object.position, "x", -50, 50, 0.01)
+    objectPositionFolder.add(object.position, "y", -50, 50, 0.01)
+    objectPositionFolder.add(object.position, "z", -50, 50, 0.01)
 
     return objectPositionFolder
 }
