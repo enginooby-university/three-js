@@ -1,6 +1,7 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
+import { createLessThan } from 'typescript'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let gui: GUI
@@ -32,6 +33,7 @@ const options = {
 const BALL_RADIUS: number = 0.5
 let sphereGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
 let physicalMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
+let ball1: THREE.Mesh
 
 const directionalLight = new THREE.DirectionalLight()
 const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
@@ -39,7 +41,10 @@ const lightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
 
 let plane: THREE.Mesh
 const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(10, 10)
-const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({color: 0xdddddd})
+const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd })
+
+const ROPE_LENGHT: number = 3.5
+let rope1: THREE.Mesh
 
 init()
 
@@ -49,9 +54,13 @@ export function init() {
     physicalMaterial.metalness = 1
     physicalMaterial.roughness = 0.6
     physicalMaterial.transparent = true
-    createBall(-2, 1, 0)
+    ball1 = createBall(-(BALL_RADIUS * 2), 1, 0)
     createBall(0, 1, 0)
-    createBall(2, 1, 0)
+    createBall(BALL_RADIUS * 2, 1, 0)
+
+    rope1 = createRope(-(BALL_RADIUS * 2), 5, 0)
+    createRope(0, 5, 0)
+    createRope((BALL_RADIUS * 2), 5, 0)
 
     directionalLight.position.set(4.5, 21, 13)
     directionalLight.castShadow = true;
@@ -78,24 +87,39 @@ export function createDatGUI() {
     DatHelper.createDirectionalLightFolder(gui, directionalLight)
     const ballFolder: GUI = gui.addFolder("Balls")
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial)
-    DatHelper.createObjectFolder(gui, plane, 'Floor')   
+    DatHelper.createObjectFolder(gui, plane, 'Floor')
+    // sphereGeometry.translate(0, ROPE_LENGHT / 2, 0)
+    DatHelper.createObjectFolder(gui, ball1, "Ball 1")
+    DatHelper.createObjectFolder(gui, rope1, "Rope 1")
 }
 
 export function render() {
     lightShadowHelper.update()
-
+    // rope1.rotation.z += 0.01
 }
 
 function createBall(x: number, y: number, z: number) {
     const newBall: THREE.Mesh = new THREE.Mesh(sphereGeometry, physicalMaterial)
-    newBall.position.x = x
-    newBall.position.y = y
-    newBall.position.z = z
+    newBall.position.set(x, y, z)
     newBall.castShadow = true
 
     scene.add(newBall)
 
     return newBall
+}
+
+function createRope(x: number, y: number, z: number) {
+    const ropeGeometry: THREE.CylinderGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT)
+    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
+    const ropeMaterial: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A })
+
+    const newRope: THREE.Mesh = new THREE.Mesh(ropeGeometry, ropeMaterial)
+    // newRope.position.y = 1.5
+    newRope.position.set(x, y, z)
+    newRope.castShadow = true
+    scene.add(newRope)
+
+    return newRope
 }
 
 function generateSkybox() {

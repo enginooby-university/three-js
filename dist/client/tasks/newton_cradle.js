@@ -25,21 +25,27 @@ const options = {
 const BALL_RADIUS = 0.5;
 let sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
 let physicalMaterial = new THREE.MeshPhysicalMaterial({});
+let ball1;
 const directionalLight = new THREE.DirectionalLight();
 const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
 const lightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
 let plane;
 const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+const ROPE_LENGHT = 3.5;
+let rope1;
 init();
 export function init() {
     generateSkybox();
     physicalMaterial.metalness = 1;
     physicalMaterial.roughness = 0.6;
     physicalMaterial.transparent = true;
-    createBall(-2, 1, 0);
+    ball1 = createBall(-(BALL_RADIUS * 2), 1, 0);
     createBall(0, 1, 0);
-    createBall(2, 1, 0);
+    createBall(BALL_RADIUS * 2, 1, 0);
+    rope1 = createRope(-(BALL_RADIUS * 2), 5, 0);
+    createRope(0, 5, 0);
+    createRope((BALL_RADIUS * 2), 5, 0);
     directionalLight.position.set(4.5, 21, 13);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
@@ -63,18 +69,31 @@ export function createDatGUI() {
     const ballFolder = gui.addFolder("Balls");
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial);
     DatHelper.createObjectFolder(gui, plane, 'Floor');
+    // sphereGeometry.translate(0, ROPE_LENGHT / 2, 0)
+    DatHelper.createObjectFolder(gui, ball1, "Ball 1");
+    DatHelper.createObjectFolder(gui, rope1, "Rope 1");
 }
 export function render() {
     lightShadowHelper.update();
+    // rope1.rotation.z += 0.01
 }
 function createBall(x, y, z) {
     const newBall = new THREE.Mesh(sphereGeometry, physicalMaterial);
-    newBall.position.x = x;
-    newBall.position.y = y;
-    newBall.position.z = z;
+    newBall.position.set(x, y, z);
     newBall.castShadow = true;
     scene.add(newBall);
     return newBall;
+}
+function createRope(x, y, z) {
+    const ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
+    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
+    const ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A });
+    const newRope = new THREE.Mesh(ropeGeometry, ropeMaterial);
+    // newRope.position.y = 1.5
+    newRope.position.set(x, y, z);
+    newRope.castShadow = true;
+    scene.add(newRope);
+    return newRope;
 }
 function generateSkybox() {
     loadTextures();
