@@ -35,9 +35,11 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     // renderer.outputEncoding = THREE.sRGBEncoding
     renderer.xr.enabled = true;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+    //document.body.appendChild(renderer.domElement)
     document.body.appendChild(vrButton);
     vrButton.style.marginBottom = "80px";
-    //document.body.appendChild(renderer.domElement)
     controls = new OrbitControls(camera, renderer.domElement);
     controls.maxDistance = 300;
     createStatsGUI();
@@ -47,9 +49,7 @@ function init() {
 }
 function createCamera() {
     const newCamera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR);
-    newCamera.position.z = 5;
-    newCamera.position.y = 3;
-    newCamera.position.x = 3;
+    newCamera.position.set(3, 3, 5);
     cameraHelper = new THREE.CameraHelper(newCamera);
     cameraHelper.visible = false;
     return newCamera;

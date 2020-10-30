@@ -35,6 +35,11 @@ let physicalMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMateria
 
 const directionalLight = new THREE.DirectionalLight()
 const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
+const lightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+
+let plane: THREE.Mesh
+const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(10, 10)
+const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({color: 0xdddddd})
 
 init()
 
@@ -48,17 +53,36 @@ export function init() {
     createBall(0, 1, 0)
     createBall(2, 1, 0)
 
+    directionalLight.position.set(4.5, 21, 13)
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 2048
+    directionalLight.shadow.mapSize.height = 2048
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 100
+    directionalLight.shadow.camera.rotation.x = Math.PI / 2
+
     scene.add(directionalLight)
     scene.add(directionalLightHelper)
+    scene.add(lightShadowHelper);
+
+    plane = new THREE.Mesh(planeGeometry, planeMaterial)
+    plane.rotateX(-Math.PI / 2)
+    plane.position.y = -0.01
+    plane.receiveShadow = true;
+    scene.add(plane)
 }
 
 export function createDatGUI() {
     gui = new GUI()
     gui.add(Name, 'Skybox', options.skybox).onChange(() => generateSkybox())
-    DatHelper.createPhysicalMaterialFolder(gui, physicalMaterial)
+    DatHelper.createDirectionalLightFolder(gui, directionalLight)
+    const ballFolder: GUI = gui.addFolder("Balls")
+    DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial)
+    DatHelper.createObjectFolder(gui, plane, 'Floor')   
 }
 
 export function render() {
+    lightShadowHelper.update()
 
 }
 
@@ -67,6 +91,7 @@ function createBall(x: number, y: number, z: number) {
     newBall.position.x = x
     newBall.position.y = y
     newBall.position.z = z
+    newBall.castShadow = true
 
     scene.add(newBall)
 
