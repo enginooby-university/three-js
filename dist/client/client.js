@@ -49,7 +49,7 @@ function init() {
 }
 function createCamera() {
     const newCamera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR);
-    newCamera.position.set(3, 3, 5);
+    newCamera.position.set(6, 6, 10);
     cameraHelper = new THREE.CameraHelper(newCamera);
     cameraHelper.visible = false;
     return newCamera;

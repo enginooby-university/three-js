@@ -23,10 +23,12 @@ const options = {
     }
 };
 const BALL_RADIUS = 0.5;
-let sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
-let physicalMaterial = new THREE.MeshPhysicalMaterial({});
+const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
+const physicalMaterial = new THREE.MeshPhysicalMaterial({});
 let firstBall;
 let lastBall;
+const barGeometry = new THREE.BoxGeometry(10, 0.2, 0.2);
+const barMaterial = new THREE.MeshPhysicalMaterial({});
 const directionalLight = new THREE.DirectionalLight();
 const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
 const lightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
@@ -39,7 +41,7 @@ let firstRope;
 let lastRope;
 let ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
 let ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A });
-const ROTATE_SPEED = 0.02;
+const ROTATE_SPEED = 0.03;
 const MAX_ANGLE = 0.7;
 let firstRopeRotateVel;
 let lastRopeRotateVel;
@@ -49,6 +51,20 @@ export function init() {
     physicalMaterial.metalness = 1;
     physicalMaterial.roughness = 0.6;
     physicalMaterial.transparent = true;
+    barMaterial.metalness = 1;
+    barMaterial.roughness = 0.6;
+    barMaterial.transparent = true;
+    createBar(0, 5, 0);
+    const leftBar = createBar(0, 0, 0);
+    leftBar.rotation.z = Math.PI / 2;
+    leftBar.position.x = -4.90;
+    leftBar.position.y = 2.5;
+    leftBar.scale.x = 0.5;
+    const rightBar = createBar(0, 0, 0);
+    rightBar.rotation.z = Math.PI / 2;
+    rightBar.position.x = 4.90;
+    rightBar.position.y = 2.5;
+    rightBar.scale.x = 0.5;
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
     firstBall = createBall(-(BALL_RADIUS * 2), 1, 0);
     createBall(0, 1, 0);
@@ -83,6 +99,8 @@ export function createDatGUI() {
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial);
     const ropeFolder = gui.addFolder("Ropes");
     DatHelper.createMaterialFolder(ropeFolder, ropeMaterial);
+    const barFolder = gui.addFolder("Bars");
+    DatHelper.createPhysicalMaterialFolder(barFolder, barMaterial);
     const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor');
     DatHelper.createMaterialFolder(floorFolder, planeMaterial);
 }
@@ -128,6 +146,13 @@ function createRope(x, y, z) {
     newRope.castShadow = true;
     scene.add(newRope);
     return newRope;
+}
+function createBar(x, y, z) {
+    const newBar = new THREE.Mesh(barGeometry, barMaterial);
+    newBar.position.set(x, y, z);
+    newBar.castShadow = true;
+    scene.add(newBar);
+    return newBar;
 }
 function generateSkybox() {
     loadTextures();

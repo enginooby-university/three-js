@@ -30,10 +30,13 @@ const options = {
 }
 
 const BALL_RADIUS: number = 0.5
-let sphereGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
-let physicalMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
+const sphereGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
+const physicalMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
 let firstBall: THREE.Mesh
 let lastBall: THREE.Mesh
+
+const barGeometry: THREE.BoxGeometry = new THREE.BoxGeometry(10, 0.2, 0.2)
+const barMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
 
 const directionalLight = new THREE.DirectionalLight()
 const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
@@ -50,7 +53,7 @@ let lastRope: THREE.Mesh
 let ropeGeometry: THREE.CylinderGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT)
 let ropeMaterial: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A })
 
-const ROTATE_SPEED: number = 0.02
+const ROTATE_SPEED: number = 0.03
 const MAX_ANGLE: number = 0.7
 let firstRopeRotateVel: number
 let lastRopeRotateVel: number
@@ -63,6 +66,21 @@ export function init() {
     physicalMaterial.metalness = 1
     physicalMaterial.roughness = 0.6
     physicalMaterial.transparent = true
+
+    barMaterial.metalness = 1
+    barMaterial.roughness = 0.6
+    barMaterial.transparent = true
+    createBar(0, 5, 0)
+    const leftBar = createBar(0, 0, 0)
+    leftBar.rotation.z = Math.PI / 2
+    leftBar.position.x = -4.90
+    leftBar.position.y = 2.5
+    leftBar.scale.x = 0.5
+    const rightBar = createBar(0, 0, 0)
+    rightBar.rotation.z = Math.PI / 2
+    rightBar.position.x = 4.90
+    rightBar.position.y = 2.5
+    rightBar.scale.x = 0.5
 
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
 
@@ -105,10 +123,11 @@ export function createDatGUI() {
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial)
     const ropeFolder: GUI = gui.addFolder("Ropes")
     DatHelper.createMaterialFolder(ropeFolder, ropeMaterial)
+    const barFolder: GUI = gui.addFolder("Bars")
+    DatHelper.createPhysicalMaterialFolder(barFolder, barMaterial)
     const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor')
     DatHelper.createMaterialFolder(floorFolder, planeMaterial)
 }
-
 
 export function render() {
     lightShadowHelper.update()
@@ -161,6 +180,15 @@ function createRope(x: number, y: number, z: number) {
     scene.add(newRope)
 
     return newRope
+}
+
+function createBar(x: number, y: number, z: number) {
+    const newBar: THREE.Mesh = new THREE.Mesh(barGeometry, barMaterial)
+    newBar.position.set(x, y, z)
+    newBar.castShadow = true
+    scene.add(newBar)
+
+    return newBar
 }
 
 function generateSkybox() {
