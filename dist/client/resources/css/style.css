@@ -26,6 +26,10 @@ body {
     right: 95px !important;
 }
 
+#pause {
+    right: 155px !important;
+}
+
 .float:hover {
     background-color: rgb(226, 226, 226);
     cursor: pointer;

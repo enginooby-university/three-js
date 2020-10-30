@@ -9,6 +9,7 @@ let camera;
 const CAMERA_FOV = 50; //degrees
 const CAMERA_NEAR = 0.001;
 const CAMERA_FAR = 1000;
+let pause = false;
 let currentScene;
 let currentSceneIndex = 0;
 const canvas = document.getElementById("threejs-canvas");
@@ -105,7 +106,10 @@ function animate() {
     }
 }
 function render() {
-    Array.from(Tasks)[currentSceneIndex][0].render();
+    // only pause updating not rendering
+    if (!pause) {
+        Array.from(Tasks)[currentSceneIndex][0].render();
+    }
     renderer.render(currentScene, camera);
 }
 /* EVENTS */
@@ -149,6 +153,13 @@ const saveBlob = (function () {
         a.click();
     };
 }());
+const pauseButton = document.querySelector("#pause");
+const pauseIcon = document.querySelector('#pause-icon');
+pauseButton.addEventListener('click', function () {
+    pauseIcon.classList.toggle('fa-pause');
+    pauseIcon.classList.toggle('fa-play');
+    pause = !pause;
+});
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn");
 sidebarOpenButton.addEventListener('click', openNav, false);

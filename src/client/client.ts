@@ -11,6 +11,8 @@ const CAMERA_FOV: number = 50 //degrees
 const CAMERA_NEAR: number = 0.001
 const CAMERA_FAR: number = 1000
 
+let pause: boolean = false
+
 let currentScene: THREE.Scene
 let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
@@ -123,7 +125,10 @@ function animate() {
 }
 
 function render() {
-    Array.from(Tasks)[currentSceneIndex][0].render()
+    // only pause updating not rendering
+    if (!pause) {
+        Array.from(Tasks)[currentSceneIndex][0].render()
+    }
     renderer.render(currentScene, camera)
 }
 
@@ -177,6 +182,14 @@ const saveBlob = (function () {
         a.click();
     };
 }());
+
+const pauseButton = document.querySelector("#pause")!
+const pauseIcon = document.querySelector('#pause-icon')!
+pauseButton.addEventListener('click', function () {
+    pauseIcon.classList.toggle('fa-pause')
+    pauseIcon.classList.toggle('fa-play')
+    pause = !pause
+});
 
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn")!
