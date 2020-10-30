@@ -25,7 +25,8 @@ const options = {
 const BALL_RADIUS = 0.5;
 let sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
 let physicalMaterial = new THREE.MeshPhysicalMaterial({});
-let ball1;
+let firstBall;
+let lastBall;
 const directionalLight = new THREE.DirectionalLight();
 const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight);
 const lightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
@@ -33,19 +34,28 @@ let plane;
 const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
 const ROPE_LENGHT = 3.5;
-let rope1;
+const ROPE_TO_FLOOR = 5;
+let firstRope;
+let lastRope;
+const ROTATE_SPEED = 0.02;
+const MAX_ANGLE = 0.7;
+let firstRopeRotateVel;
+let lastRopeRotateVel;
 init();
 export function init() {
     generateSkybox();
     physicalMaterial.metalness = 1;
     physicalMaterial.roughness = 0.6;
     physicalMaterial.transparent = true;
-    ball1 = createBall(-(BALL_RADIUS * 2), 1, 0);
+    firstBall = createBall(-(BALL_RADIUS * 2), 1, 0);
     createBall(0, 1, 0);
-    createBall(BALL_RADIUS * 2, 1, 0);
-    rope1 = createRope(-(BALL_RADIUS * 2), 5, 0);
-    createRope(0, 5, 0);
-    createRope((BALL_RADIUS * 2), 5, 0);
+    lastBall = createBall(BALL_RADIUS * 2, 1, 0);
+    firstRope = createRope(-(BALL_RADIUS * 2), ROPE_TO_FLOOR, 0);
+    createRope(0, ROPE_TO_FLOOR, 0);
+    lastRope = createRope((BALL_RADIUS * 2), ROPE_TO_FLOOR, 0);
+    firstRope.rotation.z = -MAX_ANGLE;
+    firstRopeRotateVel = ROTATE_SPEED;
+    lastRopeRotateVel = 0;
     directionalLight.position.set(4.5, 21, 13);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
@@ -70,12 +80,37 @@ export function createDatGUI() {
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial);
     DatHelper.createObjectFolder(gui, plane, 'Floor');
     // sphereGeometry.translate(0, ROPE_LENGHT / 2, 0)
-    DatHelper.createObjectFolder(gui, ball1, "Ball 1");
-    DatHelper.createObjectFolder(gui, rope1, "Rope 1");
+    DatHelper.createObjectFolder(gui, firstBall, "Ball 1");
+    DatHelper.createObjectFolder(gui, firstRope, "Rope 1");
 }
 export function render() {
     lightShadowHelper.update();
-    // rope1.rotation.z += 0.01
+    // when last ball&rope is staying
+    if (lastRopeRotateVel == 0) {
+        if (firstRope.rotation.z >= 0) {
+            firstRopeRotateVel = 0;
+            lastRopeRotateVel = ROTATE_SPEED;
+        }
+        if (firstRope.rotation.z <= -MAX_ANGLE) {
+            firstRopeRotateVel = ROTATE_SPEED;
+        }
+        // when first ball&rope is staying
+    }
+    else if (firstRopeRotateVel == 0) {
+        if (lastRope.rotation.z <= 0) {
+            firstRopeRotateVel = -ROTATE_SPEED;
+            lastRopeRotateVel = 0;
+        }
+        if (lastRope.rotation.z >= MAX_ANGLE) {
+            lastRopeRotateVel = -ROTATE_SPEED;
+        }
+    }
+    firstRope.rotation.z += firstRopeRotateVel;
+    lastRope.rotation.z += lastRopeRotateVel;
+    firstBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstRope.rotation.z) - BALL_RADIUS * 2; // original x of first ball
+    firstBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstRope.rotation.z);
+    lastBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastRope.rotation.z) + BALL_RADIUS * 2;
+    lastBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastRope.rotation.z);
 }
 function createBall(x, y, z) {
     const newBall = new THREE.Mesh(sphereGeometry, physicalMaterial);
