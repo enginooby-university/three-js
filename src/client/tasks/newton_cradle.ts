@@ -47,6 +47,8 @@ const ROPE_LENGHT: number = 3.5
 const ROPE_TO_FLOOR: number = 5
 let firstRope: THREE.Mesh
 let lastRope: THREE.Mesh
+let ropeGeometry: THREE.CylinderGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT)
+let ropeMaterial: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A })
 
 const ROTATE_SPEED: number = 0.02
 const MAX_ANGLE: number = 0.7
@@ -62,9 +64,11 @@ export function init() {
     physicalMaterial.roughness = 0.6
     physicalMaterial.transparent = true
 
+    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
+
     firstBall = createBall(-(BALL_RADIUS * 2), 1, 0)
     createBall(0, 1, 0)
-    lastBall=createBall(BALL_RADIUS * 2, 1, 0)
+    lastBall = createBall(BALL_RADIUS * 2, 1, 0)
 
     firstRope = createRope(-(BALL_RADIUS * 2), ROPE_TO_FLOOR, 0)
     createRope(0, ROPE_TO_FLOOR, 0)
@@ -99,10 +103,10 @@ export function createDatGUI() {
     DatHelper.createDirectionalLightFolder(gui, directionalLight)
     const ballFolder: GUI = gui.addFolder("Balls")
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial)
-    DatHelper.createObjectFolder(gui, plane, 'Floor')
-    // sphereGeometry.translate(0, ROPE_LENGHT / 2, 0)
-    DatHelper.createObjectFolder(gui, firstBall, "Ball 1")
-    DatHelper.createObjectFolder(gui, firstRope, "Rope 1")
+    const ropeFolder: GUI = gui.addFolder("Ropes")
+    DatHelper.createMaterialFolder(ropeFolder, ropeMaterial)
+    const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor')
+    DatHelper.createMaterialFolder(floorFolder, planeMaterial)
 }
 
 
@@ -151,12 +155,7 @@ function createBall(x: number, y: number, z: number) {
 }
 
 function createRope(x: number, y: number, z: number) {
-    const ropeGeometry: THREE.CylinderGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT)
-    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
-    const ropeMaterial: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A })
-
     const newRope: THREE.Mesh = new THREE.Mesh(ropeGeometry, ropeMaterial)
-    // newRope.position.y = 1.5
     newRope.position.set(x, y, z)
     newRope.castShadow = true
     scene.add(newRope)

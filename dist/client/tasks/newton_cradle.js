@@ -37,6 +37,8 @@ const ROPE_LENGHT = 3.5;
 const ROPE_TO_FLOOR = 5;
 let firstRope;
 let lastRope;
+let ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
+let ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A });
 const ROTATE_SPEED = 0.02;
 const MAX_ANGLE = 0.7;
 let firstRopeRotateVel;
@@ -47,6 +49,7 @@ export function init() {
     physicalMaterial.metalness = 1;
     physicalMaterial.roughness = 0.6;
     physicalMaterial.transparent = true;
+    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
     firstBall = createBall(-(BALL_RADIUS * 2), 1, 0);
     createBall(0, 1, 0);
     lastBall = createBall(BALL_RADIUS * 2, 1, 0);
@@ -78,10 +81,10 @@ export function createDatGUI() {
     DatHelper.createDirectionalLightFolder(gui, directionalLight);
     const ballFolder = gui.addFolder("Balls");
     DatHelper.createPhysicalMaterialFolder(ballFolder, physicalMaterial);
-    DatHelper.createObjectFolder(gui, plane, 'Floor');
-    // sphereGeometry.translate(0, ROPE_LENGHT / 2, 0)
-    DatHelper.createObjectFolder(gui, firstBall, "Ball 1");
-    DatHelper.createObjectFolder(gui, firstRope, "Rope 1");
+    const ropeFolder = gui.addFolder("Ropes");
+    DatHelper.createMaterialFolder(ropeFolder, ropeMaterial);
+    const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor');
+    DatHelper.createMaterialFolder(floorFolder, planeMaterial);
 }
 export function render() {
     lightShadowHelper.update();
@@ -120,11 +123,7 @@ function createBall(x, y, z) {
     return newBall;
 }
 function createRope(x, y, z) {
-    const ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
-    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
-    const ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A });
     const newRope = new THREE.Mesh(ropeGeometry, ropeMaterial);
-    // newRope.position.y = 1.5
     newRope.position.set(x, y, z);
     newRope.castShadow = true;
     scene.add(newRope);
