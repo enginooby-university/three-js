@@ -17,8 +17,9 @@ let texture_lf: THREE.Texture
 
 let materialArray: THREE.MeshBasicMaterial[]
 
-let Name = {
-    Skybox: "arid"
+let Data = {
+    Skybox: "arid",
+    BallAmount: 3,
 }
 
 const options = {
@@ -29,7 +30,9 @@ const options = {
     }
 }
 
-const BALL_AMOUNT: number = 3
+let cradle: THREE.Group // including balls, ropes, bars
+
+let ballAmount: number = 3
 const BALL_RADIUS: number = 0.5
 const sphereGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
 const ballMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
@@ -63,16 +66,20 @@ init()
 
 export function init() {
     generateSkybox()
-    createBalls(BALL_AMOUNT)
-    createRopes(BALL_AMOUNT)
-    createBars()
+    // change ropes' origin (pivot) for rotation
+    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
+    createCralde(ballAmount)
     createLight()
     createFloor()
 }
 
 export function createDatGUI() {
     gui = new GUI()
-    gui.add(Name, 'Skybox', options.skybox).onChange(() => generateSkybox())
+    gui.add(Data, 'Skybox', options.skybox).onChange(() => generateSkybox())
+    gui.add(Data, 'BallAmount', 3, 10, 1).onChange(() => {
+        ballAmount = Data.BallAmount;
+        createCralde(ballAmount)
+    })
     DatHelper.createDirectionalLightFolder(gui, directionalLight)
     const ballFolder: GUI = gui.addFolder("Balls")
     DatHelper.createPhysicalMaterialFolder(ballFolder, ballMaterial)
@@ -115,9 +122,9 @@ export function render() {
     lastRope.rotation.z += lastRopeRotateVel
 
     // update first and last ball positions
-    firstBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstRope.rotation.z) + BALL_RADIUS * (1 - BALL_AMOUNT + 2 * 0) // original x of first ball
+    firstBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstRope.rotation.z) + BALL_RADIUS * (1 - ballAmount + 2 * 0) // original x of first ball
     firstBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstRope.rotation.z)
-    lastBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastRope.rotation.z) + BALL_RADIUS * (1 - BALL_AMOUNT + 2 * (BALL_AMOUNT - 1)) // original x of last ball
+    lastBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastRope.rotation.z) + BALL_RADIUS * (1 - ballAmount + 2 * (ballAmount - 1)) // original x of last ball
     lastBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastRope.rotation.z)
 }
 
@@ -143,6 +150,18 @@ function createFloor() {
     scene.add(plane)
 }
 
+function createCralde(ballAmount: number) {
+    scene.remove(cradle)
+    const newCradle: THREE.Group = new THREE.Group()
+
+    newCradle.add(createBalls(ballAmount))
+    newCradle.add(createRopes(ballAmount))
+    newCradle.add(createBars())
+
+    cradle = newCradle
+    scene.add(cradle)
+}
+
 function createBalls(amount: number) {
     const balls: THREE.Group = new THREE.Group()
     ballMaterial.metalness = 1
@@ -153,66 +172,84 @@ function createBalls(amount: number) {
         const xBall: number = BALL_RADIUS * (1 - amount + 2 * i)
         if (i == 0) {
             firstBall = createBall(xBall, 1, 0)
+            balls.add(firstBall)
         } else if (i == amount - 1) {
             lastBall = createBall(xBall, 1, 0)
+            balls.add(lastBall)
         } else {
-            createBall(xBall, 1, 0)
+            balls.add(createBall(xBall, 1, 0))
         }
     }
+
+    return balls
 }
 
 function createBall(x: number, y: number, z: number) {
     const newBall: THREE.Mesh = new THREE.Mesh(sphereGeometry, ballMaterial)
     newBall.position.set(x, y, z)
     newBall.castShadow = true
-    scene.add(newBall)
+    // scene.add(newBall)
 
     return newBall
 }
 
 function createRopes(amount: number) {
-    ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
+    const ropes: THREE.Group = new THREE.Group()
 
     for (let i = 0; i < amount; i++) {
         const xRope = BALL_RADIUS * (1 - amount + 2 * i)
         if (i == 0) {
             firstRope = createRope(xRope, ROPE_TO_FLOOR, 0)
+            ropes.add(firstRope)
         } else if (i == amount - 1) {
             lastRope = createRope(xRope, ROPE_TO_FLOOR, 0)
+            ropes.add(lastRope)
         } else {
-            createRope(xRope, ROPE_TO_FLOOR, 0)
+            ropes.add(createRope(xRope, ROPE_TO_FLOOR, 0))
         }
     }
 
+    // init rotations
     firstRope.rotation.z = -MAX_ANGLE
     firstRopeRotateVel = ROTATE_SPEED
     lastRopeRotateVel = 0
+
+    return ropes
 }
 
 function createRope(x: number, y: number, z: number) {
     const newRope: THREE.Mesh = new THREE.Mesh(ropeGeometry, ropeMaterial)
     newRope.position.set(x, y, z)
     newRope.castShadow = true
-    scene.add(newRope)
+    // scene.add(newRope)
 
     return newRope
 }
 
 function createBars() {
+    const bars: THREE.Group = new THREE.Group()
+
     barMaterial.metalness = 1
     barMaterial.roughness = 0.6
     barMaterial.transparent = true
-    createBar(0, 5, 0)
+
+    bars.add(createBar(0, 5, 0))
+
     const leftBar = createBar(0, 0, 0)
     leftBar.rotation.z = Math.PI / 2
     leftBar.position.x = -4.90
     leftBar.position.y = 2.5
     leftBar.scale.x = 0.5
+    bars.add(leftBar)
+
     const rightBar = createBar(0, 0, 0)
     rightBar.rotation.z = Math.PI / 2
     rightBar.position.x = 4.90
     rightBar.position.y = 2.5
     rightBar.scale.x = 0.5
+    bars.add(rightBar)
+
+    return bars
 }
 
 function createBar(x: number, y: number, z: number) {
@@ -256,5 +293,5 @@ function loadTextures() {
 }
 
 function getTexturePath(texturePosition: string) {
-    return `./resources/textures/${Name.Skybox}/${Name.Skybox}_${texturePosition}.jpg`
+    return `./resources/textures/${Data.Skybox}/${Data.Skybox}_${texturePosition}.jpg`
 }
