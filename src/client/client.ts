@@ -53,9 +53,9 @@ function init() {
     controls = new OrbitControls(camera, renderer.domElement)
     controls.maxDistance = 300
     createStatsGUI()
-    switchScene(2)
     createHelperGUIFolder()
     DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
+    switchScene(2)
 }
 
 function createCamera() {
@@ -78,17 +78,23 @@ function createHelperGUIFolder() {
 }
 
 function switchScene(scenceIndex: number) {
+    const currentTask: any = Array.from(Tasks)[scenceIndex][0]
+    if(!currentTask.isInitialized){
+        currentTask.init()
+    }
+
     // destroy Dat GUI for previous scene (if it exists)
     if (typeof (Array.from(Tasks)[currentSceneIndex][0].gui) !== 'undefined') {
         (Array.from(Tasks)[currentSceneIndex][0].gui as GUI).destroy()
     }
+
     currentSceneIndex = scenceIndex
     // create Dat GUI for current scene
-    Array.from(Tasks)[currentSceneIndex][0].createDatGUI()
+    currentTask.createDatGUI()
 
-    currentScene = Array.from(Tasks)[currentSceneIndex][0].scene
+    currentScene = currentTask.scene
     // update source link corresponding to current task (scene)
-    sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1]
+    sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[scenceIndex][1]
     currentScene.add(axesHelper)
     currentScene.add(gridHelper)
     currentScene.add(cameraHelper)

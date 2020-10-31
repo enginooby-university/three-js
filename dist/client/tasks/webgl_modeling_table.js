@@ -2,6 +2,7 @@ import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
 import * as DatHelper from '../helpers/dat_helper.js';
 export const scene = new THREE.Scene();
+export let isInitialized = false;
 export let gui;
 const LEG_WIDTH = 0.05;
 const LEG_HEIGHT = 1.5;
@@ -23,8 +24,8 @@ let leg1;
 let leg2;
 let leg3;
 let leg4;
-init();
 export function init() {
+    isInitialized = true;
     face = createFace();
     leg1 = createLeg(0x00ff00, leg1Material, LEG_X, 0, LEG_Z);
     leg2 = createLeg(0xffff00, leg2Material, -LEG_X, 0, -LEG_Z);

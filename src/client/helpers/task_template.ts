@@ -3,11 +3,11 @@ import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
+export let isInitialized: boolean = false
 export let gui: GUI
 
-init()
-
 export function init(){
+    isInitialized = true
     scene.background = new THREE.Color(0x333333)
 }
 

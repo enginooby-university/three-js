@@ -44,9 +44,9 @@ function init() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.maxDistance = 300;
     createStatsGUI();
-    switchScene(2);
     createHelperGUIFolder();
     DatHelper.createCameraFolder(gui, camera, 'Perspective Camera');
+    switchScene(2);
 }
 function createCamera() {
     const newCamera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR);
@@ -64,16 +64,20 @@ function createHelperGUIFolder() {
     return helperFolder;
 }
 function switchScene(scenceIndex) {
+    const currentTask = Array.from(Tasks)[scenceIndex][0];
+    if (!currentTask.isInitialized) {
+        currentTask.init();
+    }
     // destroy Dat GUI for previous scene (if it exists)
     if (typeof (Array.from(Tasks)[currentSceneIndex][0].gui) !== 'undefined') {
         Array.from(Tasks)[currentSceneIndex][0].gui.destroy();
     }
     currentSceneIndex = scenceIndex;
     // create Dat GUI for current scene
-    Array.from(Tasks)[currentSceneIndex][0].createDatGUI();
-    currentScene = Array.from(Tasks)[currentSceneIndex][0].scene;
+    currentTask.createDatGUI();
+    currentScene = currentTask.scene;
     // update source link corresponding to current task (scene)
-    sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[currentSceneIndex][1];
+    sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[scenceIndex][1];
     currentScene.add(axesHelper);
     currentScene.add(gridHelper);
     currentScene.add(cameraHelper);

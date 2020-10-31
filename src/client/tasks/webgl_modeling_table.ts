@@ -3,6 +3,7 @@ import * as THREE from '/build/three.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
+export let isInitialized: boolean = false
 export let gui: GUI
 
 const LEG_WIDTH: number = 0.05
@@ -29,10 +30,9 @@ let leg2: THREE.Mesh
 let leg3: THREE.Mesh
 let leg4: THREE.Mesh
 
-
-init()
-
 export function init() {
+    isInitialized = true
+
     face = createFace()
     leg1 = createLeg(0x00ff00, leg1Material, LEG_X, 0, LEG_Z)
     leg2 = createLeg(0xffff00, leg2Material, -LEG_X, 0, -LEG_Z)
