@@ -17,6 +17,8 @@ let materialArray;
 let Data = {
     Skybox: "arid",
     BallAmount: 5,
+    BallSpeed: 3,
+    MaxAngle: 40,
 };
 const options = {
     skybox: {
@@ -46,8 +48,8 @@ let firstRope;
 let lastRope;
 const ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
 const ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A });
-const ROTATE_SPEED = 0.03;
-const MAX_ANGLE = 0.7;
+let rotateSpeed = 0.03;
+let maxAngle = 40 * Math.PI / 180;
 let firstRopeRotateVel;
 let lastRopeRotateVel;
 const audioListener = new THREE.AudioListener();
@@ -63,7 +65,7 @@ export function init() {
     createLight();
     createFloor();
     ballAudio = new THREE.PositionalAudio(audioListener);
-    audioLoader.load('../resources/audio/ball-collision.wav', function (buffer) {
+    audioLoader.load('./resources/audio/ball-collision.wav', function (buffer) {
         ballAudio.setBuffer(buffer);
         ballAudio.duration = 0.4;
     });
@@ -75,6 +77,12 @@ export function createDatGUI() {
     gui.add(Data, 'BallAmount', 3, 10, 1).onChange(() => {
         ballAmount = Data.BallAmount;
         createCralde(ballAmount);
+    });
+    gui.add(Data, 'BallSpeed', 1, 10, 1).onChange(() => {
+        rotateSpeed = Data.BallSpeed / 100;
+    });
+    gui.add(Data, 'MaxAngle', 10, 70, 1).onChange(() => {
+        maxAngle = Data.MaxAngle * Math.PI / 180;
     });
     DatHelper.createDirectionalLightFolder(gui, directionalLight);
     const ballFolder = gui.addFolder("Balls");
@@ -91,27 +99,25 @@ export function render() {
     // when last ball&rope is staying
     if (lastRopeRotateVel == 0) {
         if (firstRope.rotation.z >= 0) {
-            if (!muted) {
-                ballAudio.play();
-            }
+            playBallAudio();
             firstRopeRotateVel = 0;
-            lastRopeRotateVel = ROTATE_SPEED;
+            firstRope.rotation.z = 0;
+            lastRopeRotateVel = rotateSpeed;
         }
-        if (firstRope.rotation.z <= -MAX_ANGLE) {
-            firstRopeRotateVel = ROTATE_SPEED;
+        if (firstRope.rotation.z <= -maxAngle) {
+            firstRopeRotateVel = rotateSpeed;
         }
         // when first ball&rope is staying
     }
     else if (firstRopeRotateVel == 0) {
         if (lastRope.rotation.z <= 0) {
-            if (!muted) {
-                ballAudio.play();
-            }
-            firstRopeRotateVel = -ROTATE_SPEED;
+            playBallAudio();
+            firstRopeRotateVel = -rotateSpeed;
+            lastRope.rotation.z = 0;
             lastRopeRotateVel = 0;
         }
-        if (lastRope.rotation.z >= MAX_ANGLE) {
-            lastRopeRotateVel = -ROTATE_SPEED;
+        if (lastRope.rotation.z >= maxAngle) {
+            lastRopeRotateVel = -rotateSpeed;
         }
     }
     // update first and last rope rotations
@@ -122,6 +128,14 @@ export function render() {
     firstBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstRope.rotation.z);
     lastBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastRope.rotation.z) + BALL_RADIUS * (1 - ballAmount + 2 * (ballAmount - 1)); // original x of last ball
     lastBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastRope.rotation.z);
+}
+function playBallAudio() {
+    if (!muted) {
+        if (ballAudio.isPlaying) {
+            ballAudio.stop();
+        }
+        ballAudio.play();
+    }
 }
 function createLight() {
     directionalLight.position.set(4.5, 21, 13);
@@ -197,8 +211,8 @@ function createRopes(amount) {
         }
     }
     // init rotations
-    firstRope.rotation.z = -MAX_ANGLE;
-    firstRopeRotateVel = ROTATE_SPEED;
+    firstRope.rotation.z = -maxAngle;
+    firstRopeRotateVel = rotateSpeed;
     lastRopeRotateVel = 0;
     return ropes;
 }
