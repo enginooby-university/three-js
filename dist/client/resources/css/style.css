@@ -14,7 +14,7 @@ body {
     width: 50px;
     height: 50px;
     bottom: 35px;
-    right: 35px;
+    right: 20px;
     color: rgb(71, 71, 71);
     background-color: rgb(133, 133, 133);
     border-radius: 40px;
@@ -23,11 +23,15 @@ body {
     /* box-shadow: 2px 2px 3px #999; */
 }
  #screenshot {
-    right: 95px !important;
+    right: 80px !important;
 }
 
 #pause {
-    right: 155px !important;
+    right: 140px !important;
+}
+
+#audio {
+    right: 200px !important;
 }
 
 .float:hover {

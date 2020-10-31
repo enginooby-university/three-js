@@ -12,6 +12,7 @@ const CAMERA_NEAR: number = 0.001
 const CAMERA_FAR: number = 1000
 
 let pause: boolean = false
+export let muted: boolean = true
 
 let currentScene: THREE.Scene
 let currentSceneIndex: number = 0
@@ -79,7 +80,7 @@ function createHelperGUIFolder() {
 
 function switchScene(scenceIndex: number) {
     const currentTask: any = Array.from(Tasks)[scenceIndex][0]
-    if(!currentTask.isInitialized){
+    if (!currentTask.isInitialized) {
         currentTask.init()
     }
 
@@ -196,6 +197,14 @@ pauseButton.addEventListener('click', function () {
     pauseIcon.classList.toggle('fa-play')
     pause = !pause
 });
+
+const audioButton = document.querySelector("#audio")!
+const audioIcon = document.querySelector("#audio-icon")!
+audioButton.addEventListener('click', function () {
+    audioIcon.classList.toggle('fas-volume-mute')
+    audioIcon.classList.toggle('fa-volume-up')
+    muted = !muted
+})
 
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn")!

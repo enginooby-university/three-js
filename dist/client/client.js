@@ -10,6 +10,7 @@ const CAMERA_FOV = 50; //degrees
 const CAMERA_NEAR = 0.001;
 const CAMERA_FAR = 1000;
 let pause = false;
+export let muted = true;
 let currentScene;
 let currentSceneIndex = 0;
 const canvas = document.getElementById("threejs-canvas");
@@ -163,6 +164,13 @@ pauseButton.addEventListener('click', function () {
     pauseIcon.classList.toggle('fa-pause');
     pauseIcon.classList.toggle('fa-play');
     pause = !pause;
+});
+const audioButton = document.querySelector("#audio");
+const audioIcon = document.querySelector("#audio-icon");
+audioButton.addEventListener('click', function () {
+    audioIcon.classList.toggle('fas-volume-mute');
+    audioIcon.classList.toggle('fa-volume-up');
+    muted = !muted;
 });
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn");

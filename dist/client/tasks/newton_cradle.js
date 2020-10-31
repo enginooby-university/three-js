@@ -1,7 +1,9 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from '../helpers/dat_helper.js';
 import * as THREE from '/build/three.module.js';
+import { muted } from '../client.js';
 export const scene = new THREE.Scene();
+export let isInitialized = false;
 export let gui;
 const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
 let skybox;
@@ -14,7 +16,7 @@ let texture_lf;
 let materialArray;
 let Data = {
     Skybox: "arid",
-    BallAmount: 3,
+    BallAmount: 5,
 };
 const options = {
     skybox: {
@@ -23,7 +25,7 @@ const options = {
         "Dust": "dust",
     }
 };
-let cradle; // including balls, ropes, bars
+let cradle; // including balls, ropes
 let ballAmount = 5;
 const BALL_RADIUS = 0.5;
 const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
@@ -48,15 +50,24 @@ const ROTATE_SPEED = 0.03;
 const MAX_ANGLE = 0.7;
 let firstRopeRotateVel;
 let lastRopeRotateVel;
-init();
+const audioListener = new THREE.AudioListener();
+const audioLoader = new THREE.AudioLoader();
+let ballAudio;
 export function init() {
-    generateSkybox();
+    isInitialized = true;
     // change ropes' origin (pivot) for rotation
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
+    generateSkybox();
     createCralde(ballAmount);
     createBars();
     createLight();
     createFloor();
+    ballAudio = new THREE.PositionalAudio(audioListener);
+    audioLoader.load('../resources/audio/ball-collision.wav', function (buffer) {
+        ballAudio.setBuffer(buffer);
+        ballAudio.duration = 0.4;
+    });
+    // scene.add(audioListener)
 }
 export function createDatGUI() {
     gui = new GUI();
@@ -80,6 +91,9 @@ export function render() {
     // when last ball&rope is staying
     if (lastRopeRotateVel == 0) {
         if (firstRope.rotation.z >= 0) {
+            if (!muted) {
+                ballAudio.play();
+            }
             firstRopeRotateVel = 0;
             lastRopeRotateVel = ROTATE_SPEED;
         }
@@ -90,6 +104,9 @@ export function render() {
     }
     else if (firstRopeRotateVel == 0) {
         if (lastRope.rotation.z <= 0) {
+            if (!muted) {
+                ballAudio.play();
+            }
             firstRopeRotateVel = -ROTATE_SPEED;
             lastRopeRotateVel = 0;
         }
