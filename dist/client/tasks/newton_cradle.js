@@ -24,7 +24,7 @@ const options = {
     }
 };
 let cradle; // including balls, ropes, bars
-let ballAmount = 3;
+let ballAmount = 5;
 const BALL_RADIUS = 0.5;
 const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
 const ballMaterial = new THREE.MeshPhysicalMaterial({});
@@ -54,6 +54,7 @@ export function init() {
     // change ropes' origin (pivot) for rotation
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
     createCralde(ballAmount);
+    createBars();
     createLight();
     createFloor();
 }
@@ -110,6 +111,8 @@ function createLight() {
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
+    directionalLight.shadow.camera.left = -5;
+    directionalLight.shadow.camera.right = 6;
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 100;
     directionalLight.shadow.camera.rotation.x = Math.PI / 2;
@@ -129,7 +132,6 @@ function createCralde(ballAmount) {
     const newCradle = new THREE.Group();
     newCradle.add(createBalls(ballAmount));
     newCradle.add(createRopes(ballAmount));
-    newCradle.add(createBars());
     cradle = newCradle;
     scene.add(cradle);
 }
@@ -196,25 +198,42 @@ function createBars() {
     barMaterial.roughness = 0.6;
     barMaterial.transparent = true;
     bars.add(createBar(0, 5, 0));
-    const leftBar = createBar(0, 0, 0);
-    leftBar.rotation.z = Math.PI / 2;
-    leftBar.position.x = -4.90;
-    leftBar.position.y = 2.5;
-    leftBar.scale.x = 0.5;
-    bars.add(leftBar);
-    const rightBar = createBar(0, 0, 0);
-    rightBar.rotation.z = Math.PI / 2;
-    rightBar.position.x = 4.90;
-    rightBar.position.y = 2.5;
-    rightBar.scale.x = 0.5;
-    bars.add(rightBar);
+    const horizontalLeftBar = createBar(0, 5, 0);
+    horizontalLeftBar.rotation.y = Math.PI / 2;
+    horizontalLeftBar.scale.x = 0.42;
+    horizontalLeftBar.position.x = -4.90;
+    bars.add(horizontalLeftBar);
+    const horizontalRightBar = horizontalLeftBar.clone();
+    horizontalRightBar.position.x = 4.90;
+    bars.add(horizontalRightBar);
+    const vertialBar = createBar(0, 0, 0);
+    vertialBar.rotation.z = Math.PI / 2;
+    vertialBar.position.y = 2.5;
+    vertialBar.scale.x = 0.5;
+    const leftBar1 = vertialBar.clone();
+    leftBar1.position.x = -4.90;
+    leftBar1.position.z = -2;
+    bars.add(leftBar1);
+    const leftBar2 = vertialBar.clone();
+    leftBar2.position.x = -4.90;
+    leftBar2.position.z = 2;
+    bars.add(leftBar2);
+    const rightBar1 = vertialBar.clone();
+    rightBar1.position.x = 4.90;
+    rightBar1.position.z = -2;
+    bars.add(rightBar1);
+    const rightBar2 = vertialBar.clone();
+    rightBar2.position.x = 4.90;
+    rightBar2.position.z = 2;
+    bars.add(rightBar2);
+    scene.add(bars);
     return bars;
 }
 function createBar(x, y, z) {
     const newBar = new THREE.Mesh(barGeometry, barMaterial);
     newBar.position.set(x, y, z);
     newBar.castShadow = true;
-    scene.add(newBar);
+    // scene.add(newBar)
     return newBar;
 }
 function generateSkybox() {
