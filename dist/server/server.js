@@ -17,6 +17,16 @@ class App {
         app.use('/jsm/libs/stats.module.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/libs/stats.module.js')));
         app.use('/jsm/libs/dat.gui.module.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/libs/dat.gui.module.js')));
         app.use('/jsm/webxr/VRButton.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/webxr/VRButton.js')));
+        app.use('/jsm/postprocessing/EffectComposer.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js')));
+        app.use('/jsm/postprocessing/RenderPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/RenderPass.js')));
+        app.use('/jsm/postprocessing/BloomPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/BloomPass.js')));
+        app.use('/jsm/postprocessing/ShaderPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/ShaderPass.js')));
+        app.use('/jsm/postprocessing/FilmPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/FilmPass.js')));
+        app.use('/jsm/shaders/FilmShader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/shaders/FilmShader.js')));
+        app.use('/jsm/shaders/CopyShader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/shaders/CopyShader.js')));
+        app.use('/jsm/postprocessing/MaskPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/MaskPass.js')));
+        app.use('/jsm/postprocessing/Pass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/Pass.js')));
+        app.use('/jsm/shaders/ConvolutionShader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/shaders/ConvolutionShader.js')));
         this.server = new http_1.default.Server(app);
     }
     Start() {

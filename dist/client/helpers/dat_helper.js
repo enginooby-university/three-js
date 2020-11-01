@@ -9,8 +9,8 @@ export function createObjectFolder(gui, object, objectName) {
 }
 export function createCameraFolder(gui, perspectiveCamera, cameraName) {
     const cameraFolder = gui.addFolder(cameraName);
-    createObjectPositionFolder(cameraFolder, perspectiveCamera).open();
-    createObjectRotationFolder(cameraFolder, perspectiveCamera).open();
+    createObjectPositionFolder(cameraFolder, perspectiveCamera);
+    createObjectRotationFolder(cameraFolder, perspectiveCamera);
     cameraFolder.add(perspectiveCamera, "fov", 40, 120, 0.1).onChange(() => perspectiveCamera.updateProjectionMatrix());
     cameraFolder.add(perspectiveCamera, "near", 0.001, 100, 0.1).onChange(() => perspectiveCamera.updateProjectionMatrix());
     cameraFolder.add(perspectiveCamera, "far", 100, 10000, 1).onChange(() => perspectiveCamera.updateProjectionMatrix());
@@ -30,14 +30,14 @@ export function createPhysicalMaterialFolder(gui, material) {
     };
     const physicalMaterialFolder = gui.addFolder('THREE.MeshPhysicalMaterial');
     physicalMaterialFolder.add(material, 'wireframe');
-    physicalMaterialFolder.add(material, 'fog');
+    // physicalMaterialFolder.add(material, 'fog');
     physicalMaterialFolder.addColor(data, 'color').onChange(handleColorChange(material.color));
     physicalMaterialFolder.addColor(data, 'emissive').onChange(handleColorChange(material.emissive));
     physicalMaterialFolder.add(material, 'roughness', 0, 1);
     physicalMaterialFolder.add(material, 'metalness', 0, 1);
-    physicalMaterialFolder.add(material, 'reflectivity', 0, 1);
-    physicalMaterialFolder.add(material, 'clearcoat', 0, 1).step(0.01);
-    physicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1).step(0.01);
+    // physicalMaterialFolder.add(material, 'reflectivity', 0, 1);
+    // physicalMaterialFolder.add(material, 'clearcoat', 0, 1).step(0.01);
+    // physicalMaterialFolder.add(material, 'clearcoatRoughness', 0, 1).step(0.01);
     physicalMaterialFolder.add(material, 'wireframeLinewidth', 0, 10);
     // physicalMaterialFolder.open()
     return physicalMaterialFolder;
@@ -83,15 +83,15 @@ export function createMaterialFolder(gui, material) {
     const materialFolder = gui.addFolder('THREE.Material');
     materialFolder.add(material, 'transparent');
     materialFolder.add(material, 'opacity', 0, 1).step(0.01);
-    materialFolder.add(material, 'blending', constants.blendingMode);
-    materialFolder.add(material, 'blendSrc', constants.destinationFactors);
-    materialFolder.add(material, 'blendDst', constants.destinationFactors);
-    materialFolder.add(material, 'blendEquation', constants.equations);
+    // materialFolder.add(material, 'blending', constants.blendingMode);
+    // materialFolder.add(material, 'blendSrc', constants.destinationFactors);
+    // materialFolder.add(material, 'blendDst', constants.destinationFactors);
+    // materialFolder.add(material, 'blendEquation', constants.equations);
     materialFolder.add(material, 'depthTest');
     materialFolder.add(material, 'depthWrite');
-    materialFolder.add(material, 'polygonOffset');
-    materialFolder.add(material, 'polygonOffsetFactor');
-    materialFolder.add(material, 'polygonOffsetUnits');
+    // materialFolder.add(material, 'polygonOffset');
+    // materialFolder.add(material, 'polygonOffsetFactor');
+    // materialFolder.add(material, 'polygonOffsetUnits');
     materialFolder.add(material, 'visible');
     // folder.add( material, 'alphaTest', 0, 1 ).step( 0.01 ).onChange( needsUpdate( material, geometry ) );
     // folder.add( material, 'side', constants.side ).onChange( needsUpdate( material, geometry ) );

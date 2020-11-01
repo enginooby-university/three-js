@@ -47,7 +47,7 @@ const ROPE_TO_FLOOR = 5;
 let firstRope;
 let lastRope;
 const ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
-const ropeMaterial = new THREE.MeshBasicMaterial({ color: 0xA52A2A });
+const ropeMaterial = new THREE.MeshPhysicalMaterial({ color: 0xff0000 });
 let rotateSpeed = 0.03;
 let maxAngle = 40 * Math.PI / 180;
 let firstRopeRotateVel;
@@ -88,7 +88,7 @@ export function createDatGUI() {
     const ballFolder = gui.addFolder("Balls");
     DatHelper.createPhysicalMaterialFolder(ballFolder, ballMaterial);
     const ropeFolder = gui.addFolder("Ropes");
-    DatHelper.createMaterialFolder(ropeFolder, ropeMaterial);
+    DatHelper.createPhysicalMaterialFolder(ropeFolder, ropeMaterial);
     const barFolder = gui.addFolder("Bars");
     DatHelper.createPhysicalMaterialFolder(barFolder, barMaterial);
     const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor');
