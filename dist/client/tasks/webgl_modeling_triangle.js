@@ -1,6 +1,7 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from '../helpers/dat_helper.js';
 import * as THREE from '/build/three.module.js';
+import { transformControls, attachToDragControls } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -20,6 +21,10 @@ export function init() {
     geometry.faces.push(new THREE.Face3(0, 1, 2));
     geometry.computeFaceNormals();
     triangle = new THREE.Mesh(geometry, material);
+    attachToDragControls([triangle]);
+    transformControls.attach(triangle);
+    // add to scene to display helpers
+    scene.add(transformControls);
     scene.add(triangle);
 }
 export function createDatGUI() {

@@ -1,6 +1,8 @@
 import * as THREE from '/build/three.module.js'
 import { Tasks } from './task_management.js'
 import { OrbitControls } from '/jsm/controls/OrbitControls.js'
+import { DragControls } from '/jsm/controls/DragControls.js'
+import { TransformControls } from '/jsm/controls/TransformControls.js'
 import Stats from '/jsm/libs/stats.module.js'
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from './helpers/dat_helper.js'
@@ -11,7 +13,7 @@ import { RenderPass } from '/jsm/postprocessing/RenderPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js'
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js'
 
-let camera: THREE.PerspectiveCamera
+export let camera: THREE.PerspectiveCamera
 const CAMERA_FOV: number = 50 //degrees
 const CAMERA_NEAR: number = 0.001
 const CAMERA_FAR: number = 1000
@@ -22,16 +24,19 @@ export let muted: boolean = true
 let currentScene: THREE.Scene
 let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
-const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false })
+export const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false })
 let composer: EffectComposer
 // let bloomPass: BloomPass
 let filmPass: FilmPass
 const gui = new GUI()
 let postProcessingFolder = gui.addFolder("Post processing")
 let statsGUIs: Stats[] = []
-let controls: OrbitControls
 let sourceLink: string
 const vrButton: HTMLElement = VRButton.createButton(renderer)
+
+export let orbitControls: OrbitControls
+export let dragControls: DragControls
+export let transformControls: TransformControls
 
 const SOURCE_LINK_BASE: string = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/tasks/'
 const STATS_WIDTH: string = '100%'
@@ -71,13 +76,41 @@ function init() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
     //document.body.appendChild(renderer.domElement)
 
-    controls = new OrbitControls(camera, renderer.domElement)
-    controls.maxDistance = 300
+    createControls()
     createStatsGUI()
     createHelperGUIFolder()
     DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
     switchScene(2)
     // createPostProcessingFolder()
+}
+
+function createControls() {
+    orbitControls = new OrbitControls(camera, renderer.domElement)
+    orbitControls.maxDistance = 300
+
+    transformControls = new TransformControls(camera, renderer.domElement);
+    transformControls.setMode("scale")
+
+    transformControls.addEventListener('dragging-changed', function (event) {
+        orbitControls.enabled = !event.value
+        dragControls.enabled = !event.value
+    })
+}
+
+export function attachToDragControls(objects: THREE.Object3D[]) {
+    dragControls = new DragControls(objects, camera, renderer.domElement)
+    dragControls.addEventListener("hoveron", function () {
+        orbitControls.enabled = false;
+    });
+    dragControls.addEventListener("hoveroff", function () {
+        orbitControls.enabled = true;
+    });
+    dragControls.addEventListener('dragstart', function (event) {
+        event.object.material.opacity = 0.33
+    })
+    dragControls.addEventListener('dragend', function (event) {
+        event.object.material.opacity = 1
+    })
 }
 
 function createCamera() {
@@ -222,26 +255,28 @@ function onWindowResize() {
     // render()
 }
 
-const P_KEY: number = 80
-const M_KEY: number = 77
-const S_KEY: number = 83
-
-document.addEventListener('keydown', onDocumentKeyDown, false);
-function onDocumentKeyDown(event: KeyboardEvent) {
-    let keyCode: number = event.keyCode;
-
-    switch (keyCode) {
-        case P_KEY:
+window.addEventListener('keydown', function (event) {
+    switch (event.key) {
+        case "t":
+            transformControls.setMode("translate")
+            break
+        case "r":
+            transformControls.setMode("rotate")
+            break
+        case "s":
+            transformControls.setMode("scale")
+            break
+        case "p":
             handlePauseButton()
             break
-        case M_KEY:
+        case "m":
             handleAudioButton()
             break
-        case S_KEY:
+        case "c":
             handleScreenshotButton()
             break
     }
-}
+})
 /* END EVENTS */
 
 /* BUTTONS - LINKS */

@@ -1,5 +1,6 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
+import { transformControls, attachToDragControls } from '../client.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
@@ -39,6 +40,11 @@ export function init() {
     leg3 = createLeg(0x00fff0, leg3Material, LEG_X, 0, -LEG_Z)
     leg4 = createLeg(0xf000ff, leg4Material, -LEG_X, 0, LEG_Z)
 
+    attachToDragControls([table])
+    transformControls.attach(table)
+    // add to scene to display helpers
+    scene.add(transformControls) 
+
     scene.background = new THREE.Color(0x333333)
     table.position.y = 0.8
     scene.add(table)
@@ -46,22 +52,22 @@ export function init() {
 
 function createFace() {
     faceMaterial = new THREE.MeshNormalMaterial()
-    const face = new THREE.Mesh(faceGeometry, faceMaterial)
-    face.position.y = 0.8
-    table.add(face)
+    const newFace = new THREE.Mesh(faceGeometry, faceMaterial)
+    newFace.material.transparent = true
+    newFace.position.y = 0.8
+    table.add(newFace)
 
-    return face
+    return newFace
 }
 
 function createLeg(color: string | number | THREE.Color, material: THREE.MeshBasicMaterial, x: number, y: number, z: number) {
     material = new THREE.MeshBasicMaterial({ color: color })
-    const leg = new THREE.Mesh(legGeometry, material)
-    leg.position.x = x
-    leg.position.y = y
-    leg.position.z = z
-    table.add(leg)
+    const newLeg = new THREE.Mesh(legGeometry, material)
+    newLeg.position.set(x, y, z)
+    newLeg.material.transparent = true
+    table.add(newLeg)
 
-    return leg
+    return newLeg
 }
 
 export function createDatGUI() {

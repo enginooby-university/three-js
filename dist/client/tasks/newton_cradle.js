@@ -1,7 +1,7 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from '../helpers/dat_helper.js';
 import * as THREE from '/build/three.module.js';
-import { muted } from '../client.js';
+import { transformControls, attachToDragControls, muted } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -70,6 +70,10 @@ export function init() {
         ballAudio.duration = 0.4;
     });
     // scene.add(audioListener)
+    attachToDragControls([cradle]);
+    transformControls.attach(cradle);
+    // add to scene to display helpers
+    scene.add(transformControls);
 }
 export function createDatGUI() {
     gui = new GUI();
@@ -217,6 +221,7 @@ function createRopes(amount) {
     return ropes;
 }
 function createRope(x, y, z) {
+    ropeMaterial.transparent = true;
     const newRope = new THREE.Mesh(ropeGeometry, ropeMaterial);
     newRope.position.set(x, y, z);
     newRope.castShadow = true;
