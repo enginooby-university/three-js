@@ -188,6 +188,24 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     // render()
 }
+const P_KEY = 80;
+const M_KEY = 77;
+const S_KEY = 83;
+document.addEventListener('keydown', onDocumentKeyDown, false);
+function onDocumentKeyDown(event) {
+    let keyCode = event.keyCode;
+    switch (keyCode) {
+        case P_KEY:
+            handlePauseButton();
+            break;
+        case M_KEY:
+            handleAudioButton();
+            break;
+        case S_KEY:
+            handleScreenshotButton();
+            break;
+    }
+}
 /* END EVENTS */
 /* BUTTONS - LINKS */
 /* Buttons to handle scene switch */
@@ -205,13 +223,14 @@ const sourceButton = document.getElementById('source-link');
 sourceButton.onclick = function () {
     window.open(sourceLink, '_blank');
 };
-const captureButton = document.querySelector('#screenshot');
-captureButton.addEventListener('click', () => {
+const screenshotButton = document.querySelector('#screenshot');
+screenshotButton.addEventListener('click', handleScreenshotButton, false);
+function handleScreenshotButton() {
     render();
     canvas.toBlob((blob) => {
         saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
     });
-});
+}
 const saveBlob = (function () {
     const a = document.createElement('a');
     document.body.appendChild(a);
@@ -225,7 +244,8 @@ const saveBlob = (function () {
 }());
 const pauseButton = document.querySelector("#pause");
 const pauseIcon = document.querySelector('#pause-icon');
-pauseButton.addEventListener('click', function () {
+pauseButton.addEventListener('click', handlePauseButton, false);
+function handlePauseButton() {
     pauseIcon.classList.toggle('fa-pause');
     pauseIcon.classList.toggle('fa-play');
     pause = !pause;
@@ -236,10 +256,11 @@ pauseButton.addEventListener('click', function () {
     else {
         tooltiptextElement.innerHTML = "Pause (P)";
     }
-});
+}
 const audioButton = document.querySelector("#audio");
 const audioIcon = document.querySelector("#audio-icon");
-audioButton.addEventListener('click', function () {
+audioButton.addEventListener('click', handleAudioButton, false);
+function handleAudioButton() {
     audioIcon.classList.toggle('fas-volume-mute');
     audioIcon.classList.toggle('fa-volume-up');
     muted = !muted;
@@ -250,7 +271,7 @@ audioButton.addEventListener('click', function () {
     else {
         tooltiptextElement.innerHTML = "Mute (M)";
     }
-});
+}
 /* SIDEBAR STUFFS*/
 const sidebarOpenButton = document.querySelector(".openbtn");
 sidebarOpenButton.addEventListener('click', openNav, false);
