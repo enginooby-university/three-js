@@ -222,20 +222,21 @@ function onWindowResize() {
     // render()
 }
 
+/* END EVENTS */
+
+/* BUTTONS - LINKS */
 /* Buttons to handle scene switch */
 const taskButtons = document.querySelectorAll(".task")
 const description = document.querySelector("#info")!
 for (let i = 0; i < taskButtons.length; i++) {
     taskButtons[i].addEventListener('click', function () {
-        description.innerHTML = taskButtons[i].innerHTML
+        const title: string = taskButtons[i].innerHTML
+        // strip the number (1. ABC -> ABC)
+        description.innerHTML = title.substr(title.indexOf(' ') + 1)
         switchScene(i)
     })
 }
 
-
-/* END EVENTS */
-
-/* BUTTONS */
 const sourceButton: HTMLElement = document.getElementById('source-link')!
 sourceButton.onclick = function () {
     window.open(
@@ -270,6 +271,13 @@ pauseButton.addEventListener('click', function () {
     pauseIcon.classList.toggle('fa-pause')
     pauseIcon.classList.toggle('fa-play')
     pause = !pause
+
+    const tooltiptextElement = document.querySelector('#pause > .tooltip > .tooltiptext')!
+    if (pause) {
+        tooltiptextElement.innerHTML = "Play (P)"
+    } else {
+        tooltiptextElement.innerHTML = "Pause (P)"
+    }
 });
 
 const audioButton = document.querySelector("#audio")!
@@ -278,6 +286,13 @@ audioButton.addEventListener('click', function () {
     audioIcon.classList.toggle('fas-volume-mute')
     audioIcon.classList.toggle('fa-volume-up')
     muted = !muted
+
+    const tooltiptextElement = document.querySelector('#audio > .tooltip > .tooltiptext')!
+    if (muted) {
+        tooltiptextElement.innerHTML = "Unmute (M)"
+    } else {
+        tooltiptextElement.innerHTML = "Mute (M)"
+    }
 })
 
 /* SIDEBAR STUFFS*/

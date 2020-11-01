@@ -13,9 +13,9 @@
 <body>
     <div id="mySidebar" class="sidebar">
         <a href="javascript:void(0)" class="closebtn">×</a>
-        <a class="task">WebGL Modeling: Triangle</a>
-        <a class="task">WebGL Modeling: Table</a>
-        <a class="task">Newton Cradle</a>
+        <a class="task">1. WebGL Modeling: Triangle</a>
+        <a class="task">2. WebGL Modeling: Table</a>
+        <a class="task">3. Newton Cradle</a>
     </div>
 
     <div id="main">
@@ -27,19 +27,31 @@
     <canvas id="threejs-canvas" onmousedown="return false" unselectable="on"></canvas>
 
     <a id="audio" class="float">
-        <i class="fas fa-volume-mute my-float" id="audio-icon"></i>
+        <div class="tooltip">
+            <i class="fas fa-volume-mute my-float" id="audio-icon"></i>
+            <span class="tooltiptext">Unmute (M)</span>
+        </div>
     </a>
 
     <a id="pause" class="float">
-        <i class="fa fa-pause my-float" id="pause-icon"></i>
+        <div class="tooltip">
+            <i class="fa fa-pause my-float" id="pause-icon"></i>
+            <span class="tooltiptext">Pause (P)</span>
+        </div>
     </a>
 
     <a id="screenshot" class="float">
-        <i class="fa fa-camera my-float"></i>
+        <div class="tooltip">
+            <i class="fa fa-camera my-float"></i>
+            <span class="tooltiptext">Screenshot (S)</span>
+        </div>
     </a>
 
     <a id="source-link" class="float">
-        <i class="fa fa-code my-float"></i>
+        <div class="tooltip">
+            <i class="fa fa-code my-float"></i>
+            <span class="tooltiptext">Source code</span>
+        </div>
     </a>
 
     <script type="module" src="client.js"></script>
