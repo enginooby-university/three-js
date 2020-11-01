@@ -30,12 +30,15 @@ export function init() {
 
     triangle = new THREE.Mesh(geometry, material)
 
+    scene.add(triangle)
+    setupControls()
+}
+
+export function setupControls(){
     attachToDragControls([triangle])
     transformControls.attach(triangle)
     // add to scene to display helpers
-    scene.add(transformControls) 
-
-    scene.add(triangle)
+    scene.add(transformControls)
 }
 
 export function createDatGUI() {

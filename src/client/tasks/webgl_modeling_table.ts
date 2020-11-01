@@ -40,14 +40,17 @@ export function init() {
     leg3 = createLeg(0x00fff0, leg3Material, LEG_X, 0, -LEG_Z)
     leg4 = createLeg(0xf000ff, leg4Material, -LEG_X, 0, LEG_Z)
 
-    attachToDragControls([table])
-    transformControls.attach(table)
-    // add to scene to display helpers
-    scene.add(transformControls) 
-
     scene.background = new THREE.Color(0x333333)
     table.position.y = 0.8
     scene.add(table)
+    setupControls()
+}
+
+export function setupControls(){
+    attachToDragControls([table])
+    transformControls.attach(table)
+    // add to scene to display helpers
+    scene.add(transformControls)
 }
 
 function createFace() {

@@ -146,6 +146,7 @@ function switchScene(scenceIndex) {
     currentSceneIndex = scenceIndex;
     // create Dat GUI for current scene
     currentTask.createDatGUI();
+    currentTask.setupControls();
     currentScene = currentTask.scene;
     // update source link corresponding to current task (scene)
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[scenceIndex][1];

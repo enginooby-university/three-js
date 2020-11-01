@@ -21,11 +21,14 @@ export function init() {
     geometry.faces.push(new THREE.Face3(0, 1, 2));
     geometry.computeFaceNormals();
     triangle = new THREE.Mesh(geometry, material);
+    scene.add(triangle);
+    setupControls();
+}
+export function setupControls() {
     attachToDragControls([triangle]);
     transformControls.attach(triangle);
     // add to scene to display helpers
     scene.add(transformControls);
-    scene.add(triangle);
 }
 export function createDatGUI() {
     gui = new GUI();

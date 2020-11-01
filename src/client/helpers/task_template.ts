@@ -10,6 +10,14 @@ export let gui: GUI
 export function init(){
     isInitialized = true
     scene.background = new THREE.Color(0x333333)
+    setupControls()
+}
+
+export function setupControls(){
+    attachToDragControls([])
+    // transformControls.attach()
+    // add to scene to display helpers
+    scene.add(transformControls)
 }
 
 export function createDatGUI(){

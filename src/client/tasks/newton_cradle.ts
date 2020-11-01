@@ -89,6 +89,10 @@ export function init() {
     })
     // scene.add(audioListener)
 
+    setupControls()
+}
+
+export function setupControls(){
     attachToDragControls([cradle])
     transformControls.attach(cradle)
     // add to scene to display helpers
