@@ -4,7 +4,7 @@ import { OrbitControls } from '/jsm/controls/OrbitControls.js'
 import { DragControls } from '/jsm/controls/DragControls.js'
 import { TransformControls } from '/jsm/controls/TransformControls.js'
 import Stats from '/jsm/libs/stats.module.js'
-import { GUI } from '/jsm/libs/dat.gui.module.js'
+import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from './helpers/dat_helper.js'
 import { VRButton } from '/jsm/webxr/VRButton.js'
 import { EffectComposer } from '/jsm/postprocessing/EffectComposer.js'
@@ -28,9 +28,12 @@ export const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: c
 let composer: EffectComposer
 // let bloomPass: BloomPass
 let filmPass: FilmPass
+
 const gui = new GUI()
 let postProcessingFolder = gui.addFolder("Post processing")
 let statsGUIs: Stats[] = []
+let transformModeControler: GUIController
+
 let sourceLink: string
 const vrButton: HTMLElement = VRButton.createButton(renderer)
 
@@ -60,6 +63,10 @@ const Data = {
         sIntensity: 0,
         sCount: 0
     },
+    TransformControl: {
+        mode: "scale"
+    },
+    ShowHelpers: true
 }
 
 init()
@@ -77,6 +84,7 @@ function init() {
     //document.body.appendChild(renderer.domElement)
 
     createControls()
+    createControlFolder()
     createStatsGUI()
     createHelperGUIFolder()
     DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
@@ -86,7 +94,10 @@ function init() {
 
 function createControls() {
     orbitControls = new OrbitControls(camera, renderer.domElement)
+    orbitControls.minDistance = 2
     orbitControls.maxDistance = 300
+    orbitControls.enableDamping = true
+    orbitControls.dampingFactor = 0.05
 
     transformControls = new TransformControls(camera, renderer.domElement);
     transformControls.setMode("scale")
@@ -122,8 +133,63 @@ function createCamera() {
     return newCamera
 }
 
+function createControlFolder() {
+    const options = {
+        "Scale (S)": 'scale',
+        "Rotate (R)": 'rotate',
+        "Translate (T)": 'translate'
+    }
+
+    const controlFolder = gui.addFolder("Controls")
+    transformModeControler = controlFolder.add(Data.TransformControl, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value))
+
+    const orbitControlsFolder = gui.addFolder("THREE.OrbitControls")
+    orbitControlsFolder.add(orbitControls, 'autoRotate', false)
+    orbitControlsFolder.add(orbitControls, 'autoRotateSpeed', 1, 20, 1)
+    orbitControlsFolder.add(orbitControls, 'enableDamping', true)
+    orbitControlsFolder.add(orbitControls, 'dampingFactor', 0.01, 0.1, 0.01)
+    orbitControlsFolder.add(orbitControls, 'minDistance', 0, 100, 1)
+    orbitControlsFolder.add(orbitControls, 'maxDistance', 100, 300, 10)
+    // orbitControlsFolder.add(orbitControls, 'screenSpacePanning', true)
+    // orbitControlsFolder.add(orbitControls, 'minAzimuthAngle', 0, Math.PI / 8, 0.1)
+    // orbitControlsFolder.add(orbitControls, 'maxAzimuthAngle', 0, Math.PI / 2, 0.1)
+    // orbitControlsFolder.add(orbitControls, 'minPolarAngle', 0, Math.PI / 8, 0.1)
+    // orbitControlsFolder.add(orbitControls, 'maxPolarAngle', 0, Math.PI / 8, 0.1)
+
+    // controls.enableKeys = true
+    // controls.keys = {
+    //     LEFT: 37, //left arrow
+    //     UP: 38, // up arrow
+    //     RIGHT: 39, // right arrow
+    //     BOTTOM: 40 // down arrow
+    // }
+    // controls.mouseButtons = {
+    //     LEFT: THREE.MOUSE.ROTATE,
+    //     MIDDLE: THREE.MOUSE.DOLLY,
+    //     RIGHT: THREE.MOUSE.PAN
+    // }
+    // controls.touches = {
+    //     ONE: THREE.TOUCH.ROTATE,
+    //     TWO: THREE.TOUCH.DOLLY_PAN
+    // }
+
+    controlFolder.open()
+    return controlFolder
+}
+
 function createHelperGUIFolder() {
     const helperFolder = gui.addFolder("Helpers")
+
+    // const options = {
+    //     "Show all": true,
+    //     "Hide all": false,
+    // }
+    // helperFolder.add(Data, 'ShowHelpers', options).name("").onChange((value) => {
+    //     axesHelper.visible = value
+    //     gridHelper.visible = value
+    //     cameraHelper.visible = value
+    // })
+
     helperFolder.addFolder("Axes").add(axesHelper, "visible", true)
     helperFolder.addFolder("Grid").add(gridHelper, "visible", true)
     helperFolder.addFolder("Camera").add(cameraHelper, "visible", false)
@@ -232,7 +298,7 @@ function animate() {
     }
 
     render()
-    // controls.update()
+    orbitControls.update()
     for (let i = 0; i < statsGUIs.length; i++) {
         statsGUIs[i].update()
     }
@@ -260,12 +326,16 @@ window.addEventListener('keydown', function (event) {
     switch (event.key) {
         case "t":
             transformControls.setMode("translate")
+            // update GUI when using keyboard
+            transformModeControler.setValue('translate')
             break
         case "r":
             transformControls.setMode("rotate")
+            transformModeControler.setValue('rotate')
             break
         case "s":
             transformControls.setMode("scale")
+            transformModeControler.setValue('scale')
             break
         case "p":
             handlePauseButton()
