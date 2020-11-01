@@ -84,6 +84,7 @@ export function createDatGUI() {
     gui.add(Data, 'BallAmount', 3, 10, 1).name('Ball number').onChange(() => {
         ballAmount = Data.BallAmount;
         createCralde(ballAmount);
+        setupControls();
     });
     gui.add(Data, 'BallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
         rotateSpeed = Data.BallSpeed / 100;
