@@ -18,6 +18,8 @@ const CAMERA_NEAR = 0.001;
 const CAMERA_FAR = 1000;
 let pause = false;
 export let muted = true;
+let orbitControlsEnabled = true;
+const FIRST_SCENE_INDEX = 2;
 let currentScene;
 let currentSceneIndex = 0;
 const canvas = document.getElementById("threejs-canvas");
@@ -54,8 +56,11 @@ const Data = {
         sIntensity: 0,
         sCount: 0
     },
-    TransformControl: {
+    TransformControls: {
         mode: "scale"
+    },
+    DragControls: {
+        opacity: 0.33,
     },
     ShowHelpers: true
 };
@@ -71,13 +76,14 @@ function init() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
     //document.body.appendChild(renderer.domElement)
+    dragControls = new DragControls([], camera, renderer.domElement);
     createControls();
     createControlFolder();
     createStatsGUI();
     createHelperGUIFolder();
     DatHelper.createCameraFolder(gui, camera, 'Perspective Camera');
-    switchScene(2);
     // createPostProcessingFolder()
+    switchScene(FIRST_SCENE_INDEX);
 }
 function createControls() {
     orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -101,10 +107,14 @@ export function attachToDragControls(objects) {
         orbitControls.enabled = true;
     });
     dragControls.addEventListener('dragstart', function (event) {
-        event.object.material.opacity = 0.33;
+        event.object.material.opacity = Data.DragControls.opacity;
+        console.log(typeof event.object);
+        console.log(typeof event.object.material);
+        // event.object.material.emissive.setHex(Data.DragControls.emissive);
     });
     dragControls.addEventListener('dragend', function (event) {
         event.object.material.opacity = 1;
+        // event.object.material.emissive.setHex(0x000000);        
     });
 }
 function createCamera() {
@@ -121,8 +131,16 @@ function createControlFolder() {
         "Translate (T)": 'translate'
     };
     const controlFolder = gui.addFolder("Controls");
-    transformModeControler = controlFolder.add(Data.TransformControl, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value));
-    const orbitControlsFolder = gui.addFolder("THREE.OrbitControls");
+    const transformControlsFolder = controlFolder.addFolder("TransformControls");
+    transformControlsFolder.add(transformControls, 'enabled', true);
+    transformModeControler = transformControlsFolder.add(Data.TransformControls, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value));
+    transformControlsFolder.open();
+    const dragControlsFolder = controlFolder.addFolder("DragControls");
+    // dragControlsFolder.addColor(Data.DragControls, 'emissive').onChange((value) => { Data.DragControls.emissive = Number(value.toString().replace('#', '0x')) });
+    dragControlsFolder.add(Data.DragControls, 'opacity', 0.1, 1, 0.1);
+    dragControlsFolder.open();
+    const orbitControlsFolder = controlFolder.addFolder("OrbitControls");
+    orbitControlsFolder.add(orbitControls, 'enabled', true).onChange((value) => orbitControlsEnabled = value);
     orbitControlsFolder.add(orbitControls, 'autoRotate', false);
     orbitControlsFolder.add(orbitControls, 'autoRotateSpeed', 1, 20, 1);
     orbitControlsFolder.add(orbitControls, 'enableDamping', true);
@@ -210,6 +228,7 @@ function switchScene(scenceIndex) {
     currentScene.add(axesHelper);
     currentScene.add(gridHelper);
     currentScene.add(cameraHelper);
+    orbitControls.enabled = orbitControlsEnabled;
     updatePostProcessing();
 }
 function updatePostProcessing() {

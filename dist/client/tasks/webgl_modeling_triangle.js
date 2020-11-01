@@ -20,6 +20,7 @@ export function init() {
     geometry.vertices.push(v3);
     geometry.faces.push(new THREE.Face3(0, 1, 2));
     geometry.computeFaceNormals();
+    material.transparent = true;
     triangle = new THREE.Mesh(geometry, material);
     scene.add(triangle);
     setupControls();

@@ -1,7 +1,7 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
-import { transformControls, attachToDragControls } from '../client.js'
+import { transformControls, attachToDragControls, muted } from '../client.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -28,13 +28,14 @@ export function init() {
     geometry.faces.push(new THREE.Face3(0, 1, 2));
     geometry.computeFaceNormals();
 
+    material.transparent = true
     triangle = new THREE.Mesh(geometry, material)
 
     scene.add(triangle)
     setupControls()
 }
 
-export function setupControls(){
+export function setupControls() {
     attachToDragControls([triangle])
     transformControls.attach(triangle)
     // add to scene to display helpers
