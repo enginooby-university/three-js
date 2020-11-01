@@ -54,23 +54,13 @@ export function createPhysicalMaterialFolder(gui: GUI, material: THREE.MeshPhysi
 }
 
 export function createDirectionalLightFolder(gui: GUI, directionalLight: THREE.DirectionalLight) {
-    const data = {
-        color: directionalLight.color.getHex(),
-        shadowMapSizeWidth: 2048,
-        shadowMapSizeHeight: 2048,
-        mapsEnabled: true
-    };
+    const lightFolder = gui.addFolder('Light')
 
-    const directionalLightFolder = gui.addFolder('THREE.DirectionalLight')
-    directionalLightFolder.add(directionalLight.shadow.camera, "left", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
-    directionalLightFolder.add(directionalLight.shadow.camera, "right", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
-    directionalLightFolder.add(directionalLight.shadow.camera, "top", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
-    directionalLightFolder.add(directionalLight.shadow.camera, "bottom", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
-    directionalLightFolder.add(directionalLight.shadow.camera, "near", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
-    directionalLightFolder.add(directionalLight.shadow.camera, "far", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
-    directionalLightFolder.add(data, "shadowMapSizeWidth", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data))
-    directionalLightFolder.add(data, "shadowMapSizeHeight", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data))
-    createObjectPositionFolder(directionalLightFolder, directionalLight)
+    createObjectPositionFolder(lightFolder, directionalLight).open()
+    createTHREELightFolder(lightFolder, directionalLight).open()
+    createTHREEDirectionalLightFolder(lightFolder, directionalLight).open()
+
+    return lightFolder
 }
 
 /* UPDATE HELPERS */
@@ -96,6 +86,38 @@ function updateShadowMapSize(directionalLight: THREE.DirectionalLight, data: any
 }
 
 /* SUB-FOLDERS */
+export function createTHREELightFolder(gui: GUI, light: THREE.Light) {
+    const data = {
+        color: light.color.getHex(),
+        mapsEnabled: true
+    };
+    const threeLightFolder = gui.addFolder('THREE.Light')
+    threeLightFolder.addColor(data, 'color').onChange(() => { light.color.setHex(Number(data.color.toString().replace('#', '0x'))) });
+    threeLightFolder.add(light, 'intensity', 0, 1, 0.01);
+
+    return threeLightFolder
+}
+
+function createTHREEDirectionalLightFolder(gui: GUI, directionalLight: THREE.DirectionalLight) {
+    const data = {
+        color: directionalLight.color.getHex(),
+        shadowMapSizeWidth: 2048,
+        shadowMapSizeHeight: 2048,
+        mapsEnabled: true
+    };
+
+    const threeDirectionalLightFolder = gui.addFolder('THREE.DirectionalLight')
+    threeDirectionalLightFolder.add(directionalLight.shadow.camera, "left", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    threeDirectionalLightFolder.add(directionalLight.shadow.camera, "right", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    threeDirectionalLightFolder.add(directionalLight.shadow.camera, "top", 1, 10, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    threeDirectionalLightFolder.add(directionalLight.shadow.camera, "bottom", -10, -1, 0.1).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    threeDirectionalLightFolder.add(directionalLight.shadow.camera, "near", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    threeDirectionalLightFolder.add(directionalLight.shadow.camera, "far", 0.1, 100).onChange(() => directionalLight.shadow.camera.updateProjectionMatrix())
+    threeDirectionalLightFolder.add(data, "shadowMapSizeWidth", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data))
+    threeDirectionalLightFolder.add(data, "shadowMapSizeHeight", [256, 512, 1024, 2048, 4096]).onChange(() => updateShadowMapSize(directionalLight, data))
+
+    return threeDirectionalLightFolder
+}
 
 export function createMaterialFolder(gui: GUI, material: THREE.Material) {
     const materialFolder = gui.addFolder('THREE.Material');

@@ -74,25 +74,25 @@ export function init() {
 export function createDatGUI() {
     gui = new GUI();
     gui.add(Data, 'Skybox', options.skybox).onChange(() => generateSkybox());
-    gui.add(Data, 'BallAmount', 3, 10, 1).onChange(() => {
+    gui.add(Data, 'BallAmount', 3, 10, 1).name('Ball number').onChange(() => {
         ballAmount = Data.BallAmount;
         createCralde(ballAmount);
     });
-    gui.add(Data, 'BallSpeed', 1, 10, 1).onChange(() => {
+    gui.add(Data, 'BallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
         rotateSpeed = Data.BallSpeed / 100;
     });
-    gui.add(Data, 'MaxAngle', 10, 70, 1).onChange(() => {
+    gui.add(Data, 'MaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
         maxAngle = Data.MaxAngle * Math.PI / 180;
     });
     DatHelper.createDirectionalLightFolder(gui, directionalLight);
     const ballFolder = gui.addFolder("Balls");
-    DatHelper.createPhysicalMaterialFolder(ballFolder, ballMaterial);
+    DatHelper.createPhysicalMaterialFolder(ballFolder, ballMaterial).open();
     const ropeFolder = gui.addFolder("Ropes");
-    DatHelper.createPhysicalMaterialFolder(ropeFolder, ropeMaterial);
+    DatHelper.createPhysicalMaterialFolder(ropeFolder, ropeMaterial).open();
     const barFolder = gui.addFolder("Bars");
-    DatHelper.createPhysicalMaterialFolder(barFolder, barMaterial);
+    DatHelper.createPhysicalMaterialFolder(barFolder, barMaterial).open();
     const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor');
-    DatHelper.createMaterialFolder(floorFolder, planeMaterial);
+    DatHelper.createMaterialFolder(floorFolder, planeMaterial).open();
 }
 export function render() {
     lightShadowHelper.update();
