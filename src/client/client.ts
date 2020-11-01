@@ -9,6 +9,7 @@ import { EffectComposer } from '/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from '/jsm/postprocessing/RenderPass.js'
 // import { BloomPass } from '/jsm/postprocessing/BloomPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js'
+import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js'
 
 let camera: THREE.PerspectiveCamera
 const CAMERA_FOV: number = 50 //degrees
@@ -21,7 +22,7 @@ export let muted: boolean = true
 let currentScene: THREE.Scene
 let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
-const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true })
+const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false })
 let composer: EffectComposer
 // let bloomPass: BloomPass
 let filmPass: FilmPass
@@ -165,6 +166,10 @@ function updatePostProcessing() {
     );
     filmPass.renderToScreen = true;
     composer.addPass(filmPass);
+
+    // for antialias since built-in antialiasing doesn’t work with post-processing
+    const smaaPass = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
+    composer.addPass(smaaPass);
 
     createPostProcessingFolder()
 }

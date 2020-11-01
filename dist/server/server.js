@@ -27,6 +27,8 @@ class App {
         app.use('/jsm/postprocessing/MaskPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/MaskPass.js')));
         app.use('/jsm/postprocessing/Pass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/Pass.js')));
         app.use('/jsm/shaders/ConvolutionShader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/shaders/ConvolutionShader.js')));
+        app.use('/jsm/postprocessing/SMAAPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/SMAAPass.js')));
+        app.use('/jsm/shaders/SMAAShader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/shaders/SMAAShader.js')));
         this.server = new http_1.default.Server(app);
     }
     Start() {

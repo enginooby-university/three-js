@@ -13,8 +13,10 @@
             "/jsm/webxr/VRButton.js":["../../node_modules/three/examples/jsm/webxr/VRButton"],
             "/jsm/postprocessing/EffectComposer.js":["../../node_modules/three/examples/jsm/postprocessing/EffectComposer"],
             "/jsm/postprocessing/RenderPass.js":["../../node_modules/three/examples/jsm/postprocessing/RenderPass"],
-            "/jsm/postprocessing/BloomPass.js":["../../node_modules/three/examples/jsm/postprocessing/BloomPass"],
+            // "/jsm/postprocessing/BloomPass.js":["../../node_modules/three/examples/jsm/postprocessing/BloomPass"],
             "/jsm/postprocessing/FilmPass.js":["../../node_modules/three/examples/jsm/postprocessing/FilmPass"],
+            "/jsm/postprocessing/SMAAPass.js":["../../node_modules/three/examples/jsm/postprocessing/SMAAPass"],
+
 
         },
         "moduleResolution": "node",

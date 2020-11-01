@@ -20,7 +20,6 @@ class App {
         app.use('/jsm/postprocessing/EffectComposer.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js')))
         app.use('/jsm/postprocessing/RenderPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/RenderPass.js')))
         app.use('/jsm/postprocessing/BloomPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/BloomPass.js')))
-
         app.use('/jsm/postprocessing/ShaderPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/ShaderPass.js')))
         app.use('/jsm/postprocessing/FilmPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/FilmPass.js')))
         app.use('/jsm/shaders/FilmShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/FilmShader.js')))
@@ -29,6 +28,8 @@ class App {
         app.use('/jsm/postprocessing/Pass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/Pass.js')))
         app.use('/jsm/shaders/ConvolutionShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/ConvolutionShader.js')))
 
+        app.use('/jsm/postprocessing/SMAAPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/SMAAPass.js')))
+        app.use('/jsm/shaders/SMAAShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/SMAAShader.js')))
 
         this.server = new http.Server(app);
     }
