@@ -114,28 +114,34 @@ export function setupControls() {
 export function createDatGUI() {
     gui = new GUI()
     gui.add(Data, 'Skybox', options.skybox).onChange(() => generateSkybox())
-    gui.add(Data, 'VerBallAmount', 3, 10, 1).name('Vertical balls').onChange(() => {
+
+    const verticalGroupFolder = gui.addFolder('Vertical group')
+    verticalGroupFolder.add(Data, 'VerBallAmount', 3, 10, 1).name('Ball number').onChange(() => {
         verBallAmount = Data.VerBallAmount;
         createCralde(verBallAmount, horBallAmount)
         setupControls()
     })
-    gui.add(Data, 'VerBallSpeed', 1, 10, 1).name('Vertical speed').onChange(() => {
+    verticalGroupFolder.add(Data, 'VerBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
         rotateSpeedVerBall = Data.VerBallSpeed / 100
     })
-    gui.add(Data, 'VerBallMaxAngle', 10, 70, 1).name('Vertical angle').onChange(() => {
+    verticalGroupFolder.add(Data, 'VerBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
         maxAngleVerBall = Data.VerBallMaxAngle * Math.PI / 180
     })
-    gui.add(Data, 'HorBallAmount', 3, 10, 1).name('Horizontal balls').onChange(() => {
+    verticalGroupFolder.open()
+
+    const horizontalGroupFolder = gui.addFolder('Horizontal group')
+    horizontalGroupFolder.add(Data, 'HorBallAmount', 3, 10, 1).name('Ball number').onChange(() => {
         horBallAmount = Data.HorBallAmount;
         createCralde(verBallAmount, horBallAmount)
         setupControls()
     })
-    gui.add(Data, 'HorBallSpeed', 1, 10, 1).name('Horizontal speed').onChange(() => {
+    horizontalGroupFolder.add(Data, 'HorBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
         rotateSpeedHorBall = Data.HorBallSpeed / 100
     })
-    gui.add(Data, 'HorBallMaxAngle', 10, 70, 1).name('Horizontal angle').onChange(() => {
+    horizontalGroupFolder.add(Data, 'HorBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
         maxAngleHorBall = Data.HorBallMaxAngle * Math.PI / 180
     })
+    horizontalGroupFolder.open()
 
     DatHelper.createDirectionalLightFolder(gui, directionalLight)
     const ballFolder: GUI = gui.addFolder("Balls")

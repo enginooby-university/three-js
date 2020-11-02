@@ -238,7 +238,7 @@ function createHelperGUIFolder() {
     helperFolder.addFolder("Axes").add(axesHelper, "visible", true)
     helperFolder.addFolder("Grid").add(gridHelper, "visible", true)
     helperFolder.addFolder("Camera").add(cameraHelper, "visible", false)
-    helperFolder.open()
+    // helperFolder.open()
 
     return helperFolder
 }
