@@ -66,8 +66,10 @@ const Data = {
         opacity: 0.33,
     },
 };
+export const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 init();
-animate();
+animate(1);
 function init() {
     camera = createCamera();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -90,7 +92,11 @@ function init() {
 function createControls() {
     pointerLockControls = new PointerLockControls(camera, renderer.domElement);
     pointerLockControls.addEventListener('unlock', function () {
+        pointerLockControlEnableControler.name('enabled');
         pointerLockControlEnableControler.setValue(false);
+    });
+    pointerLockControls.addEventListener('lock', function () {
+        pointerLockControlEnableControler.name('disable (Esc)');
     });
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.minDistance = 2;
@@ -106,11 +112,12 @@ function createControls() {
     });
 }
 export function attachToDragControls(objects) {
+    dragControls.dispose();
     dragControls = new DragControls(objects, camera, renderer.domElement);
     dragControls.addEventListener("hoveron", function (event) {
         orbitControls.enabled = false;
-        const elme = document.querySelector('html');
-        elme.style.cursor = 'move';
+        // const elme = document.querySelector('html')! as HTMLElement
+        // elme.style.cursor = 'move'
     });
     dragControls.addEventListener("hoveroff", function () {
         orbitControls.enabled = true;
@@ -146,7 +153,7 @@ function createControlFolder() {
     // dragControlsFolder.addColor(Data.DragControls, 'emissive').onChange((value) => { Data.DragControls.emissive = Number(value.toString().replace('#', '0x')) });
     dragControlsFolder.add(Data.DragControls, 'opacity', 0.1, 1, 0.1);
     dragControlsFolder.open();
-    const pointerLockControlsFolder = controlFolder.addFolder("PointerLockcontrols");
+    const pointerLockControlsFolder = controlFolder.addFolder("PointerLockControls");
     pointerLockControlEnableControler = pointerLockControlsFolder.add(pointerLockControls, 'isLocked').name("enabled").onChange((value) => {
         if (value) {
             orbitControlsEnabled = false;
@@ -157,6 +164,7 @@ function createControlFolder() {
             pointerLockControls.unlock();
         }
     });
+    pointerLockControlsFolder.open();
     const orbitControlsFolder = controlFolder.addFolder("OrbitControls");
     orbitControlsFolder.add(orbitControls, 'enabled', true).onChange((value) => {
         orbitControlsEnabled = value;
@@ -284,7 +292,16 @@ function createStatsGUI() {
         });
     }
 }
-function animate() {
+function onDoubleClick(event) {
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
+window.addEventListener('click', onDoubleClick, false);
+function animate(time) {
+    time *= 0.001; // convert to seconde
+    // console.log(Math.floor(time))
     if (renderer.xr.isPresenting) {
         renderer.setAnimationLoop(animate);
     }
@@ -292,20 +309,19 @@ function animate() {
         requestAnimationFrame(animate);
     }
     render();
+}
+function render() {
+    raycaster.setFromCamera(mouse, camera);
+    if (!pause) { // only render current active scene
+        Array.from(Tasks)[currentSceneIndex][0].render();
+    }
+    composer.render();
     if (orbitControlsEnabled) {
         orbitControls.update();
     }
     for (let i = 0; i < statsGUIs.length; i++) {
         statsGUIs[i].update();
     }
-}
-function render() {
-    // only pause updating not rendering
-    if (!pause) {
-        Array.from(Tasks)[currentSceneIndex][0].render();
-    }
-    // renderer.render(currentScene, camera)
-    composer.render();
 }
 /* EVENTS */
 window.addEventListener('resize', onWindowResize, false);
@@ -365,6 +381,7 @@ function handleScreenshotButton() {
     canvas.toBlob((blob) => {
         saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
     });
+    return;
 }
 const saveBlob = (function () {
     const a = document.createElement('a');

@@ -1,7 +1,7 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
-import { transformControls, attachToDragControls, muted } from '../client.js'
+import { transformControls, attachToDragControls, muted, raycaster } from '../client.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -43,7 +43,11 @@ let verBallAmount: number = 5
 let horBallAmount: number = 3
 const BALL_RADIUS: number = 0.5
 const sphereGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
-const ballMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({})
+const ballMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({
+    metalness: 1,
+    roughness: 0.6,
+    transparent: true
+})
 let firstVerBall: THREE.Mesh // in vertical group
 let lastVerBall: THREE.Mesh
 let firstHorBall: THREE.Mesh
@@ -82,6 +86,12 @@ const audioListener: THREE.AudioListener = new THREE.AudioListener()
 const audioLoader: THREE.AudioLoader = new THREE.AudioLoader()
 let ballAudio: THREE.PositionalAudio
 
+// group of objects affected by DragControls & TransformControls
+let transformableObjects: THREE.Mesh[] = []
+// groups of objects which will be recreated on desire (e.g change in Dat GUI)
+let balls: THREE.Mesh[] = []
+let ropes: THREE.Mesh[] = []
+
 export function init() {
     isInitialized = true
 
@@ -89,7 +99,9 @@ export function init() {
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
 
     generateSkybox()
-    createCralde(verBallAmount, horBallAmount)
+    //createCralde(verBallAmount, horBallAmount)
+    createBalls(verBallAmount, horBallAmount)
+    createRopes(verBallAmount, horBallAmount)
     createBars()
     createLight()
     createFloor()
@@ -102,12 +114,13 @@ export function init() {
     // scene.add(audioListener)
 
     setupControls()
+    transformableObjects.forEach(child => scene.add(child))
 }
 
 export function setupControls() {
-    attachToDragControls([cradle])
-    transformControls.attach(cradle)
-    // add to scene to display helpers
+    attachToDragControls(transformableObjects)
+
+    transformControls.detach()
     scene.add(transformControls)
 }
 
@@ -118,8 +131,7 @@ export function createDatGUI() {
     const verticalGroupFolder = gui.addFolder('Vertical group')
     verticalGroupFolder.add(Data, 'VerBallAmount', 3, 10, 1).name('Ball number').onChange(() => {
         verBallAmount = Data.VerBallAmount;
-        createCralde(verBallAmount, horBallAmount)
-        setupControls()
+        updateBallNumber()
     })
     verticalGroupFolder.add(Data, 'VerBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
         rotateSpeedVerBall = Data.VerBallSpeed / 100
@@ -132,8 +144,7 @@ export function createDatGUI() {
     const horizontalGroupFolder = gui.addFolder('Horizontal group')
     horizontalGroupFolder.add(Data, 'HorBallAmount', 3, 10, 1).name('Ball number').onChange(() => {
         horBallAmount = Data.HorBallAmount;
-        createCralde(verBallAmount, horBallAmount)
-        setupControls()
+        updateBallNumber()
     })
     horizontalGroupFolder.add(Data, 'HorBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
         rotateSpeedHorBall = Data.HorBallSpeed / 100
@@ -156,6 +167,11 @@ export function createDatGUI() {
 
 export function render() {
     lightShadowHelper.update()
+
+    const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(transformableObjects, false)
+    if (intersectObjects.length) {
+        transformControls.attach(intersectObjects[0].object)
+    }
 
     // when last ball&rope is staying
     if (lastVerRopeRotateVel == 0) {
@@ -227,6 +243,29 @@ export function render() {
     lastHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastHorRope.rotation.x)
 }
 
+function updateBallNumber(){
+    // clear objects
+    balls.forEach(ball => {
+        // remove all balls in transformable group
+        transformableObjects = transformableObjects.filter(object => object !== ball)
+        scene.remove(ball)
+        balls = []
+    })
+    ropes.forEach(rope => {
+        // remove all ropes in transformable group
+        transformableObjects = transformableObjects.filter(object => object !== rope)
+        scene.remove(rope)
+        ropes = []
+    })
+
+    createBalls(verBallAmount, horBallAmount)
+    createRopes(verBallAmount, horBallAmount)
+    // add objects
+    balls.forEach(ball => scene.add(ball))
+    ropes.forEach(rope => scene.add(rope))
+    setupControls()
+}
+
 function playBallAudio() {
     if (!muted) {
         if (ballAudio.isPlaying) {
@@ -253,34 +292,20 @@ function createLight() {
 }
 
 function createFloor() {
+    planeMaterial.transparent = true
     plane = new THREE.Mesh(planeGeometry, planeMaterial)
     plane.rotateX(-Math.PI / 2)
     plane.position.y = -0.01
     plane.receiveShadow = true;
+
+    transformableObjects.push(plane)
     scene.add(plane)
 }
 
-function createCralde(verBallAmount: number, horBallAmount: number) {
-    scene.remove(cradle)
-    const newCradle: THREE.Group = new THREE.Group()
-
-    newCradle.add(createBalls(verBallAmount, horBallAmount))
-    newCradle.add(createRopes(verBallAmount, horBallAmount))
-
-    cradle = newCradle
-    scene.add(cradle)
-}
-
 function createBalls(verAmount: number, horAmount: number) {
-    const balls: THREE.Group = new THREE.Group()
-    ballMaterial.metalness = 1
-    ballMaterial.roughness = 0.6
-    ballMaterial.transparent = true
-
     for (let i = 0; i < verAmount; i++) {
         const xVerBall: number = BALL_RADIUS * (1 - verAmount + 2 * i)
         const newVerBall = createBall(xVerBall, 1, 0)
-        balls.add(newVerBall)
 
         if (i == 0) {
             firstVerBall = newVerBall
@@ -293,7 +318,6 @@ function createBalls(verAmount: number, horAmount: number) {
     for (let i = 0; i < horAmount; i++) {
         const zHorBall: number = BALL_RADIUS * (1 - horAmount + 2 * i)
         const newHorBall = createBall(0, 1, zHorBall)
-        balls.add(newHorBall)
 
         if (i == 0) {
             firstHorBall = newHorBall
@@ -302,28 +326,23 @@ function createBalls(verAmount: number, horAmount: number) {
             lastHorBall = newHorBall
         }
     }
-
-    return balls
 }
 
 function createBall(x: number, y: number, z: number) {
     const newBall: THREE.Mesh = new THREE.Mesh(sphereGeometry, ballMaterial)
     newBall.position.set(x, y, z)
     newBall.castShadow = true
-    // scene.add(newBall)
 
+    transformableObjects.push(newBall)
+    balls.push(newBall)
     return newBall
 }
 
 function createRopes(verAmount: number, horAmount: number) {
-    const ropes: THREE.Group = new THREE.Group()
-
     // create ropes in vertical group
     for (let i = 0; i < verAmount; i++) {
         const xVerRope = BALL_RADIUS * (1 - verAmount + 2 * i)
         const newRope = createRope(xVerRope, ROPE_TO_FLOOR, 0)
-        ropes.add(newRope)
-
         if (i == 0) {
             firstVerRope = newRope
         }
@@ -336,7 +355,6 @@ function createRopes(verAmount: number, horAmount: number) {
     for (let i = 0; i < horAmount; i++) {
         const zHorRope = BALL_RADIUS * (1 - horAmount + 2 * i)
         const newRope = createRope(0, ROPE_TO_FLOOR, zHorRope)
-        ropes.add(newRope)
         if (i == 0) {
             firstHorRope = newRope
         }
@@ -346,14 +364,12 @@ function createRopes(verAmount: number, horAmount: number) {
     }
 
     // init rotations
-    firstVerRope.rotation.z = -maxAngleVerBall
+    firstVerRope.rotation.z = -maxAngleVerBall // firstVerRope = ropes[0]
     firstVerRopeRotateVel = rotateSpeedVerBall
     lastVerRopeRotateVel = 0
-    firstHorRope.rotation.x = maxAngleVerBall
+    firstHorRope.rotation.x = maxAngleVerBall // firstHorRope = ropes[verAmount]
     firstHorRopeRotateVel = -rotateSpeedVerBall
     lastHorRopeRotateVel = 0
-
-    return ropes
 }
 
 function createRope(x: number, y: number, z: number) {
@@ -361,13 +377,13 @@ function createRope(x: number, y: number, z: number) {
     const newRope: THREE.Mesh = new THREE.Mesh(ropeGeometry, ropeMaterial)
     newRope.position.set(x, y, z)
     newRope.castShadow = true
-    // scene.add(newRope)
 
+    transformableObjects.push(newRope)
+    ropes.push(newRope)
     return newRope
 }
 
 function createBars() {
-    const bars: THREE.Group = new THREE.Group()
     const horizontalBarGroup: THREE.Group = new THREE.Group()
 
     barMaterial.metalness = 1
@@ -411,23 +427,25 @@ function createBars() {
     rightBar2.position.z = 2
     horizontalBarGroup.add(rightBar2)
 
+    horizontalBarGroup.children.forEach((child) => {
+        transformableObjects.push(<THREE.Mesh>child)
+    })
+
     const verticalBarGroup = horizontalBarGroup.clone()
-    verticalBarGroup.rotation.y = Math.PI / 2
+    verticalBarGroup.rotation.y = Math.PI / 2    
 
-    // scene.add(verticalBarGroup)
-    // scene.add(horizontalBarGroup)
-    bars.add(horizontalBarGroup)
-    bars.add(verticalBarGroup)
-    scene.add(bars)
+    // TODO: verticalBarGroup rotatation by it origin when push this way
+    // verticalBarGroup.children.forEach((child) => {
+    //     transformableObjects.push(<THREE.Mesh>child)
+    // })
 
-    return bars
+    scene.add(verticalBarGroup)
 }
 
 function createBar(x: number, y: number, z: number) {
     const newBar: THREE.Mesh = new THREE.Mesh(barGeometry, barMaterial)
     newBar.position.set(x, y, z)
     newBar.castShadow = true
-    // scene.add(newBar)
 
     return newBar
 }
