@@ -16,9 +16,12 @@ let texture_lf;
 let materialArray;
 let Data = {
     Skybox: "arid",
-    BallAmount: 5,
-    BallSpeed: 3,
-    MaxAngle: 40,
+    VerBallAmount: 5,
+    VerBallSpeed: 3,
+    VerBallMaxAngle: 40,
+    HorBallAmount: 3,
+    HorBallSpeed: 5,
+    HorBallMaxAngle: 60,
 };
 const options = {
     skybox: {
@@ -28,12 +31,15 @@ const options = {
     }
 };
 let cradle; // including balls, ropes
-let ballAmount = 5;
+let verBallAmount = 5;
+let horBallAmount = 3;
 const BALL_RADIUS = 0.5;
 const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
 const ballMaterial = new THREE.MeshPhysicalMaterial({});
-let firstBall;
-let lastBall;
+let firstVerBall; // in vertical group
+let lastVerBall;
+let firstHorBall;
+let lastHorBall;
 const barGeometry = new THREE.BoxGeometry(10, 0.2, 0.2);
 const barMaterial = new THREE.MeshPhysicalMaterial({});
 const directionalLight = new THREE.DirectionalLight();
@@ -44,14 +50,20 @@ const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
 const ROPE_LENGHT = 3.5;
 const ROPE_TO_FLOOR = 5;
-let firstRope;
-let lastRope;
+let firstVerRope;
+let lastVerRope;
+let firstHorRope;
+let lastHorRope;
 const ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
 const ropeMaterial = new THREE.MeshPhysicalMaterial({ color: 0xff0000 });
-let rotateSpeed = 0.03;
-let maxAngle = 40 * Math.PI / 180;
-let firstRopeRotateVel;
-let lastRopeRotateVel;
+let rotateSpeedVerBall = 0.03;
+let maxAngleVerBall = 40 * Math.PI / 180;
+let rotateSpeedHorBall = 0.05;
+let maxAngleHorBall = 60 * Math.PI / 180;
+let firstVerRopeRotateVel;
+let lastVerRopeRotateVel;
+let firstHorRopeRotateVel;
+let lastHorRopeRotateVel;
 const audioListener = new THREE.AudioListener();
 const audioLoader = new THREE.AudioLoader();
 let ballAudio;
@@ -60,7 +72,7 @@ export function init() {
     // change ropes' origin (pivot) for rotation
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
     generateSkybox();
-    createCralde(ballAmount);
+    createCralde(verBallAmount, horBallAmount);
     createBars();
     createLight();
     createFloor();
@@ -81,16 +93,27 @@ export function setupControls() {
 export function createDatGUI() {
     gui = new GUI();
     gui.add(Data, 'Skybox', options.skybox).onChange(() => generateSkybox());
-    gui.add(Data, 'BallAmount', 3, 10, 1).name('Ball number').onChange(() => {
-        ballAmount = Data.BallAmount;
-        createCralde(ballAmount);
+    gui.add(Data, 'VerBallAmount', 3, 10, 1).name('Vertical balls').onChange(() => {
+        verBallAmount = Data.VerBallAmount;
+        createCralde(verBallAmount, horBallAmount);
         setupControls();
     });
-    gui.add(Data, 'BallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
-        rotateSpeed = Data.BallSpeed / 100;
+    gui.add(Data, 'VerBallSpeed', 1, 10, 1).name('Vertical speed').onChange(() => {
+        rotateSpeedVerBall = Data.VerBallSpeed / 100;
     });
-    gui.add(Data, 'MaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
-        maxAngle = Data.MaxAngle * Math.PI / 180;
+    gui.add(Data, 'VerBallMaxAngle', 10, 70, 1).name('Vertical angle').onChange(() => {
+        maxAngleVerBall = Data.VerBallMaxAngle * Math.PI / 180;
+    });
+    gui.add(Data, 'HorBallAmount', 3, 10, 1).name('Horizontal balls').onChange(() => {
+        horBallAmount = Data.HorBallAmount;
+        createCralde(verBallAmount, horBallAmount);
+        setupControls();
+    });
+    gui.add(Data, 'HorBallSpeed', 1, 10, 1).name('Horizontal speed').onChange(() => {
+        rotateSpeedHorBall = Data.HorBallSpeed / 100;
+    });
+    gui.add(Data, 'HorBallMaxAngle', 10, 70, 1).name('Horizontal angle').onChange(() => {
+        maxAngleHorBall = Data.HorBallMaxAngle * Math.PI / 180;
     });
     DatHelper.createDirectionalLightFolder(gui, directionalLight);
     const ballFolder = gui.addFolder("Balls");
@@ -105,37 +128,67 @@ export function createDatGUI() {
 export function render() {
     lightShadowHelper.update();
     // when last ball&rope is staying
-    if (lastRopeRotateVel == 0) {
-        if (firstRope.rotation.z >= 0) {
+    if (lastVerRopeRotateVel == 0) {
+        if (firstVerRope.rotation.z >= 0) {
             playBallAudio();
-            firstRopeRotateVel = 0;
-            firstRope.rotation.z = 0;
-            lastRopeRotateVel = rotateSpeed;
+            firstVerRopeRotateVel = 0;
+            firstVerRope.rotation.z = 0;
+            lastVerRopeRotateVel = rotateSpeedVerBall;
         }
-        if (firstRope.rotation.z <= -maxAngle) {
-            firstRopeRotateVel = rotateSpeed;
+        if (firstVerRope.rotation.z <= -maxAngleVerBall) {
+            firstVerRopeRotateVel = rotateSpeedVerBall;
         }
         // when first ball&rope is staying
     }
-    else if (firstRopeRotateVel == 0) {
-        if (lastRope.rotation.z <= 0) {
+    else if (firstVerRopeRotateVel == 0) {
+        if (lastVerRope.rotation.z <= 0) {
             playBallAudio();
-            firstRopeRotateVel = -rotateSpeed;
-            lastRope.rotation.z = 0;
-            lastRopeRotateVel = 0;
+            firstVerRopeRotateVel = -rotateSpeedVerBall;
+            lastVerRope.rotation.z = 0;
+            lastVerRopeRotateVel = 0;
         }
-        if (lastRope.rotation.z >= maxAngle) {
-            lastRopeRotateVel = -rotateSpeed;
+        if (lastVerRope.rotation.z >= maxAngleVerBall) {
+            lastVerRopeRotateVel = -rotateSpeedVerBall;
+        }
+    }
+    // when last ball&rope is staying
+    if (lastHorRopeRotateVel == 0) {
+        if (firstHorRope.rotation.x <= 0) {
+            playBallAudio();
+            firstHorRopeRotateVel = 0;
+            firstHorRope.rotation.x = 0;
+            lastHorRopeRotateVel = -rotateSpeedHorBall;
+        }
+        if (firstHorRope.rotation.x >= maxAngleHorBall) {
+            firstHorRopeRotateVel = -rotateSpeedHorBall;
+        }
+        // when first ball&rope is staying
+    }
+    else if (firstHorRopeRotateVel == 0) {
+        if (lastHorRope.rotation.x >= 0) {
+            playBallAudio();
+            firstHorRopeRotateVel = rotateSpeedHorBall;
+            lastHorRope.rotation.x = 0;
+            lastHorRopeRotateVel = 0;
+        }
+        if (lastHorRope.rotation.x <= -maxAngleHorBall) {
+            lastHorRopeRotateVel = rotateSpeedHorBall;
         }
     }
     // update first and last rope rotations
-    firstRope.rotation.z += firstRopeRotateVel;
-    lastRope.rotation.z += lastRopeRotateVel;
+    firstVerRope.rotation.z += firstVerRopeRotateVel;
+    lastVerRope.rotation.z += lastVerRopeRotateVel;
+    firstHorRope.rotation.x += firstHorRopeRotateVel;
+    lastHorRope.rotation.x += lastHorRopeRotateVel;
     // update first and last ball positions
-    firstBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstRope.rotation.z) + BALL_RADIUS * (1 - ballAmount + 2 * 0); // original x of first ball
-    firstBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstRope.rotation.z);
-    lastBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastRope.rotation.z) + BALL_RADIUS * (1 - ballAmount + 2 * (ballAmount - 1)); // original x of last ball
-    lastBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastRope.rotation.z);
+    firstVerBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstVerRope.rotation.z) + BALL_RADIUS * (1 - verBallAmount + 2 * 0); // original x of first ver ball
+    firstVerBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstVerRope.rotation.z);
+    lastVerBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastVerRope.rotation.z) + BALL_RADIUS * (1 - verBallAmount + 2 * (verBallAmount - 1)); // original x of last ver ball
+    lastVerBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastVerRope.rotation.z);
+    firstHorBall.position.z = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(-firstHorRope.rotation.x) + BALL_RADIUS * (1 - horBallAmount + 2 * 0); // original z of first hor ball
+    firstHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstHorRope.rotation.x);
+    lastHorBall.position.z = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(-lastHorRope.rotation.x) + BALL_RADIUS * (1 - horBallAmount + 2 * (horBallAmount - 1)); // original z of last hor ball
+    lastHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastHorRope.rotation.x);
 }
 function playBallAudio() {
     if (!muted) {
@@ -150,8 +203,8 @@ function createLight() {
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.left = -5;
-    directionalLight.shadow.camera.right = 6;
+    directionalLight.shadow.camera.left = -10;
+    directionalLight.shadow.camera.right = 10;
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 100;
     directionalLight.shadow.camera.rotation.x = Math.PI / 2;
@@ -166,31 +219,39 @@ function createFloor() {
     plane.receiveShadow = true;
     scene.add(plane);
 }
-function createCralde(ballAmount) {
+function createCralde(verBallAmount, horBallAmount) {
     scene.remove(cradle);
     const newCradle = new THREE.Group();
-    newCradle.add(createBalls(ballAmount));
-    newCradle.add(createRopes(ballAmount));
+    newCradle.add(createBalls(verBallAmount, horBallAmount));
+    newCradle.add(createRopes(verBallAmount, horBallAmount));
     cradle = newCradle;
     scene.add(cradle);
 }
-function createBalls(amount) {
+function createBalls(verAmount, horAmount) {
     const balls = new THREE.Group();
     ballMaterial.metalness = 1;
     ballMaterial.roughness = 0.6;
     ballMaterial.transparent = true;
-    for (let i = 0; i < amount; i++) {
-        const xBall = BALL_RADIUS * (1 - amount + 2 * i);
+    for (let i = 0; i < verAmount; i++) {
+        const xVerBall = BALL_RADIUS * (1 - verAmount + 2 * i);
+        const newVerBall = createBall(xVerBall, 1, 0);
+        balls.add(newVerBall);
         if (i == 0) {
-            firstBall = createBall(xBall, 1, 0);
-            balls.add(firstBall);
+            firstVerBall = newVerBall;
         }
-        else if (i == amount - 1) {
-            lastBall = createBall(xBall, 1, 0);
-            balls.add(lastBall);
+        if (i == verAmount - 1) {
+            lastVerBall = newVerBall;
         }
-        else {
-            balls.add(createBall(xBall, 1, 0));
+    }
+    for (let i = 0; i < horAmount; i++) {
+        const zHorBall = BALL_RADIUS * (1 - horAmount + 2 * i);
+        const newHorBall = createBall(0, 1, zHorBall);
+        balls.add(newHorBall);
+        if (i == 0) {
+            firstHorBall = newHorBall;
+        }
+        if (i == horAmount - 1) {
+            lastHorBall = newHorBall;
         }
     }
     return balls;
@@ -202,26 +263,39 @@ function createBall(x, y, z) {
     // scene.add(newBall)
     return newBall;
 }
-function createRopes(amount) {
+function createRopes(verAmount, horAmount) {
     const ropes = new THREE.Group();
-    for (let i = 0; i < amount; i++) {
-        const xRope = BALL_RADIUS * (1 - amount + 2 * i);
+    // create ropes in vertical group
+    for (let i = 0; i < verAmount; i++) {
+        const xVerRope = BALL_RADIUS * (1 - verAmount + 2 * i);
+        const newRope = createRope(xVerRope, ROPE_TO_FLOOR, 0);
+        ropes.add(newRope);
         if (i == 0) {
-            firstRope = createRope(xRope, ROPE_TO_FLOOR, 0);
-            ropes.add(firstRope);
+            firstVerRope = newRope;
         }
-        else if (i == amount - 1) {
-            lastRope = createRope(xRope, ROPE_TO_FLOOR, 0);
-            ropes.add(lastRope);
+        if (i == verAmount - 1) {
+            lastVerRope = newRope;
         }
-        else {
-            ropes.add(createRope(xRope, ROPE_TO_FLOOR, 0));
+    }
+    // create ropes in horizontal group
+    for (let i = 0; i < horAmount; i++) {
+        const zHorRope = BALL_RADIUS * (1 - horAmount + 2 * i);
+        const newRope = createRope(0, ROPE_TO_FLOOR, zHorRope);
+        ropes.add(newRope);
+        if (i == 0) {
+            firstHorRope = newRope;
+        }
+        if (i == horAmount - 1) {
+            lastHorRope = newRope;
         }
     }
     // init rotations
-    firstRope.rotation.z = -maxAngle;
-    firstRopeRotateVel = rotateSpeed;
-    lastRopeRotateVel = 0;
+    firstVerRope.rotation.z = -maxAngleVerBall;
+    firstVerRopeRotateVel = rotateSpeedVerBall;
+    lastVerRopeRotateVel = 0;
+    firstHorRope.rotation.x = maxAngleVerBall;
+    firstHorRopeRotateVel = -rotateSpeedVerBall;
+    lastHorRopeRotateVel = 0;
     return ropes;
 }
 function createRope(x, y, z) {
@@ -234,38 +308,45 @@ function createRope(x, y, z) {
 }
 function createBars() {
     const bars = new THREE.Group();
+    const horizontalBarGroup = new THREE.Group();
     barMaterial.metalness = 1;
     barMaterial.roughness = 0.6;
     barMaterial.transparent = true;
-    bars.add(createBar(0, 5, 0));
+    horizontalBarGroup.add(createBar(0, 5, 0));
     const horizontalLeftBar = createBar(0, 5, 0);
     horizontalLeftBar.rotation.y = Math.PI / 2;
     horizontalLeftBar.scale.x = 0.42;
     horizontalLeftBar.position.x = -4.90;
-    bars.add(horizontalLeftBar);
+    horizontalBarGroup.add(horizontalLeftBar);
     const horizontalRightBar = horizontalLeftBar.clone();
     horizontalRightBar.position.x = 4.90;
-    bars.add(horizontalRightBar);
-    const vertialBar = createBar(0, 0, 0);
-    vertialBar.rotation.z = Math.PI / 2;
-    vertialBar.position.y = 2.5;
-    vertialBar.scale.x = 0.5;
-    const leftBar1 = vertialBar.clone();
+    horizontalBarGroup.add(horizontalRightBar);
+    const verticalBar = createBar(0, 0, 0);
+    verticalBar.rotation.z = Math.PI / 2;
+    verticalBar.position.y = 2.5;
+    verticalBar.scale.x = 0.5;
+    const leftBar1 = verticalBar.clone();
     leftBar1.position.x = -4.90;
     leftBar1.position.z = -2;
-    bars.add(leftBar1);
-    const leftBar2 = vertialBar.clone();
+    horizontalBarGroup.add(leftBar1);
+    const leftBar2 = verticalBar.clone();
     leftBar2.position.x = -4.90;
     leftBar2.position.z = 2;
-    bars.add(leftBar2);
-    const rightBar1 = vertialBar.clone();
+    horizontalBarGroup.add(leftBar2);
+    const rightBar1 = verticalBar.clone();
     rightBar1.position.x = 4.90;
     rightBar1.position.z = -2;
-    bars.add(rightBar1);
-    const rightBar2 = vertialBar.clone();
+    horizontalBarGroup.add(rightBar1);
+    const rightBar2 = verticalBar.clone();
     rightBar2.position.x = 4.90;
     rightBar2.position.z = 2;
-    bars.add(rightBar2);
+    horizontalBarGroup.add(rightBar2);
+    const verticalBarGroup = horizontalBarGroup.clone();
+    verticalBarGroup.rotation.y = Math.PI / 2;
+    // scene.add(verticalBarGroup)
+    // scene.add(horizontalBarGroup)
+    bars.add(horizontalBarGroup);
+    bars.add(verticalBarGroup);
     scene.add(bars);
     return bars;
 }
