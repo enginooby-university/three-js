@@ -16,6 +16,7 @@ class App {
         app.use('/jsm/controls/OrbitControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/OrbitControls.js')))
         app.use('/jsm/controls/DragControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/DragControls.js')))
         app.use('/jsm/controls/TransformControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/TransformControls.js')))
+        app.use('/jsm/controls/PointerLockControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/PointerLockControls.js')))
 
         app.use('/jsm/libs/stats.module.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/libs/stats.module.js')))
         app.use('/jsm/libs/dat.gui.module.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/libs/dat.gui.module.js')))

@@ -3,6 +3,7 @@ import { Tasks } from './task_management.js';
 import { OrbitControls } from '/jsm/controls/OrbitControls.js';
 import { DragControls } from '/jsm/controls/DragControls.js';
 import { TransformControls } from '/jsm/controls/TransformControls.js';
+import { PointerLockControls } from '/jsm/controls/PointerLockControls.js';
 import Stats from '/jsm/libs/stats.module.js';
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from './helpers/dat_helper.js';
@@ -31,11 +32,13 @@ const gui = new GUI();
 let postProcessingFolder = gui.addFolder("Post processing");
 let statsGUIs = [];
 let transformModeControler;
+let pointerLockControlEnableControler;
 let sourceLink;
 const vrButton = VRButton.createButton(renderer);
 export let orbitControls;
 export let dragControls;
 export let transformControls;
+export let pointerLockControls;
 const SOURCE_LINK_BASE = 'https://github.com/enginoobz-university/three-js/tree/master/src/client/tasks/';
 const STATS_WIDTH = '100%';
 const STATS_HEIGHT = '100%';
@@ -62,7 +65,6 @@ const Data = {
     DragControls: {
         opacity: 0.33,
     },
-    ShowHelpers: true
 };
 init();
 animate();
@@ -86,11 +88,16 @@ function init() {
     switchScene(FIRST_SCENE_INDEX);
 }
 function createControls() {
+    pointerLockControls = new PointerLockControls(camera, renderer.domElement);
+    pointerLockControls.addEventListener('unlock', function () {
+        pointerLockControlEnableControler.setValue(false);
+    });
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.minDistance = 2;
     orbitControls.maxDistance = 300;
     orbitControls.enableDamping = true;
     orbitControls.dampingFactor = 0.05;
+    // orbitControlsEnabled=false
     transformControls = new TransformControls(camera, renderer.domElement);
     transformControls.setMode("scale");
     transformControls.addEventListener('dragging-changed', function (event) {
@@ -100,16 +107,16 @@ function createControls() {
 }
 export function attachToDragControls(objects) {
     dragControls = new DragControls(objects, camera, renderer.domElement);
-    dragControls.addEventListener("hoveron", function () {
+    dragControls.addEventListener("hoveron", function (event) {
         orbitControls.enabled = false;
+        const elme = document.querySelector('html');
+        elme.style.cursor = 'move';
     });
     dragControls.addEventListener("hoveroff", function () {
         orbitControls.enabled = true;
     });
     dragControls.addEventListener('dragstart', function (event) {
         event.object.material.opacity = Data.DragControls.opacity;
-        console.log(typeof event.object);
-        console.log(typeof event.object.material);
         // event.object.material.emissive.setHex(Data.DragControls.emissive);
     });
     dragControls.addEventListener('dragend', function (event) {
@@ -139,8 +146,21 @@ function createControlFolder() {
     // dragControlsFolder.addColor(Data.DragControls, 'emissive').onChange((value) => { Data.DragControls.emissive = Number(value.toString().replace('#', '0x')) });
     dragControlsFolder.add(Data.DragControls, 'opacity', 0.1, 1, 0.1);
     dragControlsFolder.open();
+    const pointerLockControlsFolder = controlFolder.addFolder("PointerLockcontrols");
+    pointerLockControlEnableControler = pointerLockControlsFolder.add(pointerLockControls, 'isLocked').name("enabled").onChange((value) => {
+        if (value) {
+            orbitControlsEnabled = false;
+            pointerLockControls.lock();
+        }
+        else {
+            orbitControlsEnabled = true;
+            pointerLockControls.unlock();
+        }
+    });
     const orbitControlsFolder = controlFolder.addFolder("OrbitControls");
-    orbitControlsFolder.add(orbitControls, 'enabled', true).onChange((value) => orbitControlsEnabled = value);
+    orbitControlsFolder.add(orbitControls, 'enabled', true).onChange((value) => {
+        orbitControlsEnabled = value;
+    });
     orbitControlsFolder.add(orbitControls, 'autoRotate', false);
     orbitControlsFolder.add(orbitControls, 'autoRotateSpeed', 1, 20, 1);
     orbitControlsFolder.add(orbitControls, 'enableDamping', true);
@@ -272,7 +292,9 @@ function animate() {
         requestAnimationFrame(animate);
     }
     render();
-    orbitControls.update();
+    if (orbitControlsEnabled) {
+        orbitControls.update();
+    }
     for (let i = 0; i < statsGUIs.length; i++) {
         statsGUIs[i].update();
     }

@@ -16,6 +16,7 @@ class App {
         app.use('/jsm/controls/OrbitControls.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/controls/OrbitControls.js')));
         app.use('/jsm/controls/DragControls.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/controls/DragControls.js')));
         app.use('/jsm/controls/TransformControls.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/controls/TransformControls.js')));
+        app.use('/jsm/controls/PointerLockControls.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/controls/PointerLockControls.js')));
         app.use('/jsm/libs/stats.module.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/libs/stats.module.js')));
         app.use('/jsm/libs/dat.gui.module.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/libs/dat.gui.module.js')));
         app.use('/jsm/webxr/VRButton.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/webxr/VRButton.js')));
