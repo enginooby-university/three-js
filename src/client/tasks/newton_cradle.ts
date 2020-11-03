@@ -243,12 +243,21 @@ export function render() {
 function updateBallNumber() {
     // clear objects
     balls.forEach(ball => {
+        // reset selected object if it is the ball
+        if (ball.id == selectedObjectId) {
+            selectedObjectId = -1;
+            (ball.material as any).emissive.set(0x000000);
+        }
         // remove all balls in transformable group
         transformableObjects = transformableObjects.filter(object => object !== ball)
         scene.remove(ball)
         balls = []
     })
     ropes.forEach(rope => {
+        if (rope.id == selectedObjectId) {
+            selectedObjectId = -1;
+            (rope.material as any).emissive.set(0x000000);
+        }
         // remove all ropes in transformable group
         transformableObjects = transformableObjects.filter(object => object !== rope)
         scene.remove(rope)
