@@ -101,6 +101,22 @@ const mouse: THREE.Vector2 = new THREE.Vector2()
 init()
 animate(1)
 
+export function showLoadingScreen() {
+    const loadingScreen = document.getElementById('loading-screen')!
+    loadingScreen.classList.remove('fade-out');
+}
+
+export function hideLoadingScreen() {
+    const loadingScreen = document.getElementById('loading-screen')!
+    loadingScreen.classList.add('fade-out');
+    // optional: remove loader from DOM via event listener
+    // loadingScreen.addEventListener('transitionend', onTransitionEnd);
+}
+
+// function onTransitionEnd(event: any) {
+//     event.target.remove();
+// }
+
 function init() {
     camera = createCamera()
     renderer.setSize(window.innerWidth, window.innerHeight)
@@ -119,6 +135,7 @@ function init() {
     createDatGUI()
     updateScenePostProcessing()
     // createPostProcessingFolder()
+    hideLoadingScreen()
 }
 
 function createControls() {

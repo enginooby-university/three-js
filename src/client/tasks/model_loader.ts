@@ -1,7 +1,7 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
-import { transformControls, attachToDragControls, muted } from '../client.js'
+import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 import { OBJLoader } from '/jsm/loaders/OBJLoader.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
@@ -23,10 +23,13 @@ let plane: THREE.Mesh
 const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(10, 10)
 const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd })
 
-const objLoader: OBJLoader = new OBJLoader();
-const material: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+const loadingManager = new THREE.LoadingManager(() => {
+    hideLoadingScreen()
+});
+const objLoader = new OBJLoader(loadingManager);
 
 export function init() {
+    showLoadingScreen()
     isInitialized = true
     scene.background = new THREE.Color(0x333333)
     createLight()
@@ -38,16 +41,17 @@ export function init() {
         (object) => {
             object.traverse(function (child) {
                 if ((<THREE.Mesh>child).isMesh) {
+                    const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial();
                     (<THREE.Mesh>child).castShadow = true;
                     (<THREE.Mesh>child).scale.set(0.005, 0.005, 0.005);
-                    // (<THREE.Mesh>child).material = material
+                    (<THREE.Mesh>child).material = material // create a material for each mesh
                     transformableObjects.push(<THREE.Mesh>child)
                 }
             })
             scene.add(object);
         },
         (xhr) => {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+            // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
         },
         (error) => {
             console.log(error);

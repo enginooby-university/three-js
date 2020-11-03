@@ -1,6 +1,6 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
-import { transformControls, attachToDragControls } from '../client.js';
+import { transformControls, attachToDragControls, hideLoadingScreen, showLoadingScreen } from '../client.js';
 import { OBJLoader } from '/jsm/loaders/OBJLoader.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
@@ -17,9 +17,12 @@ const directionalLight = new THREE.DirectionalLight();
 let plane;
 const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
-const objLoader = new OBJLoader();
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+const loadingManager = new THREE.LoadingManager(() => {
+    hideLoadingScreen();
+});
+const objLoader = new OBJLoader(loadingManager);
 export function init() {
+    showLoadingScreen();
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
     createLight();
@@ -28,15 +31,16 @@ export function init() {
     objLoader.load('./resources/models/tree.obj', (object) => {
         object.traverse(function (child) {
             if (child.isMesh) {
+                const material = new THREE.MeshPhongMaterial();
                 child.castShadow = true;
                 child.scale.set(0.005, 0.005, 0.005);
-                // (<THREE.Mesh>child).material = material
+                child.material = material; // create a material for each mesh
                 transformableObjects.push(child);
             }
         });
         scene.add(object);
     }, (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
     }, (error) => {
         console.log(error);
     });
