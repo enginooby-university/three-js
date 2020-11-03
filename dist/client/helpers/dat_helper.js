@@ -117,23 +117,23 @@ export function createMaterialFolder(gui, material) {
 }
 function createObjectPositionFolder(parentFolder, object) {
     const objectPositionFolder = parentFolder.addFolder("position");
-    objectPositionFolder.add(object.position, "x", -50, 50, 0.01);
-    objectPositionFolder.add(object.position, "y", -50, 50, 0.01);
-    objectPositionFolder.add(object.position, "z", -50, 50, 0.01);
+    objectPositionFolder.add(object.position, "x", -50, 50, 0.01).listen();
+    objectPositionFolder.add(object.position, "y", -50, 50, 0.01).listen();
+    objectPositionFolder.add(object.position, "z", -50, 50, 0.01).listen();
     return objectPositionFolder;
 }
 function createObjectScaleFolder(parentFolder, object) {
     const objectScaleFolder = parentFolder.addFolder("scale");
-    objectScaleFolder.add(object.scale, "x", 0, 5, 0.1);
-    objectScaleFolder.add(object.scale, "y", 0, 5, 0.1);
-    objectScaleFolder.add(object.scale, "z", 0, 5, 0.1);
+    objectScaleFolder.add(object.scale, "x", 0, 5, 0.1).listen();
+    objectScaleFolder.add(object.scale, "y", 0, 5, 0.1).listen();
+    objectScaleFolder.add(object.scale, "z", 0, 5, 0.1).listen();
     return objectScaleFolder;
 }
 function createObjectRotationFolder(parentFolder, object) {
     const objectRotationFolder = parentFolder.addFolder("rotation");
-    objectRotationFolder.add(object.rotation, "x", 0, Math.PI * 2, 0.01);
-    objectRotationFolder.add(object.rotation, "y", 0, Math.PI * 2, 0.01);
-    objectRotationFolder.add(object.rotation, "z", 0, Math.PI * 2, 0.01);
+    objectRotationFolder.add(object.rotation, "x", 0, Math.PI * 2, 0.01).listen();
+    objectRotationFolder.add(object.rotation, "y", 0, Math.PI * 2, 0.01).listen();
+    objectRotationFolder.add(object.rotation, "z", 0, Math.PI * 2, 0.01).listen();
     return objectRotationFolder;
 }
 const constants = {
