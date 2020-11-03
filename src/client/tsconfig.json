@@ -8,18 +8,22 @@
             "/build/three.module.js": ["../../node_modules/three/src/Three"],
             "/jsm/*": ["../../node_modules/three/examples/jsm/*"],
             "/jsm/libs/dat.gui.module.js":["../../node_modules/three/examples/jsm/libs/dat.gui.module"],
+
             "/jsm/controls/OrbitControls.js": ["../../node_modules/three/examples/jsm/controls/OrbitControls"],
             "/jsm/controls/DragControls.js": ["../../node_modules/three/examples/jsm/controls/DragControls"],
             "/jsm/controls/TransformControls.js": ["../../node_modules/three/examples/jsm/controls/TransformControls"],
             "/jsm/controls/PointerLockControls.js": ["../../node_modules/three/examples/jsm/controls/PointerLockControls"],
+
+            "/jsm/loaders/OBJLoader.js": ["../../node_modules/three/examples/jsm/loaders/OBJLoader"],
+
             "/jsm/libs/stats.module.js":["../../node_modules/three/examples/jsm/libs/stats.module"],
             "/jsm/webxr/VRButton.js":["../../node_modules/three/examples/jsm/webxr/VRButton"],
+
             "/jsm/postprocessing/EffectComposer.js":["../../node_modules/three/examples/jsm/postprocessing/EffectComposer"],
             "/jsm/postprocessing/RenderPass.js":["../../node_modules/three/examples/jsm/postprocessing/RenderPass"],
             // "/jsm/postprocessing/BloomPass.js":["../../node_modules/three/examples/jsm/postprocessing/BloomPass"],
             "/jsm/postprocessing/FilmPass.js":["../../node_modules/three/examples/jsm/postprocessing/FilmPass"],
             "/jsm/postprocessing/SMAAPass.js":["../../node_modules/three/examples/jsm/postprocessing/SMAAPass"],
-
 
         },
         "moduleResolution": "node",
