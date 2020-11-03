@@ -91,6 +91,8 @@ function createLeg(color: string | number | THREE.Color, material: THREE.MeshBas
 
 export function createDatGUI() {
     gui = new GUI()
+    gui.width = 232
+
     DatHelper.createObjectFolder(gui, table, "Table")
     const faceFolder: GUI = DatHelper.createObjectFolder(gui, face, "Face")
     const leg1Folder: GUI = DatHelper.createObjectFolder(gui, leg1, "Leg 1")

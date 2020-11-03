@@ -32,7 +32,11 @@ let composer: EffectComposer
 // let bloomPass: BloomPass
 let filmPass: FilmPass
 
-const gui = new GUI()
+const gui = new GUI({
+    autoPlace: true, //?
+    width: 232,
+})
+
 let postProcessingFolder = gui.addFolder("Post processing")
 let statsGUIs: Stats[] = []
 let transformModeControler: GUIController
@@ -193,6 +197,9 @@ function createDatGUI() {
         }
         currentTask.setSkybox(value)
     })
+
+    const guiFolder = gui.addFolder('GUI')
+    guiFolder.add(gui, 'width', 100, 300, 1)
 
     createControlFolder()
     generateSkybox()
@@ -480,26 +487,29 @@ function onWindowClick(event: MouseEvent) {
 }
 function updateSelectObject() {
     const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(currentTask.transformableObjects, false)
-    if (intersectObjects.length) {
-        try {
-            unselectPreviousObject()
+
+    try {
+        unselectPreviousObject()
+        if (intersectObjects.length) {
             // get the object on top where mouse currently points to
             const currentSelectedObject = intersectObjects[0].object as THREE.Mesh
             transformControls.attach(currentSelectedObject);
             // TODO: problem with definition file (types): emissive not exist on THREE.Material
             (currentSelectedObject.material as any).emissive.set(0x444444);
             currentTask.setSelectedObjectId(currentSelectedObject.id)
-        } catch (error) {
-            if (error instanceof TypeError)
-                console.log('The material type of selected object does not have emissive property :(')
         }
+    } catch (error) {
+        if (error instanceof TypeError)
+            console.log('The material type of selected object does not have emissive property :(')
     }
+
 }
 function unselectPreviousObject() {
     if (currentTask.selectedObjectId != -1) {
         // do s.t with previous selected object 
         const previousSelectedObject = currentScene.getObjectById(currentTask.selectedObjectId) as THREE.Mesh
         (previousSelectedObject.material as any).emissive.set(0x000000);
+        transformControls.detach()
     }
 }
 

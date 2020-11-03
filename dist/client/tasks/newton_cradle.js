@@ -88,6 +88,7 @@ export function setupControls() {
 }
 export function createDatGUI() {
     gui = new GUI();
+    gui.width = 232;
     const verticalGroupFolder = gui.addFolder('Vertical group');
     verticalGroupFolder.add(Param, 'VerBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
         verBallAmount = Param.VerBallAmount;
@@ -101,7 +102,7 @@ export function createDatGUI() {
     });
     verticalGroupFolder.open();
     const horizontalGroupFolder = gui.addFolder('Horizontal group');
-    horizontalGroupFolder.add(Param, 'HorBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
+    horizontalGroupFolder.add(Param, 'HorBallAmount', 3, 9, 2).name('Ball number').onChange(() => {
         horBallAmount = Param.HorBallAmount;
         updateBallNumber();
     });

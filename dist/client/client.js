@@ -28,7 +28,10 @@ export const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: fal
 let composer;
 // let bloomPass: BloomPass
 let filmPass;
-const gui = new GUI();
+const gui = new GUI({
+    autoPlace: true,
+    width: 232,
+});
 let postProcessingFolder = gui.addFolder("Post processing");
 let statsGUIs = [];
 let transformModeControler;
@@ -168,6 +171,8 @@ function createDatGUI() {
         }
         currentTask.setSkybox(value);
     });
+    const guiFolder = gui.addFolder('GUI');
+    guiFolder.add(gui, 'width', 100, 300, 1);
     createControlFolder();
     generateSkybox();
     createHelperGUIFolder();
@@ -411,9 +416,9 @@ function onWindowClick(event) {
 }
 function updateSelectObject() {
     const intersectObjects = raycaster.intersectObjects(currentTask.transformableObjects, false);
-    if (intersectObjects.length) {
-        try {
-            unselectPreviousObject();
+    try {
+        unselectPreviousObject();
+        if (intersectObjects.length) {
             // get the object on top where mouse currently points to
             const currentSelectedObject = intersectObjects[0].object;
             transformControls.attach(currentSelectedObject);
@@ -421,10 +426,10 @@ function updateSelectObject() {
             currentSelectedObject.material.emissive.set(0x444444);
             currentTask.setSelectedObjectId(currentSelectedObject.id);
         }
-        catch (error) {
-            if (error instanceof TypeError)
-                console.log('The material type of selected object does not have emissive property :(');
-        }
+    }
+    catch (error) {
+        if (error instanceof TypeError)
+            console.log('The material type of selected object does not have emissive property :(');
     }
 }
 function unselectPreviousObject() {
@@ -432,6 +437,7 @@ function unselectPreviousObject() {
         // do s.t with previous selected object 
         const previousSelectedObject = currentScene.getObjectById(currentTask.selectedObjectId);
         previousSelectedObject.material.emissive.set(0x000000);
+        transformControls.detach();
     }
 }
 window.addEventListener('resize', onWindowResize, false);

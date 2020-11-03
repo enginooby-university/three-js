@@ -73,6 +73,7 @@ function createLeg(color, material, x, y, z) {
 }
 export function createDatGUI() {
     gui = new GUI();
+    gui.width = 232;
     DatHelper.createObjectFolder(gui, table, "Table");
     const faceFolder = DatHelper.createObjectFolder(gui, face, "Face");
     const leg1Folder = DatHelper.createObjectFolder(gui, leg1, "Leg 1");

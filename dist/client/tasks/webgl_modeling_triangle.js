@@ -40,6 +40,7 @@ export function setupControls() {
 }
 export function createDatGUI() {
     gui = new GUI();
+    gui.width = 232;
     DatHelper.createObjectFolder(gui, triangle, "Triangle");
     DatHelper.createMaterialFolder(gui, material);
 }
