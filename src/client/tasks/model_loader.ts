@@ -25,8 +25,11 @@ const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({ col
 
 const loadingManager = new THREE.LoadingManager(() => {
     hideLoadingScreen()
+    createDatGUI()
 });
 const objLoader = new OBJLoader(loadingManager);
+
+let trees: THREE.Group[] = []
 
 export function init() {
     showLoadingScreen()
@@ -39,6 +42,7 @@ export function init() {
     objLoader.load(
         './resources/models/tree.obj',
         (object) => {
+
             object.traverse(function (child) {
                 if ((<THREE.Mesh>child).isMesh) {
                     const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial();
@@ -49,6 +53,7 @@ export function init() {
                 }
             })
             scene.add(object);
+            trees.push(object)
         },
         (xhr) => {
             // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
@@ -74,6 +79,13 @@ export function setupControls() {
 
 export function createDatGUI() {
     gui = new GUI()
+    if (trees.length) {
+        trees.forEach(object => {
+            DatHelper.createObjectFolder(gui, object, 'Tree')
+        })
+    } else {
+        gui.destroy()
+    }
 }
 
 export function render() {

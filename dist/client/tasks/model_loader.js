@@ -1,4 +1,5 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
+import * as DatHelper from '../helpers/dat_helper.js';
 import * as THREE from '/build/three.module.js';
 import { transformControls, attachToDragControls, hideLoadingScreen, showLoadingScreen } from '../client.js';
 import { OBJLoader } from '/jsm/loaders/OBJLoader.js';
@@ -19,8 +20,10 @@ const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
 const loadingManager = new THREE.LoadingManager(() => {
     hideLoadingScreen();
+    createDatGUI();
 });
 const objLoader = new OBJLoader(loadingManager);
+let trees = [];
 export function init() {
     showLoadingScreen();
     isInitialized = true;
@@ -39,6 +42,7 @@ export function init() {
             }
         });
         scene.add(object);
+        trees.push(object);
     }, (xhr) => {
         // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
     }, (error) => {
@@ -57,6 +61,14 @@ export function setupControls() {
 }
 export function createDatGUI() {
     gui = new GUI();
+    if (trees.length) {
+        trees.forEach(object => {
+            DatHelper.createObjectFolder(gui, object, 'Tree');
+        });
+    }
+    else {
+        gui.destroy();
+    }
 }
 export function render() {
 }
