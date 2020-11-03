@@ -6,35 +6,16 @@ import { transformControls, attachToDragControls, muted, raycaster } from '../cl
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
-
-const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
-let skybox: THREE.Mesh
-
-let texture_ft: THREE.Texture
-let texture_bk: THREE.Texture
-let texture_up: THREE.Texture
-let texture_dn: THREE.Texture
-let texture_rt: THREE.Texture
-let texture_lf: THREE.Texture
-
-let materialArray: THREE.MeshBasicMaterial[]
+export let skybox: string = 'arid'
+export const setSkybox = (name: string) => skybox = name
 
 let Param = {
-    Skybox: "arid",
     VerBallAmount: 5,
     VerBallSpeed: 3,
     VerBallMaxAngle: 40, // degree
     HorBallAmount: 3,
     HorBallSpeed: 5,
     HorBallMaxAngle: 60, // degree
-}
-
-const options = {
-    skybox: {
-        "Arid": "arid",
-        "Cocoa": "cocoa",
-        "Dust": "dust",
-    }
 }
 
 let verBallAmount: number = 5
@@ -98,9 +79,6 @@ export function init() {
 
     // change ropes' origin (pivot) for rotation
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0)
-
-    generateSkybox()
-    //createCralde(verBallAmount, horBallAmount)
     createBalls(verBallAmount, horBallAmount)
     createRopes(verBallAmount, horBallAmount)
     createBars()
@@ -128,7 +106,6 @@ export function setupControls() {
 
 export function createDatGUI() {
     gui = new GUI()
-    gui.add(Param, 'Skybox', options.skybox).onChange(() => generateSkybox())
 
     const verticalGroupFolder = gui.addFolder('Vertical group')
     verticalGroupFolder.add(Param, 'VerBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
@@ -272,6 +249,7 @@ function updateBallNumber() {
     setupControls()
 }
 
+// TODO: create helper to play sound
 function playBallAudio() {
     if (!muted) {
         if (ballAudio.isPlaying) {
@@ -335,7 +313,6 @@ function createBalls(verAmount: number, horAmount: number) {
         }
     }
 }
-
 function createBall(x: number, y: number, z: number) {
     const newBall: THREE.Mesh = new THREE.Mesh(sphereGeometry, ballMaterial)
     newBall.position.set(x, y, z)
@@ -379,7 +356,6 @@ function createRopes(verAmount: number, horAmount: number) {
     firstHorRopeRotateVel = -rotateSpeedVerBall
     lastHorRopeRotateVel = 0
 }
-
 function createRope(x: number, y: number, z: number) {
     ropeMaterial.transparent = true
     const newRope: THREE.Mesh = new THREE.Mesh(ropeGeometry, ropeMaterial)
@@ -449,46 +425,10 @@ function createBars() {
 
     scene.add(verticalBarGroup)
 }
-
 function createBar(x: number, y: number, z: number) {
     const newBar: THREE.Mesh = new THREE.Mesh(barGeometry, barMaterial)
     newBar.position.set(x, y, z)
     newBar.castShadow = true
 
     return newBar
-}
-
-function generateSkybox() {
-    loadTextures()
-    loadMaterials()
-    skybox = new THREE.Mesh(skyboxGeometry, materialArray)
-    scene.remove(skybox)
-    scene.add(skybox)
-}
-
-function loadMaterials() {
-    materialArray = []
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_ft }))
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }))
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }))
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_dn }))
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }))
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }))
-
-    for (let i = 0; i < materialArray.length; i++) {
-        materialArray[i].side = THREE.BackSide
-    }
-}
-
-function loadTextures() {
-    texture_ft = new THREE.TextureLoader().load(getTexturePath('ft'))
-    texture_bk = new THREE.TextureLoader().load(getTexturePath('bk'))
-    texture_up = new THREE.TextureLoader().load(getTexturePath('up'))
-    texture_dn = new THREE.TextureLoader().load(getTexturePath('dn'))
-    texture_rt = new THREE.TextureLoader().load(getTexturePath('rt'))
-    texture_lf = new THREE.TextureLoader().load(getTexturePath('lf'))
-}
-
-function getTexturePath(texturePosition: string) {
-    return `./resources/textures/${Param.Skybox}/${Param.Skybox}_${texturePosition}.jpg`
 }

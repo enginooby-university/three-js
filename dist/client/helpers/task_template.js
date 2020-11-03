@@ -4,6 +4,8 @@ import { transformControls, attachToDragControls } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
+export let skybox; //= 'none'
+export const setSkybox = (name) => skybox = name;
 // group of objects affected by DragControls & TransformControls
 export let transformableObjects = [];
 export let selectedObjectId = -1;

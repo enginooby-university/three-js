@@ -5,30 +5,15 @@ import { transformControls, attachToDragControls, muted } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
-const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
-let skybox;
-let texture_ft;
-let texture_bk;
-let texture_up;
-let texture_dn;
-let texture_rt;
-let texture_lf;
-let materialArray;
+export let skybox = 'arid';
+export const setSkybox = (name) => skybox = name;
 let Param = {
-    Skybox: "arid",
     VerBallAmount: 5,
     VerBallSpeed: 3,
     VerBallMaxAngle: 40,
     HorBallAmount: 3,
     HorBallSpeed: 5,
     HorBallMaxAngle: 60,
-};
-const options = {
-    skybox: {
-        "Arid": "arid",
-        "Cocoa": "cocoa",
-        "Dust": "dust",
-    }
 };
 let verBallAmount = 5;
 let horBallAmount = 3;
@@ -81,8 +66,6 @@ export function init() {
     isInitialized = true;
     // change ropes' origin (pivot) for rotation
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
-    generateSkybox();
-    //createCralde(verBallAmount, horBallAmount)
     createBalls(verBallAmount, horBallAmount);
     createRopes(verBallAmount, horBallAmount);
     createBars();
@@ -105,7 +88,6 @@ export function setupControls() {
 }
 export function createDatGUI() {
     gui = new GUI();
-    gui.add(Param, 'Skybox', options.skybox).onChange(() => generateSkybox());
     const verticalGroupFolder = gui.addFolder('Vertical group');
     verticalGroupFolder.add(Param, 'VerBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
         verBallAmount = Param.VerBallAmount;
@@ -235,6 +217,7 @@ function updateBallNumber() {
     ropes.forEach(rope => scene.add(rope));
     setupControls();
 }
+// TODO: create helper to play sound
 function playBallAudio() {
     if (!muted) {
         if (ballAudio.isPlaying) {
@@ -388,34 +371,4 @@ function createBar(x, y, z) {
     newBar.position.set(x, y, z);
     newBar.castShadow = true;
     return newBar;
-}
-function generateSkybox() {
-    loadTextures();
-    loadMaterials();
-    skybox = new THREE.Mesh(skyboxGeometry, materialArray);
-    scene.remove(skybox);
-    scene.add(skybox);
-}
-function loadMaterials() {
-    materialArray = [];
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_ft }));
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }));
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }));
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_dn }));
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }));
-    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }));
-    for (let i = 0; i < materialArray.length; i++) {
-        materialArray[i].side = THREE.BackSide;
-    }
-}
-function loadTextures() {
-    texture_ft = new THREE.TextureLoader().load(getTexturePath('ft'));
-    texture_bk = new THREE.TextureLoader().load(getTexturePath('bk'));
-    texture_up = new THREE.TextureLoader().load(getTexturePath('up'));
-    texture_dn = new THREE.TextureLoader().load(getTexturePath('dn'));
-    texture_rt = new THREE.TextureLoader().load(getTexturePath('rt'));
-    texture_lf = new THREE.TextureLoader().load(getTexturePath('lf'));
-}
-function getTexturePath(texturePosition) {
-    return `./resources/textures/${Param.Skybox}/${Param.Skybox}_${texturePosition}.jpg`;
 }

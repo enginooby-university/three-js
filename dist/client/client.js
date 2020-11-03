@@ -33,6 +33,7 @@ let postProcessingFolder = gui.addFolder("Post processing");
 let statsGUIs = [];
 let transformModeControler;
 let pointerLockControlEnableControler;
+let skyboxController;
 let sourceLink;
 const vrButton = VRButton.createButton(renderer);
 export let orbitControls;
@@ -49,7 +50,18 @@ const GRID_SIZE = 10;
 const GRID_DIVISIONS = 10;
 const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS);
 let cameraHelper;
-const Data = {
+/* SKYBOX */
+const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
+let skybox;
+let texture_ft;
+let texture_bk;
+let texture_up;
+let texture_dn;
+let texture_rt;
+let texture_lf;
+let materialArray;
+const Param = {
+    Skybox: "arid",
     BloomPass: {
         opacity: 1
     },
@@ -82,12 +94,11 @@ function init() {
     //document.body.appendChild(renderer.domElement)
     dragControls = new DragControls([], camera, renderer.domElement);
     createControls();
-    createControlFolder();
     createStatsGUI();
-    createHelperGUIFolder();
-    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera');
-    // createPostProcessingFolder()
     switchScene(FIRST_SCENE_INDEX);
+    createDatGUI();
+    updateScenePostProcessing();
+    // createPostProcessingFolder()
 }
 function createControls() {
     pointerLockControls = new PointerLockControls(camera, renderer.domElement);
@@ -123,7 +134,7 @@ export function attachToDragControls(objects) {
         orbitControls.enabled = true;
     });
     dragControls.addEventListener('dragstart', function (event) {
-        event.object.material.opacity = Data.DragControls.opacity;
+        event.object.material.opacity = Param.DragControls.opacity;
         // event.object.material.emissive.setHex(Data.DragControls.emissive);
     });
     dragControls.addEventListener('dragend', function (event) {
@@ -138,6 +149,30 @@ function createCamera() {
     cameraHelper.visible = false;
     return newCamera;
 }
+function createDatGUI() {
+    const options = {
+        skybox: {
+            "None": "none",
+            "Arid": "arid",
+            "Cocoa": "cocoa",
+            "Dust": "dust",
+        }
+    };
+    skyboxController = gui.add(Param, 'Skybox', options.skybox).onChange((value) => {
+        if (value == 'none') {
+            const currentSkybox = currentScene.getObjectByName('skybox');
+            currentSkybox.visible = false;
+        }
+        else {
+            generateSkybox();
+        }
+        currentTask.setSkybox(value);
+    });
+    createControlFolder();
+    generateSkybox();
+    createHelperGUIFolder();
+    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera');
+}
 function createControlFolder() {
     const options = {
         "Scale (S)": 'scale',
@@ -147,11 +182,11 @@ function createControlFolder() {
     const controlFolder = gui.addFolder("Controls");
     const transformControlsFolder = controlFolder.addFolder("TransformControls");
     transformControlsFolder.add(transformControls, 'enabled', true);
-    transformModeControler = transformControlsFolder.add(Data.TransformControls, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value));
+    transformModeControler = transformControlsFolder.add(Param.TransformControls, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value));
     transformControlsFolder.open();
     const dragControlsFolder = controlFolder.addFolder("DragControls");
     // dragControlsFolder.addColor(Data.DragControls, 'emissive').onChange((value) => { Data.DragControls.emissive = Number(value.toString().replace('#', '0x')) });
-    dragControlsFolder.add(Data.DragControls, 'opacity', 0.1, 1, 0.1);
+    dragControlsFolder.add(Param.DragControls, 'opacity', 0.1, 1, 0.1);
     dragControlsFolder.open();
     const pointerLockControlsFolder = controlFolder.addFolder("PointerLockControls");
     pointerLockControlEnableControler = pointerLockControlsFolder.add(pointerLockControls, 'isLocked').name("enabled").onChange((value) => {
@@ -229,8 +264,8 @@ function createPostProcessingFolder() {
     gui.removeFolder(postProcessingFolder);
     postProcessingFolder = gui.addFolder("Post processing");
     const newFilmPassFolder = postProcessingFolder.addFolder('FilmPass');
-    newFilmPassFolder.add(filmPass.uniforms.grayscale, 'value', 0, 1, 1).name('grayscale').onChange((value) => Data.FilmPass.grayscale = value);
-    newFilmPassFolder.add(filmPass.uniforms.nIntensity, 'value', 0, 1).name('noise intensity').onChange((value) => Data.FilmPass.nIntensity = value);
+    newFilmPassFolder.add(filmPass.uniforms.grayscale, 'value', 0, 1, 1).name('grayscale').onChange((value) => Param.FilmPass.grayscale = value);
+    newFilmPassFolder.add(filmPass.uniforms.nIntensity, 'value', 0, 1).name('noise intensity').onChange((value) => Param.FilmPass.nIntensity = value);
     // TODO: no-impact properties???
     // newFilmPassFolder.add((<any>filmPass.uniforms).sIntensity, 'value', 0, 1).name('scanline intensity').onChange((value) => Data.FilmPass.sIntensity = value)
     // newFilmPassFolder.add((<any>filmPass.uniforms).sCount, 'value', 0, 1000).name('scanline count').onChange((value) => Data.FilmPass.sCount = value)
@@ -260,9 +295,19 @@ function switchScene(scenceIndex) {
     currentScene.add(gridHelper);
     currentScene.add(cameraHelper);
     orbitControls.enabled = orbitControlsEnabled;
-    updatePostProcessing();
+    // update skybox controller value
+    if (skyboxController !== undefined) {
+        if (currentTask.skybox === undefined) {
+            Param.Skybox = 'none';
+        }
+        else {
+            Param.Skybox = currentTask.skybox;
+        }
+        skyboxController.updateDisplay();
+    }
+    updateScenePostProcessing();
 }
-function updatePostProcessing() {
+function updateScenePostProcessing() {
     // reset composer
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(currentScene, camera));
@@ -273,7 +318,7 @@ function updatePostProcessing() {
     //     256,  // blur render target resolution
     // );
     // composer.addPass(bloomPass);
-    filmPass = new FilmPass(Data.FilmPass.nIntensity, Data.FilmPass.sIntensity, Data.FilmPass.sCount, Data.FilmPass.grayscale);
+    filmPass = new FilmPass(Param.FilmPass.nIntensity, Param.FilmPass.sIntensity, Param.FilmPass.sCount, Param.FilmPass.grayscale);
     filmPass.renderToScreen = true;
     composer.addPass(filmPass);
     // for antialias since built-in antialiasing doesn’t work with post-processing
@@ -320,8 +365,41 @@ function render() {
         statsGUIs[i].update();
     }
 }
+/* SKYBOX */
+function generateSkybox() {
+    loadTextures();
+    loadMaterials();
+    skybox = new THREE.Mesh(skyboxGeometry, materialArray);
+    skybox.name = "skybox";
+    currentScene.remove(skybox);
+    skybox.visible = true;
+    currentScene.add(skybox);
+}
+function loadMaterials() {
+    materialArray = [];
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_ft }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_dn }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }));
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }));
+    for (let i = 0; i < materialArray.length; i++) {
+        materialArray[i].side = THREE.BackSide;
+    }
+}
+function loadTextures() {
+    texture_ft = new THREE.TextureLoader().load(getTexturePath('ft'));
+    texture_bk = new THREE.TextureLoader().load(getTexturePath('bk'));
+    texture_up = new THREE.TextureLoader().load(getTexturePath('up'));
+    texture_dn = new THREE.TextureLoader().load(getTexturePath('dn'));
+    texture_rt = new THREE.TextureLoader().load(getTexturePath('rt'));
+    texture_lf = new THREE.TextureLoader().load(getTexturePath('lf'));
+}
+function getTexturePath(texturePosition) {
+    return `./resources/textures/${Param.Skybox}/${Param.Skybox}_${texturePosition}.jpg`;
+}
+/* END SKYBOX */
 /* WINDOW EVENTS */
-// caculate mouse position for ray caster
 window.addEventListener('click', onWindowClick, false);
 function onWindowClick(event) {
     // calculate mouse position in normalized device coordinates
@@ -391,7 +469,7 @@ window.addEventListener('keydown', function (event) {
 });
 /* END EVENTS */
 /* BUTTONS - LINKS */
-/* Buttons to handle scene switch */
+// handle scene switch
 const taskButtons = document.querySelectorAll(".task");
 const description = document.querySelector("#info");
 for (let i = 0; i < taskButtons.length; i++) {

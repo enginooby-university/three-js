@@ -6,6 +6,8 @@ import * as DatHelper from '../helpers/dat_helper.js'
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
+export let skybox: string //= 'none'
+export const setSkybox = (name: string) => skybox = name
 
 // group of objects affected by DragControls & TransformControls
 export let transformableObjects: THREE.Mesh[] = []
@@ -51,7 +53,7 @@ export function init() {
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
-    
+
     // add meshes to scene by group instead, to transform the group
     table.position.y = 0.8
     scene.add(table)

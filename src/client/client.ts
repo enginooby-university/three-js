@@ -37,6 +37,7 @@ let postProcessingFolder = gui.addFolder("Post processing")
 let statsGUIs: Stats[] = []
 let transformModeControler: GUIController
 let pointerLockControlEnableControler: GUIController
+let skyboxController: GUIController
 
 let sourceLink: string
 const vrButton: HTMLElement = VRButton.createButton(renderer)
@@ -58,7 +59,19 @@ const GRID_DIVISIONS: number = 10
 const gridHelper: THREE.GridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS)
 let cameraHelper: THREE.CameraHelper
 
-const Data = {
+/* SKYBOX */
+const skyboxGeometry = new THREE.BoxGeometry(500, 500, 500);
+let skybox: THREE.Mesh
+let texture_ft: THREE.Texture
+let texture_bk: THREE.Texture
+let texture_up: THREE.Texture
+let texture_dn: THREE.Texture
+let texture_rt: THREE.Texture
+let texture_lf: THREE.Texture
+let materialArray: THREE.MeshBasicMaterial[]
+
+const Param = {
+    Skybox: "arid",
     BloomPass: {
         opacity: 1
     },
@@ -97,12 +110,11 @@ function init() {
 
     dragControls = new DragControls([], camera, renderer.domElement)
     createControls()
-    createControlFolder()
     createStatsGUI()
-    createHelperGUIFolder()
-    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
-    // createPostProcessingFolder()
     switchScene(FIRST_SCENE_INDEX)
+    createDatGUI()
+    updateScenePostProcessing()
+    // createPostProcessingFolder()
 }
 
 function createControls() {
@@ -144,7 +156,7 @@ export function attachToDragControls(objects: THREE.Object3D[] | THREE.Mesh[]) {
         orbitControls.enabled = true;
     });
     dragControls.addEventListener('dragstart', function (event) {
-        event.object.material.opacity = Data.DragControls.opacity
+        event.object.material.opacity = Param.DragControls.opacity
         // event.object.material.emissive.setHex(Data.DragControls.emissive);
     })
     dragControls.addEventListener('dragend', function (event) {
@@ -162,6 +174,32 @@ function createCamera() {
     return newCamera
 }
 
+function createDatGUI() {
+    const options = {
+        skybox: {
+            "None": "none",
+            "Arid": "arid",
+            "Cocoa": "cocoa",
+            "Dust": "dust",
+        }
+    }
+
+    skyboxController = gui.add(Param, 'Skybox', options.skybox).onChange((value) => {
+        if (value == 'none') {
+            const currentSkybox = currentScene.getObjectByName('skybox')!
+            currentSkybox.visible = false
+        } else {
+            generateSkybox()
+        }
+        currentTask.setSkybox(value)
+    })
+
+    createControlFolder()
+    generateSkybox()
+    createHelperGUIFolder()
+    DatHelper.createCameraFolder(gui, camera, 'Perspective Camera')
+}
+
 function createControlFolder() {
     const options = {
         "Scale (S)": 'scale',
@@ -173,12 +211,12 @@ function createControlFolder() {
 
     const transformControlsFolder = controlFolder.addFolder("TransformControls")
     transformControlsFolder.add(transformControls, 'enabled', true)
-    transformModeControler = transformControlsFolder.add(Data.TransformControls, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value))
+    transformModeControler = transformControlsFolder.add(Param.TransformControls, 'mode', options).name('Transform mode').onChange((value) => transformControls.setMode(value))
     transformControlsFolder.open()
 
     const dragControlsFolder = controlFolder.addFolder("DragControls")
     // dragControlsFolder.addColor(Data.DragControls, 'emissive').onChange((value) => { Data.DragControls.emissive = Number(value.toString().replace('#', '0x')) });
-    dragControlsFolder.add(Data.DragControls, 'opacity', 0.1, 1, 0.1)
+    dragControlsFolder.add(Param.DragControls, 'opacity', 0.1, 1, 0.1)
     dragControlsFolder.open()
 
     const pointerLockControlsFolder = controlFolder.addFolder("PointerLockControls")
@@ -265,8 +303,8 @@ function createPostProcessingFolder() {
     gui.removeFolder(postProcessingFolder)
     postProcessingFolder = gui.addFolder("Post processing")
     const newFilmPassFolder = postProcessingFolder.addFolder('FilmPass');
-    newFilmPassFolder.add((<any>filmPass.uniforms).grayscale, 'value', 0, 1, 1).name('grayscale').onChange((value) => Data.FilmPass.grayscale = value)
-    newFilmPassFolder.add((<any>filmPass.uniforms).nIntensity, 'value', 0, 1).name('noise intensity').onChange((value) => Data.FilmPass.nIntensity = value)
+    newFilmPassFolder.add((<any>filmPass.uniforms).grayscale, 'value', 0, 1, 1).name('grayscale').onChange((value) => Param.FilmPass.grayscale = value)
+    newFilmPassFolder.add((<any>filmPass.uniforms).nIntensity, 'value', 0, 1).name('noise intensity').onChange((value) => Param.FilmPass.nIntensity = value)
     // TODO: no-impact properties???
     // newFilmPassFolder.add((<any>filmPass.uniforms).sIntensity, 'value', 0, 1).name('scanline intensity').onChange((value) => Data.FilmPass.sIntensity = value)
     // newFilmPassFolder.add((<any>filmPass.uniforms).sCount, 'value', 0, 1000).name('scanline count').onChange((value) => Data.FilmPass.sCount = value)
@@ -303,10 +341,20 @@ function switchScene(scenceIndex: number) {
 
     orbitControls.enabled = orbitControlsEnabled
 
-    updatePostProcessing()
+    // update skybox controller value
+    if (skyboxController !== undefined) {
+        if (currentTask.skybox === undefined) {
+            Param.Skybox = 'none'
+        } else {
+            Param.Skybox = currentTask.skybox
+        }
+        skyboxController.updateDisplay()
+    }
+
+    updateScenePostProcessing()
 }
 
-function updatePostProcessing() {
+function updateScenePostProcessing() {
     // reset composer
     composer = new EffectComposer(renderer)
     composer.addPass(new RenderPass(currentScene, camera))
@@ -318,10 +366,10 @@ function updatePostProcessing() {
     // );
     // composer.addPass(bloomPass);
     filmPass = new FilmPass(
-        Data.FilmPass.nIntensity,
-        Data.FilmPass.sIntensity,
-        Data.FilmPass.sCount,
-        Data.FilmPass.grayscale
+        Param.FilmPass.nIntensity,
+        Param.FilmPass.sIntensity,
+        Param.FilmPass.sCount,
+        Param.FilmPass.grayscale
     );
     filmPass.renderToScreen = true;
     composer.addPass(filmPass);
@@ -380,9 +428,46 @@ function render() {
     }
 }
 
-/* WINDOW EVENTS */
+/* SKYBOX */
+function generateSkybox() {
+    loadTextures()
+    loadMaterials()
+    skybox = new THREE.Mesh(skyboxGeometry, materialArray)
+    skybox.name = "skybox"
+    currentScene.remove(skybox)
+    skybox.visible = true
+    currentScene.add(skybox)
+}
 
-// caculate mouse position for ray caster
+function loadMaterials() {
+    materialArray = []
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_ft }))
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_bk }))
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_up }))
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_dn }))
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_rt }))
+    materialArray.push(new THREE.MeshBasicMaterial({ map: texture_lf }))
+
+    for (let i = 0; i < materialArray.length; i++) {
+        materialArray[i].side = THREE.BackSide
+    }
+}
+
+function loadTextures() {
+    texture_ft = new THREE.TextureLoader().load(getTexturePath('ft'))
+    texture_bk = new THREE.TextureLoader().load(getTexturePath('bk'))
+    texture_up = new THREE.TextureLoader().load(getTexturePath('up'))
+    texture_dn = new THREE.TextureLoader().load(getTexturePath('dn'))
+    texture_rt = new THREE.TextureLoader().load(getTexturePath('rt'))
+    texture_lf = new THREE.TextureLoader().load(getTexturePath('lf'))
+}
+
+function getTexturePath(texturePosition: string) {
+    return `./resources/textures/${Param.Skybox}/${Param.Skybox}_${texturePosition}.jpg`
+}
+/* END SKYBOX */
+
+/* WINDOW EVENTS */
 window.addEventListener('click', onWindowClick, false);
 function onWindowClick(event: MouseEvent) {
     // calculate mouse position in normalized device coordinates
@@ -393,7 +478,6 @@ function onWindowClick(event: MouseEvent) {
     // TODO: need to set time out for some reasons? 
     setTimeout(updateSelectObject, 10)
 }
-
 function updateSelectObject() {
     const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(currentTask.transformableObjects, false)
     if (intersectObjects.length) {
@@ -411,7 +495,6 @@ function updateSelectObject() {
         }
     }
 }
-
 function unselectPreviousObject() {
     if (currentTask.selectedObjectId != -1) {
         // do s.t with previous selected object 
@@ -457,7 +540,7 @@ window.addEventListener('keydown', function (event) {
 /* END EVENTS */
 
 /* BUTTONS - LINKS */
-/* Buttons to handle scene switch */
+// handle scene switch
 const taskButtons = document.querySelectorAll(".task")
 const description = document.querySelector("#info")!
 for (let i = 0; i < taskButtons.length; i++) {
