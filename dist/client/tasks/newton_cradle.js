@@ -188,10 +188,12 @@ export function render() {
     lastHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastHorRope.rotation.x);
 }
 function updateBallNumber() {
+    let objectIsSelected = false;
     // clear objects
     balls.forEach(ball => {
         // reset selected object if it is the ball
         if (ball.id == selectedObjectId) {
+            objectIsSelected = true;
             selectedObjectId = -1;
             ball.material.emissive.set(0x000000);
         }
@@ -202,6 +204,7 @@ function updateBallNumber() {
     });
     ropes.forEach(rope => {
         if (rope.id == selectedObjectId) {
+            objectIsSelected = true;
             selectedObjectId = -1;
             rope.material.emissive.set(0x000000);
         }
@@ -215,7 +218,13 @@ function updateBallNumber() {
     // add objects
     balls.forEach(ball => scene.add(ball));
     ropes.forEach(rope => scene.add(rope));
-    setupControls();
+    if (objectIsSelected) {
+        // re-attach TransformControls if the current sellected object is re-created
+        setupControls();
+    }
+    else {
+        attachToDragControls(transformableObjects);
+    }
 }
 // TODO: create helper to play sound
 function playBallAudio() {

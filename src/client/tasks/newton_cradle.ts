@@ -218,10 +218,12 @@ export function render() {
 }
 
 function updateBallNumber() {
+    let objectIsSelected: boolean = false
     // clear objects
     balls.forEach(ball => {
         // reset selected object if it is the ball
         if (ball.id == selectedObjectId) {
+            objectIsSelected = true
             selectedObjectId = -1;
             (ball.material as any).emissive.set(0x000000);
         }
@@ -232,6 +234,7 @@ function updateBallNumber() {
     })
     ropes.forEach(rope => {
         if (rope.id == selectedObjectId) {
+            objectIsSelected = true
             selectedObjectId = -1;
             (rope.material as any).emissive.set(0x000000);
         }
@@ -246,7 +249,13 @@ function updateBallNumber() {
     // add objects
     balls.forEach(ball => scene.add(ball))
     ropes.forEach(rope => scene.add(rope))
-    setupControls()
+
+    if (objectIsSelected) {
+        // re-attach TransformControls if the current sellected object is re-created
+        setupControls()
+    } else {
+        attachToDragControls(transformableObjects)
+    }
 }
 
 // TODO: create helper to play sound
