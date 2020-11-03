@@ -1,11 +1,16 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
-import { transformControls, attachToDragControls, muted} from '../client.js'
+import { transformControls, attachToDragControls, muted } from '../client.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
+
+// group of objects affected by DragControls & TransformControls
+export let transformableObjects: THREE.Mesh[] = []
+export let selectedObjectId: number = -1
+export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 const LEG_WIDTH: number = 0.05
 const LEG_HEIGHT: number = 1.5
@@ -41,14 +46,21 @@ export function init() {
     leg4 = createLeg(0xf000ff, leg4Material, -LEG_X, 0, LEG_Z)
 
     scene.background = new THREE.Color(0x333333)
+
+    setupControls()
+    // transformableObjects.forEach(child => {
+    //     scene.add(child)
+    // })
+    
+    // add meshes to scene by group instead, to transform the group
     table.position.y = 0.8
     scene.add(table)
-    setupControls()
 }
 
-export function setupControls(){
-    attachToDragControls([table])
-    transformControls.attach(table)
+export function setupControls() {
+    attachToDragControls(transformableObjects)
+
+    transformControls.detach()
     // add to scene to display helpers
     scene.add(transformControls)
 }
@@ -59,6 +71,7 @@ function createFace() {
     newFace.material.transparent = true
     newFace.position.y = 0.8
     table.add(newFace)
+    transformableObjects.push(newFace)
 
     return newFace
 }
@@ -69,6 +82,7 @@ function createLeg(color: string | number | THREE.Color, material: THREE.MeshBas
     newLeg.position.set(x, y, z)
     newLeg.material.transparent = true
     table.add(newLeg)
+    transformableObjects.push(newLeg)
 
     return newLeg
 }

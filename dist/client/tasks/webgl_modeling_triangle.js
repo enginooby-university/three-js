@@ -5,6 +5,10 @@ import { transformControls, attachToDragControls } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
+// group of objects affected by DragControls & TransformControls
+export let transformableObjects = [];
+export let selectedObjectId = -1;
+export const setSelectedObjectId = (index) => selectedObjectId = index;
 let triangle;
 const geometry = new THREE.Geometry();
 const material = new THREE.MeshNormalMaterial();
@@ -22,12 +26,13 @@ export function init() {
     geometry.computeFaceNormals();
     material.transparent = true;
     triangle = new THREE.Mesh(geometry, material);
-    scene.add(triangle);
+    transformableObjects.push(triangle);
     setupControls();
+    transformableObjects.forEach(child => scene.add(child));
 }
 export function setupControls() {
-    attachToDragControls([triangle]);
-    transformControls.attach(triangle);
+    attachToDragControls(transformableObjects);
+    transformControls.detach();
     // add to scene to display helpers
     scene.add(transformControls);
 }

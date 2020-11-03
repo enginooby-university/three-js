@@ -20,9 +20,9 @@ const CAMERA_FAR = 1000;
 let pause = false;
 export let muted = true;
 let orbitControlsEnabled = true;
+let currentTask; // TODO: use type, maybe create class for each task?
 const FIRST_SCENE_INDEX = 2;
 let currentScene;
-let currentSceneIndex = 0;
 const canvas = document.getElementById("threejs-canvas");
 export const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
 let composer;
@@ -238,15 +238,18 @@ function createPostProcessingFolder() {
     postProcessingFolder.open();
 }
 function switchScene(scenceIndex) {
-    const currentTask = Array.from(Tasks)[scenceIndex][0];
+    // if switch scene at least one time
+    if (currentTask !== undefined) {
+        unselectPreviousObject();
+        // destroy Dat GUI for previous scene (if it exists)
+        if (currentTask.gui !== undefined) {
+            currentTask.gui.destroy();
+        }
+    }
+    currentTask = Array.from(Tasks)[scenceIndex][0];
     if (!currentTask.isInitialized) {
         currentTask.init();
     }
-    // destroy Dat GUI for previous scene (if it exists)
-    if (typeof (Array.from(Tasks)[currentSceneIndex][0].gui) !== 'undefined') {
-        Array.from(Tasks)[currentSceneIndex][0].gui.destroy();
-    }
-    currentSceneIndex = scenceIndex;
     // create Dat GUI for current scene
     currentTask.createDatGUI();
     currentTask.setupControls();
@@ -292,13 +295,6 @@ function createStatsGUI() {
         });
     }
 }
-function onDoubleClick(event) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-}
-window.addEventListener('click', onDoubleClick, false);
 function animate(time) {
     time *= 0.001; // convert to seconde
     // console.log(Math.floor(time))
@@ -313,8 +309,9 @@ function animate(time) {
 function render() {
     raycaster.setFromCamera(mouse, camera);
     if (!pause) { // only render current active scene
-        Array.from(Tasks)[currentSceneIndex][0].render();
+        currentTask.render();
     }
+    // updateSelectObject()
     composer.render();
     if (orbitControlsEnabled) {
         orbitControls.update();
@@ -323,7 +320,42 @@ function render() {
         statsGUIs[i].update();
     }
 }
-/* EVENTS */
+/* WINDOW EVENTS */
+// caculate mouse position for ray caster
+window.addEventListener('click', onWindowClick, false);
+function onWindowClick(event) {
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    // TODO: need to set time out for some reasons? 
+    setTimeout(updateSelectObject, 10);
+}
+function updateSelectObject() {
+    const intersectObjects = raycaster.intersectObjects(currentTask.transformableObjects, false);
+    if (intersectObjects.length) {
+        try {
+            unselectPreviousObject();
+            // get the object on top where mouse currently points to
+            const currentSelectedObject = intersectObjects[0].object;
+            transformControls.attach(currentSelectedObject);
+            // TODO: problem with definition file (types): emissive not exist on THREE.Material
+            currentSelectedObject.material.emissive.set(0x444444);
+            currentTask.setSelectedObjectId(currentSelectedObject.id);
+        }
+        catch (error) {
+            if (error instanceof TypeError)
+                console.log('The material type of selected object does not have emissive property :(');
+        }
+    }
+}
+function unselectPreviousObject() {
+    if (currentTask.selectedObjectId != -1) {
+        // do s.t with previous selected object 
+        const previousSelectedObject = currentScene.getObjectById(currentTask.selectedObjectId);
+        previousSelectedObject.material.emissive.set(0x000000);
+    }
+}
 window.addEventListener('resize', onWindowResize, false);
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;

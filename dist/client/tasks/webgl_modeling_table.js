@@ -5,6 +5,10 @@ import * as DatHelper from '../helpers/dat_helper.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
+// group of objects affected by DragControls & TransformControls
+export let transformableObjects = [];
+export let selectedObjectId = -1;
+export const setSelectedObjectId = (index) => selectedObjectId = index;
 const LEG_WIDTH = 0.05;
 const LEG_HEIGHT = 1.5;
 const LEG_X = 0.8;
@@ -33,13 +37,17 @@ export function init() {
     leg3 = createLeg(0x00fff0, leg3Material, LEG_X, 0, -LEG_Z);
     leg4 = createLeg(0xf000ff, leg4Material, -LEG_X, 0, LEG_Z);
     scene.background = new THREE.Color(0x333333);
+    setupControls();
+    // transformableObjects.forEach(child => {
+    //     scene.add(child)
+    // })
+    // add meshes to scene by group instead, to transform the group
     table.position.y = 0.8;
     scene.add(table);
-    setupControls();
 }
 export function setupControls() {
-    attachToDragControls([table]);
-    transformControls.attach(table);
+    attachToDragControls(transformableObjects);
+    transformControls.detach();
     // add to scene to display helpers
     scene.add(transformControls);
 }
@@ -49,6 +57,7 @@ function createFace() {
     newFace.material.transparent = true;
     newFace.position.y = 0.8;
     table.add(newFace);
+    transformableObjects.push(newFace);
     return newFace;
 }
 function createLeg(color, material, x, y, z) {
@@ -57,6 +66,7 @@ function createLeg(color, material, x, y, z) {
     newLeg.position.set(x, y, z);
     newLeg.material.transparent = true;
     table.add(newLeg);
+    transformableObjects.push(newLeg);
     return newLeg;
 }
 export function createDatGUI() {

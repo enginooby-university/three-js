@@ -23,9 +23,9 @@ let pause: boolean = false
 export let muted: boolean = true
 let orbitControlsEnabled: boolean = true
 
+let currentTask: any // TODO: use type, maybe create class for each task?
 const FIRST_SCENE_INDEX: number = 2
 let currentScene: THREE.Scene
-let currentSceneIndex: number = 0
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 export const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false })
 let composer: EffectComposer
@@ -275,17 +275,21 @@ function createPostProcessingFolder() {
 }
 
 function switchScene(scenceIndex: number) {
-    const currentTask: any = Array.from(Tasks)[scenceIndex][0]
+    // if switch scene at least one time
+    if (currentTask !== undefined) {
+        unselectPreviousObject()
+
+        // destroy Dat GUI for previous scene (if it exists)
+        if (currentTask.gui !== undefined) {
+            (currentTask.gui as GUI).destroy()
+        }
+    }
+
+    currentTask = Array.from(Tasks)[scenceIndex][0]
     if (!currentTask.isInitialized) {
         currentTask.init()
     }
 
-    // destroy Dat GUI for previous scene (if it exists)
-    if (typeof (Array.from(Tasks)[currentSceneIndex][0].gui) !== 'undefined') {
-        (Array.from(Tasks)[currentSceneIndex][0].gui as GUI).destroy()
-    }
-
-    currentSceneIndex = scenceIndex
     // create Dat GUI for current scene
     currentTask.createDatGUI()
     currentTask.setupControls()
@@ -345,16 +349,6 @@ function createStatsGUI() {
     }
 }
 
-
-function onDoubleClick(event: MouseEvent) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-}
-
-window.addEventListener('click', onDoubleClick, false);
-
 function animate(time: number) {
     time *= 0.001 // convert to seconde
     // console.log(Math.floor(time))
@@ -372,9 +366,9 @@ function render() {
     raycaster.setFromCamera(mouse, camera)
 
     if (!pause) { // only render current active scene
-        Array.from(Tasks)[currentSceneIndex][0].render()
+        currentTask.render()
     }
-
+    // updateSelectObject()
     composer.render()
 
     if (orbitControlsEnabled) {
@@ -386,7 +380,46 @@ function render() {
     }
 }
 
-/* EVENTS */
+/* WINDOW EVENTS */
+
+// caculate mouse position for ray caster
+window.addEventListener('click', onWindowClick, false);
+function onWindowClick(event: MouseEvent) {
+    // calculate mouse position in normalized device coordinates
+    // (-1 to +1) for both components
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    // TODO: need to set time out for some reasons? 
+    setTimeout(updateSelectObject, 10)
+}
+
+function updateSelectObject() {
+    const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(currentTask.transformableObjects, false)
+    if (intersectObjects.length) {
+        try {
+            unselectPreviousObject()
+            // get the object on top where mouse currently points to
+            const currentSelectedObject = intersectObjects[0].object as THREE.Mesh
+            transformControls.attach(currentSelectedObject);
+            // TODO: problem with definition file (types): emissive not exist on THREE.Material
+            (currentSelectedObject.material as any).emissive.set(0x444444);
+            currentTask.setSelectedObjectId(currentSelectedObject.id)
+        } catch (error) {
+            if (error instanceof TypeError)
+                console.log('The material type of selected object does not have emissive property :(')
+        }
+    }
+}
+
+function unselectPreviousObject() {
+    if (currentTask.selectedObjectId != -1) {
+        // do s.t with previous selected object 
+        const previousSelectedObject = currentScene.getObjectById(currentTask.selectedObjectId) as THREE.Mesh
+        (previousSelectedObject.material as any).emissive.set(0x000000);
+    }
+}
+
 window.addEventListener('resize', onWindowResize, false)
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight
@@ -446,7 +479,6 @@ sourceButton.onclick = function () {
 
 const screenshotButton = document.querySelector('#screenshot')!
 screenshotButton.addEventListener('click', handleScreenshotButton, false);
-
 function handleScreenshotButton() {
     render();
     canvas.toBlob((blob) => {
@@ -454,7 +486,6 @@ function handleScreenshotButton() {
     });
     return
 }
-
 const saveBlob = (function () {
     const a = document.createElement('a');
     document.body.appendChild(a);
@@ -470,7 +501,6 @@ const saveBlob = (function () {
 const pauseButton = document.querySelector("#pause")!
 const pauseIcon = document.querySelector('#pause-icon')!
 pauseButton.addEventListener('click', handlePauseButton, false);
-
 function handlePauseButton() {
     pauseIcon.classList.toggle('fa-pause')
     pauseIcon.classList.toggle('fa-play')
@@ -487,7 +517,6 @@ function handlePauseButton() {
 const audioButton = document.querySelector("#audio")!
 const audioIcon = document.querySelector("#audio-icon")!
 audioButton.addEventListener('click', handleAudioButton, false)
-
 function handleAudioButton() {
     audioIcon.classList.toggle('fas-volume-mute')
     audioIcon.classList.toggle('fa-volume-up')

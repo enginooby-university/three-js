@@ -19,7 +19,7 @@ let texture_lf: THREE.Texture
 
 let materialArray: THREE.MeshBasicMaterial[]
 
-let Data = {
+let Param = {
     Skybox: "arid",
     VerBallAmount: 5,
     VerBallSpeed: 3,
@@ -36,8 +36,6 @@ const options = {
         "Dust": "dust",
     }
 }
-
-let cradle: THREE.Group // including balls, ropes
 
 let verBallAmount: number = 5
 let horBallAmount: number = 3
@@ -87,10 +85,13 @@ const audioLoader: THREE.AudioLoader = new THREE.AudioLoader()
 let ballAudio: THREE.PositionalAudio
 
 // group of objects affected by DragControls & TransformControls
-let transformableObjects: THREE.Mesh[] = []
+export let transformableObjects: THREE.Mesh[] = []
 // groups of objects which will be recreated on desire (e.g change in Dat GUI)
 let balls: THREE.Mesh[] = []
 let ropes: THREE.Mesh[] = []
+
+export let selectedObjectId: number = -1
+export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 export function init() {
     isInitialized = true
@@ -121,36 +122,37 @@ export function setupControls() {
     attachToDragControls(transformableObjects)
 
     transformControls.detach()
+    // add to scene to display helpers
     scene.add(transformControls)
 }
 
 export function createDatGUI() {
     gui = new GUI()
-    gui.add(Data, 'Skybox', options.skybox).onChange(() => generateSkybox())
+    gui.add(Param, 'Skybox', options.skybox).onChange(() => generateSkybox())
 
     const verticalGroupFolder = gui.addFolder('Vertical group')
-    verticalGroupFolder.add(Data, 'VerBallAmount', 3, 10, 1).name('Ball number').onChange(() => {
-        verBallAmount = Data.VerBallAmount;
+    verticalGroupFolder.add(Param, 'VerBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
+        verBallAmount = Param.VerBallAmount;
         updateBallNumber()
     })
-    verticalGroupFolder.add(Data, 'VerBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
-        rotateSpeedVerBall = Data.VerBallSpeed / 100
+    verticalGroupFolder.add(Param, 'VerBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
+        rotateSpeedVerBall = Param.VerBallSpeed / 100
     })
-    verticalGroupFolder.add(Data, 'VerBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
-        maxAngleVerBall = Data.VerBallMaxAngle * Math.PI / 180
+    verticalGroupFolder.add(Param, 'VerBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
+        maxAngleVerBall = Param.VerBallMaxAngle * Math.PI / 180
     })
     verticalGroupFolder.open()
 
     const horizontalGroupFolder = gui.addFolder('Horizontal group')
-    horizontalGroupFolder.add(Data, 'HorBallAmount', 3, 10, 1).name('Ball number').onChange(() => {
-        horBallAmount = Data.HorBallAmount;
+    horizontalGroupFolder.add(Param, 'HorBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
+        horBallAmount = Param.HorBallAmount;
         updateBallNumber()
     })
-    horizontalGroupFolder.add(Data, 'HorBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
-        rotateSpeedHorBall = Data.HorBallSpeed / 100
+    horizontalGroupFolder.add(Param, 'HorBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
+        rotateSpeedHorBall = Param.HorBallSpeed / 100
     })
-    horizontalGroupFolder.add(Data, 'HorBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
-        maxAngleHorBall = Data.HorBallMaxAngle * Math.PI / 180
+    horizontalGroupFolder.add(Param, 'HorBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
+        maxAngleHorBall = Param.HorBallMaxAngle * Math.PI / 180
     })
     horizontalGroupFolder.open()
 
@@ -167,11 +169,6 @@ export function createDatGUI() {
 
 export function render() {
     lightShadowHelper.update()
-
-    const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(transformableObjects, false)
-    if (intersectObjects.length) {
-        transformControls.attach(intersectObjects[0].object)
-    }
 
     // when last ball&rope is staying
     if (lastVerRopeRotateVel == 0) {
@@ -243,7 +240,7 @@ export function render() {
     lastHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastHorRope.rotation.x)
 }
 
-function updateBallNumber(){
+function updateBallNumber() {
     // clear objects
     balls.forEach(ball => {
         // remove all balls in transformable group
@@ -282,6 +279,8 @@ function createLight() {
     directionalLight.shadow.mapSize.height = 2048
     directionalLight.shadow.camera.left = -10
     directionalLight.shadow.camera.right = 10
+    directionalLight.shadow.camera.top = 10
+    directionalLight.shadow.camera.bottom = -10
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 100
     directionalLight.shadow.camera.rotation.x = Math.PI / 2
@@ -432,7 +431,7 @@ function createBars() {
     })
 
     const verticalBarGroup = horizontalBarGroup.clone()
-    verticalBarGroup.rotation.y = Math.PI / 2    
+    verticalBarGroup.rotation.y = Math.PI / 2
 
     // TODO: verticalBarGroup rotatation by it origin when push this way
     // verticalBarGroup.children.forEach((child) => {
@@ -482,5 +481,5 @@ function loadTextures() {
 }
 
 function getTexturePath(texturePosition: string) {
-    return `./resources/textures/${Data.Skybox}/${Data.Skybox}_${texturePosition}.jpg`
+    return `./resources/textures/${Param.Skybox}/${Param.Skybox}_${texturePosition}.jpg`
 }

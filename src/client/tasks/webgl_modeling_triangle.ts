@@ -7,6 +7,11 @@ export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
 
+// group of objects affected by DragControls & TransformControls
+export let transformableObjects: THREE.Mesh[] = []
+export let selectedObjectId: number = -1
+export const setSelectedObjectId = (index: number) => selectedObjectId = index
+
 let triangle: THREE.Mesh
 const geometry: THREE.Geometry = new THREE.Geometry()
 const material: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial()
@@ -31,13 +36,15 @@ export function init() {
     material.transparent = true
     triangle = new THREE.Mesh(geometry, material)
 
-    scene.add(triangle)
+    transformableObjects.push(triangle)
     setupControls()
+    transformableObjects.forEach(child => scene.add(child))
 }
 
 export function setupControls() {
-    attachToDragControls([triangle])
-    transformControls.attach(triangle)
+    attachToDragControls(transformableObjects)
+
+    transformControls.detach()
     // add to scene to display helpers
     scene.add(transformControls)
 }

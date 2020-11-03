@@ -7,15 +7,24 @@ export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
 
+// group of objects affected by DragControls & TransformControls
+export let transformableObjects: THREE.Mesh[] = []
+export let selectedObjectId: number = -1
+export const setSelectedObjectId = (index: number) => selectedObjectId = index
+
 export function init(){
     isInitialized = true
     scene.background = new THREE.Color(0x333333)
     setupControls()
+    transformableObjects.forEach(child => {
+        scene.add(child)
+    })
 }
 
-export function setupControls(){
-    attachToDragControls([])
-    // transformControls.attach()
+export function setupControls() {
+    attachToDragControls(transformableObjects)
+
+    transformControls.detach()
     // add to scene to display helpers
     scene.add(transformControls)
 }
