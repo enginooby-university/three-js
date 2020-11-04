@@ -14,7 +14,7 @@ export function createCameraFolder(gui, perspectiveCamera, cameraName) {
     cameraFolder.add(perspectiveCamera, "fov", 40, 120, 0.1).onChange(() => perspectiveCamera.updateProjectionMatrix());
     cameraFolder.add(perspectiveCamera, "near", 0.001, 100, 0.1).onChange(() => perspectiveCamera.updateProjectionMatrix());
     cameraFolder.add(perspectiveCamera, "far", 100, 10000, 1).onChange(() => perspectiveCamera.updateProjectionMatrix());
-    cameraFolder.open();
+    // cameraFolder.open()
     return cameraFolder;
 }
 export function createMeshPhysicalMaterialFolder(gui, mesh, meshName) {

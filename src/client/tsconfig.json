@@ -15,6 +15,7 @@
             "/jsm/controls/PointerLockControls.js": ["../../node_modules/three/examples/jsm/controls/PointerLockControls"],
 
             "/jsm/loaders/OBJLoader.js": ["../../node_modules/three/examples/jsm/loaders/OBJLoader"],
+            "/jsm/loaders/MTLLoader.js": ["../../node_modules/three/examples/jsm/loaders/MTLLoader"],
 
             "/jsm/libs/stats.module.js":["../../node_modules/three/examples/jsm/libs/stats.module"],
             "/jsm/webxr/VRButton.js":["../../node_modules/three/examples/jsm/webxr/VRButton"],

@@ -23,6 +23,7 @@ class App {
         app.use('/jsm/webxr/VRButton.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/webxr/VRButton.js')))
 
         app.use('/jsm/loaders/OBJLoader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/loaders/OBJLoader.js')))
+        app.use('/jsm/loaders/MTLLoader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/loaders/MTLLoader.js')))
 
         app.use('/jsm/postprocessing/EffectComposer.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js')))
         app.use('/jsm/postprocessing/RenderPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/RenderPass.js')))
