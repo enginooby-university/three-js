@@ -20,10 +20,12 @@ const directionalLight = new THREE.DirectionalLight();
 let plane;
 const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+let addModelController;
+const percentText = document.querySelector('#loading-percent');
 let isLoaded = false;
 let addingMode = false; // if not adding model, don't recreate Dat GUI
-let addModelController;
 const loadingManager = new THREE.LoadingManager(() => {
+    monkeys[0].rotation.set(5.54, 0.8, 0.6);
     isLoaded = true;
     hideLoadingScreen();
     if (!addingMode) { // first loading when init the scene
@@ -56,8 +58,9 @@ export function init() {
     createLight();
     createFloor();
     setupControls();
-    loadMTLModel('tree', trees, TREE_SCALE, new Vector3(-2, 0, 2));
-    loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(2, 1, 2));
+    // samples
+    loadMTLModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0));
+    loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5));
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
     //     scene.add(child)
@@ -71,7 +74,7 @@ export function setupControls() {
 }
 export function createDatGUI() {
     if (isLoaded) {
-        gui = new GUI();
+        gui = new GUI({ width: 232 });
         const modelOptions = {
             Monkey: "Monkey",
             Tree: "Tree"
@@ -129,6 +132,7 @@ function loadMTLModel(name, group, scale, position) {
                 if (child.isMesh) {
                     // const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial();
                     // (<THREE.Mesh>child).material = material // create a material for each mesh
+                    child.receiveShadow = true;
                     child.castShadow = true;
                     child.scale.set(scale, scale, scale);
                     child.position.set(position.x, position.y, position.z);
@@ -138,12 +142,13 @@ function loadMTLModel(name, group, scale, position) {
             scene.add(object);
             group.push(object);
         }, (xhr) => {
-            // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+            let percent = Math.floor(xhr.loaded / xhr.total * 100);
+            percentText.innerHTML = `${percent}%`;
         }, (error) => {
             console.log(error);
         });
     }, (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100) + '% materials loaded');
+        // console.log((xhr.loaded / xhr.total * 100) + '% materials loaded');
     }, (error) => {
         console.log('An error happened');
     });
