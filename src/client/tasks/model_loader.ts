@@ -4,7 +4,7 @@ import * as THREE from '/build/three.module.js'
 import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 import { OBJLoader } from '/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from '/jsm/loaders/MTLLoader.js'
-import { Vector3 } from '/build/three.module.js'
+import { MeshPhongMaterial, Vector3 } from '/build/three.module.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -85,9 +85,9 @@ export function init() {
     setupControls()
 
     // samples
-    loadMTLModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0))
+    loadModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial())
     loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5))
-    loadMTLModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0))
+    loadModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial)
 
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
@@ -142,10 +142,10 @@ const DatFunction = {
                 loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 1, Math.floor(Math.random() * 5)))
                 break
             case 'Tree':
-                loadMTLModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)))
+                loadModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)), new THREE.MeshPhongMaterial())
                 break
             case 'Cat':
-                loadMTLModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0))
+                loadModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0), new THREE.MeshPhongMaterial())
                 break
         }
     }
@@ -174,38 +174,49 @@ function loadMTLModel(name: string, group: THREE.Group[], scale: number, positio
 
             objLoader = new OBJLoader(loadingManager);
             objLoader.setMaterials(materials);
-            objLoader.load(
-                `./resources/models/${name}.obj`,
-                (object) => {
-                    object.traverse(function (child) {
-                        if ((<THREE.Mesh>child).isMesh) {
-                            // const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial();
-                            // (<THREE.Mesh>child).material = material // create a material for each mesh
-
-                            (<THREE.Mesh>child).receiveShadow = true;
-                            (<THREE.Mesh>child).castShadow = true;
-                            (<THREE.Mesh>child).scale.set(scale, scale, scale);
-                            (<THREE.Mesh>child).position.set(position.x, position.y, position.z)
-                            transformableObjects.push(<THREE.Mesh>child)
-                        }
-                    })
-                    scene.add(object);
-                    group.push(object)
-                },
-                (xhr) => {
-                    let percent: number = Math.floor(xhr.loaded / xhr.total * 100)
-                    percentText.innerHTML = `${percent}%`
-                },
-                (error) => {
-                    console.log(error);
-                }
-            )
+            loadModel(name, group, scale, position)
         },
         (xhr) => {
             // console.log((xhr.loaded / xhr.total * 100) + '% materials loaded');
         },
         (error) => {
             console.log('An error happened');
+        }
+    )
+}
+
+
+function loadModel(name: string, group: THREE.Group[], scale: number, position: THREE.Vector3, material?: THREE.Material) {
+    if (objLoader === undefined) {
+        objLoader = new OBJLoader(loadingManager);
+    }
+
+    objLoader.load(
+        `./resources/models/${name}.obj`,
+        (object) => {
+            object.traverse(function (child) {
+                if ((<THREE.Mesh>child).isMesh) {
+                    if (material !== undefined) {
+                        const newMaterial = material.clone();
+                        (<THREE.Mesh>child).material = newMaterial // create a material for each mesh
+                    }
+
+                    (<THREE.Mesh>child).receiveShadow = true;
+                    (<THREE.Mesh>child).castShadow = true;
+                    (<THREE.Mesh>child).scale.set(scale, scale, scale);
+                    (<THREE.Mesh>child).position.set(position.x, position.y, position.z)
+                    transformableObjects.push(<THREE.Mesh>child)
+                }
+            })
+            scene.add(object);
+            group.push(object)
+        },
+        (xhr) => {
+            let percent: number = Math.floor(xhr.loaded / xhr.total * 100)
+            percentText.innerHTML = `${percent}%`
+        },
+        (error) => {
+            console.log(error);
         }
     )
 }

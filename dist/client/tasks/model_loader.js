@@ -73,9 +73,9 @@ export function init() {
     createFloor();
     setupControls();
     // samples
-    loadMTLModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0));
+    loadModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
     loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5));
-    loadMTLModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0));
+    loadModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial);
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
     //     scene.add(child)
@@ -122,10 +122,10 @@ const DatFunction = {
                 loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 1, Math.floor(Math.random() * 5)));
                 break;
             case 'Tree':
-                loadMTLModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)));
+                loadModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)), new THREE.MeshPhongMaterial());
                 break;
             case 'Cat':
-                loadMTLModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0));
+                loadModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
                 break;
         }
     }
@@ -148,30 +148,38 @@ function loadMTLModel(name, group, scale, position) {
         materials.preload();
         objLoader = new OBJLoader(loadingManager);
         objLoader.setMaterials(materials);
-        objLoader.load(`./resources/models/${name}.obj`, (object) => {
-            object.traverse(function (child) {
-                if (child.isMesh) {
-                    // const material: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial();
-                    // (<THREE.Mesh>child).material = material // create a material for each mesh
-                    child.receiveShadow = true;
-                    child.castShadow = true;
-                    child.scale.set(scale, scale, scale);
-                    child.position.set(position.x, position.y, position.z);
-                    transformableObjects.push(child);
-                }
-            });
-            scene.add(object);
-            group.push(object);
-        }, (xhr) => {
-            let percent = Math.floor(xhr.loaded / xhr.total * 100);
-            percentText.innerHTML = `${percent}%`;
-        }, (error) => {
-            console.log(error);
-        });
+        loadModel(name, group, scale, position);
     }, (xhr) => {
         // console.log((xhr.loaded / xhr.total * 100) + '% materials loaded');
     }, (error) => {
         console.log('An error happened');
+    });
+}
+function loadModel(name, group, scale, position, material) {
+    if (objLoader === undefined) {
+        objLoader = new OBJLoader(loadingManager);
+    }
+    objLoader.load(`./resources/models/${name}.obj`, (object) => {
+        object.traverse(function (child) {
+            if (child.isMesh) {
+                if (material !== undefined) {
+                    const newMaterial = material.clone();
+                    child.material = newMaterial; // create a material for each mesh
+                }
+                child.receiveShadow = true;
+                child.castShadow = true;
+                child.scale.set(scale, scale, scale);
+                child.position.set(position.x, position.y, position.z);
+                transformableObjects.push(child);
+            }
+        });
+        scene.add(object);
+        group.push(object);
+    }, (xhr) => {
+        let percent = Math.floor(xhr.loaded / xhr.total * 100);
+        percentText.innerHTML = `${percent}%`;
+    }, (error) => {
+        console.log(error);
     });
 }
 function createLight() {
