@@ -27,11 +27,15 @@ const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({ col
 
 let addModelController: GUIController
 
-const percentText=document.querySelector('#loading-percent')!
+const percentText = document.querySelector('#loading-percent')!
 let isLoaded: boolean = false
 let addingMode: boolean = false // if not adding model, don't recreate Dat GUI
 const loadingManager = new THREE.LoadingManager(() => {
+    // setup samples
     monkeys[0].rotation.set(5.54, 0.8, 0.6)
+    cats[0].rotation.set(4.7, 0, 3.17)
+    cats[0].position.set(1.8, 0, 2.7)
+
     isLoaded = true
     hideLoadingScreen()
 
@@ -45,6 +49,14 @@ const loadingManager = new THREE.LoadingManager(() => {
             case 'Tree':
                 addNewModelToGroupFolder(trees, treeFolder)
                 break
+            case 'Cat':
+                addNewModelToGroupFolder(cats, catFolder)
+                // transform new model properly
+                const randX = Math.floor(Math.random() * 5)
+                const randZ = Math.floor(Math.random() * 5)
+                cats[cats.length - 1].rotation.set(4.7, 0, 3.17)
+                cats[cats.length - 1].position.set(randX, 0, randZ)
+                break
         }
         addingMode = false // indicate finish adding
     }
@@ -53,11 +65,16 @@ const mtlLoader: MTLLoader = new MTLLoader(loadingManager); // common
 let objLoader: OBJLoader // seperate object for different material
 
 let trees: THREE.Group[] = []
-const TREE_SCALE: number = 0.004
 let treeFolder: GUI
+const TREE_SCALE: number = 0.004
+
 let monkeys: THREE.Group[] = []
-const MONKEY_SCALE: number = 1
 let monkeyFolder: GUI
+const MONKEY_SCALE: number = 1
+
+let cats: THREE.Group[] = []
+let catFolder: GUI
+const CAT_SCALE = 0.08
 
 export function init() {
     showLoadingScreen()
@@ -70,6 +87,7 @@ export function init() {
     // samples
     loadMTLModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0))
     loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5))
+    loadMTLModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0))
 
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
@@ -87,14 +105,15 @@ export function setupControls() {
 
 export function createDatGUI() {
     if (isLoaded) {
-        gui = new GUI({width: 232})
+        gui = new GUI({ width: 232 })
 
         const modelOptions = {
             Monkey: "Monkey",
-            Tree: "Tree"
+            Tree: "Tree",
+            Cat: "Cat"
         }
         const selectModel = {
-            name: "Tree"
+            name: "Cat"
         }
         const addModelFolder = gui.addFolder('Add model')
         addModelController = addModelFolder.add(selectModel, 'name', modelOptions).name('Select')
@@ -103,9 +122,11 @@ export function createDatGUI() {
 
         treeFolder = gui.addFolder('Trees')
         monkeyFolder = gui.addFolder('Monkeys')
+        catFolder = gui.addFolder('Cats')
         // TODO: Refactor this
         createGroupFolder(trees, treeFolder)
         createGroupFolder(monkeys, monkeyFolder)
+        createGroupFolder(cats, catFolder)
     }
 }
 
@@ -122,6 +143,9 @@ const DatFunction = {
                 break
             case 'Tree':
                 loadMTLModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)))
+                break
+            case 'Cat':
+                loadMTLModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0))
                 break
         }
     }
@@ -210,7 +234,7 @@ function createFloor() {
     plane.rotateX(-Math.PI / 2)
     plane.position.y = -0.01
     plane.receiveShadow = true;
-    plane.scale.set(1.5, 1.5, 1.5)
+    plane.scale.set(1, 1, 1)
 
     transformableObjects.push(plane)
     scene.add(plane)
