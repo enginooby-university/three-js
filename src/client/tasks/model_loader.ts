@@ -25,12 +25,12 @@ let plane: THREE.Mesh
 const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(10, 10)
 const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd })
 
+let isLoaded: boolean = false
 const loadingManager = new THREE.LoadingManager(() => {
+    isLoaded = true
     hideLoadingScreen()
     createDatGUI()
 });
-const objLoader = new OBJLoader(loadingManager);
-const mtlLoader = new MTLLoader(loadingManager);
 
 let trees: THREE.Group[] = []
 const TREE_SCALE: number = 0.004
@@ -45,16 +45,14 @@ export function init() {
     createFloor()
     setupControls()
 
-    loadTreeModel(-2, 0, -2)
-    loadTreeModel(2, 0, -2)
-    loadMonkeyModel(-2, 1, 2)
-    loadMonkeyModel(2, 1, 2)
+    loadMTLModel('tree', trees, TREE_SCALE, new Vector3(-2, 0, 2))
+    loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(2, 1, 2))
 
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
-}
+}   
 
 export function setupControls() {
     attachToDragControls(transformableObjects)
@@ -65,40 +63,34 @@ export function setupControls() {
 }
 
 export function createDatGUI() {
-    if (trees.length || monkeys.length) {
+    if (isLoaded) {
         gui = new GUI()
         // TODO: Refactor this
-        if (trees.length) {
-            const treesFolder = gui.addFolder('Trees')
-            for (let i = 0; i < trees.length; i++) {
-                DatHelper.createObjectFolder(treesFolder, trees[i], `Tree ${i + 1}`)
-            }
-        }
-        if (monkeys.length) {
-            const monkeysFolder = gui.addFolder('Monkeys')
-            for (let i = 0; i < monkeys.length; i++) {
-                DatHelper.createObjectFolder(monkeysFolder, monkeys[i], `Monkey ${i + 1}`)
-            }
-        }
-
+        createGroupFolder('Trees', trees)
+        createGroupFolder('Monkeys', monkeys)
     }
 }
 
 export function render() {
 }
 
-function loadTreeModel(x: number, y: number, z: number) {
-    loadModel('tree', trees, TREE_SCALE, new THREE.Vector3(x, y, z))
+function createGroupFolder(name: string, group: THREE.Group[]) {
+    if (group.length) {
+        const groupFolder = gui.addFolder(name)
+        for (let i = 0; i < group.length; i++) {
+            const singularName = name.substring(0, name.length - 1);
+            DatHelper.createObjectFolder(groupFolder, group[i], `${singularName} ${i + 1}`)
+        }
+    }
 }
 
-function loadMonkeyModel(x: number, y: number, z: number) {
-    loadModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(x, y, z))
-}
-
-function loadModel(name: string, group: THREE.Group[], scale: number, position: THREE.Vector3) {
+function loadMTLModel(name: string, group: THREE.Group[], scale: number, position: THREE.Vector3) {
+    const mtlLoader = new MTLLoader(loadingManager);
     mtlLoader.load(`./resources/models/${name}.mtl`,
         (materials) => {
             materials.preload();
+
+            const objLoader = new OBJLoader(loadingManager);
             objLoader.setMaterials(materials);
             objLoader.load(
                 `./resources/models/${name}.obj`,

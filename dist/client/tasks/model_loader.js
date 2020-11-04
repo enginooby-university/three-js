@@ -4,6 +4,7 @@ import * as THREE from '/build/three.module.js';
 import { transformControls, attachToDragControls, hideLoadingScreen, showLoadingScreen } from '../client.js';
 import { OBJLoader } from '/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '/jsm/loaders/MTLLoader.js';
+import { Vector3 } from '/build/three.module.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -19,12 +20,12 @@ const directionalLight = new THREE.DirectionalLight();
 let plane;
 const planeGeometry = new THREE.PlaneGeometry(10, 10);
 const planeMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd });
+let isLoaded = false;
 const loadingManager = new THREE.LoadingManager(() => {
+    isLoaded = true;
     hideLoadingScreen();
     createDatGUI();
 });
-const objLoader = new OBJLoader(loadingManager);
-const mtlLoader = new MTLLoader(loadingManager);
 let trees = [];
 const TREE_SCALE = 0.004;
 let monkeys = [];
@@ -36,10 +37,8 @@ export function init() {
     createLight();
     createFloor();
     setupControls();
-    loadTreeModel(-2, 0, -2);
-    loadTreeModel(2, 0, -2);
-    loadMonkeyModel(-2, 1, 2);
-    loadMonkeyModel(2, 1, 2);
+    loadMTLModel('tree', trees, TREE_SCALE, new Vector3(-2, 0, 2));
+    loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(2, 1, 2));
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
     //     scene.add(child)
@@ -52,34 +51,29 @@ export function setupControls() {
     scene.add(transformControls);
 }
 export function createDatGUI() {
-    if (trees.length || monkeys.length) {
+    if (isLoaded) {
         gui = new GUI();
         // TODO: Refactor this
-        if (trees.length) {
-            const treesFolder = gui.addFolder('Trees');
-            for (let i = 0; i < trees.length; i++) {
-                DatHelper.createObjectFolder(treesFolder, trees[i], `Tree ${i + 1}`);
-            }
-        }
-        if (monkeys.length) {
-            const monkeysFolder = gui.addFolder('Monkeys');
-            for (let i = 0; i < monkeys.length; i++) {
-                DatHelper.createObjectFolder(monkeysFolder, monkeys[i], `Monkey ${i + 1}`);
-            }
-        }
+        createGroupFolder('Trees', trees);
+        createGroupFolder('Monkeys', monkeys);
     }
 }
 export function render() {
 }
-function loadTreeModel(x, y, z) {
-    loadModel('tree', trees, TREE_SCALE, new THREE.Vector3(x, y, z));
+function createGroupFolder(name, group) {
+    if (group.length) {
+        const groupFolder = gui.addFolder(name);
+        for (let i = 0; i < group.length; i++) {
+            const singularName = name.substring(0, name.length - 1);
+            DatHelper.createObjectFolder(groupFolder, group[i], `${singularName} ${i + 1}`);
+        }
+    }
 }
-function loadMonkeyModel(x, y, z) {
-    loadModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(x, y, z));
-}
-function loadModel(name, group, scale, position) {
+function loadMTLModel(name, group, scale, position) {
+    const mtlLoader = new MTLLoader(loadingManager);
     mtlLoader.load(`./resources/models/${name}.mtl`, (materials) => {
         materials.preload();
+        const objLoader = new OBJLoader(loadingManager);
         objLoader.setMaterials(materials);
         objLoader.load(`./resources/models/${name}.obj`, (object) => {
             object.traverse(function (child) {
