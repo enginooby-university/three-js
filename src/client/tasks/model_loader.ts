@@ -1,4 +1,4 @@
-import { GUI } from '/jsm/libs/dat.gui.module.js'
+import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
@@ -26,16 +26,35 @@ const planeGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(10, 10)
 const planeMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial({ color: 0xdddddd })
 
 let isLoaded: boolean = false
+let addingMode: boolean = false // if not adding model, don't recreate Dat GUI
+let addModelController: GUIController
 const loadingManager = new THREE.LoadingManager(() => {
     isLoaded = true
     hideLoadingScreen()
-    createDatGUI()
+
+    if (!addingMode) {// first loading when init the scene
+        createDatGUI()
+    } else {// add by Dat GUI
+        switch (addModelController.getValue()) {
+            case 'Monkey':
+                addNewModelToGroupFolder(monkeys, monkeyFolder)
+                break
+            case 'Tree':
+                addNewModelToGroupFolder(trees, treeFolder)
+                break
+        }
+        addingMode = false // indicate finish adding
+    }
 });
+const mtlLoader: MTLLoader = new MTLLoader(loadingManager); // common
+let objLoader: OBJLoader // seperate object for different material
 
 let trees: THREE.Group[] = []
 const TREE_SCALE: number = 0.004
+let treeFolder: GUI
 let monkeys: THREE.Group[] = []
 const MONKEY_SCALE: number = 1
+let monkeyFolder: GUI
 
 export function init() {
     showLoadingScreen()
@@ -52,7 +71,7 @@ export function init() {
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
-}   
+}
 
 export function setupControls() {
     attachToDragControls(transformableObjects)
@@ -65,32 +84,67 @@ export function setupControls() {
 export function createDatGUI() {
     if (isLoaded) {
         gui = new GUI()
+
+        const modelOptions = {
+            Monkey: "Monkey",
+            Tree: "Tree"
+        }
+        const selectModel = {
+            name: "Tree"
+        }
+        const addModelFolder = gui.addFolder('Add model')
+        addModelController = addModelFolder.add(selectModel, 'name', modelOptions).name('Select')
+        addModelFolder.add(DatFunction, 'addModel').name('Click to add')
+        addModelFolder.open()
+
+        treeFolder = gui.addFolder('Trees')
+        monkeyFolder = gui.addFolder('Monkeys')
         // TODO: Refactor this
-        createGroupFolder('Trees', trees)
-        createGroupFolder('Monkeys', monkeys)
+        createGroupFolder(trees, treeFolder)
+        createGroupFolder(monkeys, monkeyFolder)
     }
 }
 
 export function render() {
 }
 
-function createGroupFolder(name: string, group: THREE.Group[]) {
+const DatFunction = {
+    addModel: function () {
+        addingMode = true
+        showLoadingScreen()
+        switch (addModelController.getValue()) {
+            case 'Monkey':
+                loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 1, Math.floor(Math.random() * 5)))
+                break
+            case 'Tree':
+                loadMTLModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)))
+                break
+        }
+    }
+}
+
+function createGroupFolder(group: THREE.Group[], groupFolder: GUI) {
     if (group.length) {
-        const groupFolder = gui.addFolder(name)
         for (let i = 0; i < group.length; i++) {
-            const singularName = name.substring(0, name.length - 1);
+            const singularName = groupFolder.name.substring(0, groupFolder.name.length - 1);
             DatHelper.createObjectFolder(groupFolder, group[i], `${singularName} ${i + 1}`)
         }
     }
 }
 
+function addNewModelToGroupFolder(group: THREE.Group[], groupFolder: GUI) {
+    const newModelIndex = group.length - 1
+    const singularName = groupFolder.name.substring(0, groupFolder.name.length - 1);
+    DatHelper.createObjectFolder(groupFolder, group[newModelIndex], `${singularName} ${newModelIndex + 1}`)
+
+}
+
 function loadMTLModel(name: string, group: THREE.Group[], scale: number, position: THREE.Vector3) {
-    const mtlLoader = new MTLLoader(loadingManager);
     mtlLoader.load(`./resources/models/${name}.mtl`,
         (materials) => {
             materials.preload();
 
-            const objLoader = new OBJLoader(loadingManager);
+            objLoader = new OBJLoader(loadingManager);
             objLoader.setMaterials(materials);
             objLoader.load(
                 `./resources/models/${name}.obj`,
