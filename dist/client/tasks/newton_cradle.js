@@ -102,7 +102,7 @@ export function createDatGUI() {
     });
     verticalGroupFolder.open();
     const horizontalGroupFolder = gui.addFolder('Horizontal group');
-    horizontalGroupFolder.add(Param, 'HorBallAmount', 3, 9, 2).name('Ball number').onChange(() => {
+    horizontalGroupFolder.add(Param, 'HorBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
         horBallAmount = Param.HorBallAmount;
         updateBallNumber();
     });

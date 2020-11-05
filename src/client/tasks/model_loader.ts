@@ -4,6 +4,7 @@ import * as THREE from '/build/three.module.js'
 import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 import { OBJLoader } from '/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from '/jsm/loaders/MTLLoader.js'
+import { FBXLoader } from '/jsm/loaders/FBXLoader.js'
 import { MeshPhongMaterial, Vector3 } from '/build/three.module.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
@@ -32,9 +33,13 @@ let isLoaded: boolean = false
 let addingMode: boolean = false // if not adding model, don't recreate Dat GUI
 const loadingManager = new THREE.LoadingManager(() => {
     // setup samples
-    monkeys[0].rotation.set(5.54, 0.8, 0.6)
+    monkeys[0].rotation.set(5.54, 0.8, 0.6);
     cats[0].rotation.set(4.7, 0, 3.17)
     cats[0].position.set(1.8, 0, 2.7)
+    // model.rotation.set(Math.PI / 2, 0, -Math.PI / 2)
+    model.position.set(-2.5, -0.25, 3)
+    activeAction = animationActions[0]
+    setAction(animationActions[1])
 
     isLoaded = true
     hideLoadingScreen()
@@ -76,6 +81,15 @@ let cats: THREE.Group[] = []
 let catFolder: GUI
 const CAT_SCALE = 0.08
 
+let mixer: THREE.AnimationMixer
+let modelReady = false;
+let animationActions: THREE.AnimationAction[] = new Array()
+let activeAction: THREE.AnimationAction
+let lastAction: THREE.AnimationAction
+const fbxLoader: FBXLoader = new FBXLoader(loadingManager);
+let animationFolder: GUI
+let model: THREE.Group
+
 export function init() {
     showLoadingScreen()
     isInitialized = true
@@ -93,6 +107,112 @@ export function init() {
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
+
+    fbxLoader.load(
+        './resources/models/vanguard.fbx',
+        (object) => {
+            object.scale.set(.045, .045, .045)
+            mixer = new THREE.AnimationMixer(object);
+
+            // get default animation (T-pose) from object
+            let animationAction = mixer.clipAction((object as any).animations[0]);
+            animationActions.push(animationAction)
+
+            model = object
+            scene.add(object);
+
+            // TODO: Refactor this, add FBX model to transformable group, handle shadow
+            //add an animation from another file
+            fbxLoader.load(
+                './resources/models/vanguard@samba-dancing.fbx',
+                (object) => {
+                    object.traverse(function (child) {
+                        if ((<THREE.Mesh>child).isMesh) {
+                            console.log(child);
+                            // if (material !== undefined) {
+                            //     const newMaterial = material.clone();
+                            //     (<THREE.Mesh>child).material = newMaterial // create a material for each mesh
+                            // }
+
+                            (<THREE.Mesh>child).receiveShadow = true;
+                            (<THREE.Mesh>child).castShadow = true;
+                            transformableObjects.push(<THREE.Mesh>child)
+                        }
+                    })
+
+                    console.log("loaded samba");
+                    (object as any).animations[0].tracks.shift()
+                    let animationAction = mixer.clipAction((object as any).animations[0]);
+                    animationActions.push(animationAction)
+                    // object.castShadow = true
+                    // object.receiveShadow = true
+
+                    //add an animation from another file
+                    fbxLoader.load(
+                        './resources/models/vanguard@belly-dancing.fbx',
+                        (object) => {
+                            console.log("loaded bellydance")
+                            let animationAction = mixer.clipAction((object as any).animations[0]);
+                            animationActions.push(animationAction)
+
+                            //add an animation from another file
+                            fbxLoader.load(
+                                './resources/models/vanguard@goofy-running.fbx',
+                                (object) => {
+                                    console.log("loaded goofyrunning");
+                                    //delete the specific track that moves the object forward while running
+                                    (object as any).animations[0].tracks.shift()
+                                    //console.dir((object as any).animations[0])
+                                    let animationAction = mixer.clipAction((object as any).animations[0]);
+                                    animationActions.push(animationAction)
+
+                                    modelReady = true
+                                },
+                                (xhr) => {
+                                    console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+                                },
+                                (error) => {
+                                    console.log(error);
+                                }
+                            )
+                        },
+                        (xhr) => {
+                            console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+                        },
+                        (error) => {
+                            console.log(error);
+                        }
+                    )
+                },
+                (xhr) => {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+                },
+                (error) => {
+                    console.log(error);
+                }
+            )
+        },
+        (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+        },
+        (error) => {
+            console.log(error);
+        }
+    )
+
+}
+
+
+const setAction = (toAction: THREE.AnimationAction) => {
+    if (toAction != activeAction) {
+        lastAction = activeAction
+        activeAction = toAction
+        // lastAction.stop()
+        lastAction.fadeOut(1)
+        activeAction.reset()
+        activeAction.fadeIn(1)
+        activeAction.play()
+    }
 }
 
 export function setupControls() {
@@ -106,6 +226,7 @@ export function setupControls() {
 export function createDatGUI() {
     if (isLoaded) {
         gui = new GUI({ width: 232 })
+
 
         const modelOptions = {
             Monkey: "Monkey",
@@ -127,10 +248,39 @@ export function createDatGUI() {
         createGroupFolder(trees, treeFolder)
         createGroupFolder(monkeys, monkeyFolder)
         createGroupFolder(cats, catFolder)
+
+        // Vanguard
+        // TODO: use dropdown lish instead
+        const animations = {
+            default: function () {
+                setAction(animationActions[0])
+            },
+            samba: function () {
+                setAction(animationActions[1])
+            },
+            bellydance: function () {
+                setAction(animationActions[2])
+            },
+            goofyrunning: function () {
+                setAction(animationActions[3])
+            },
+        }
+
+        const vanguardFolder = DatHelper.createObjectFolder(gui, model, 'Vanguard')
+        animationFolder = vanguardFolder.addFolder('animations')
+        animationFolder.add(animations, "default")
+        animationFolder.add(animations, "samba")
+        animationFolder.add(animations, "bellydance")
+        animationFolder.add(animations, "goofyrunning")
+        animationFolder.open()
     }
 }
 
+const clock: THREE.Clock = new THREE.Clock()
+
 export function render() {
+    if (modelReady) mixer.update(clock.getDelta());
+
 }
 
 const DatFunction = {
@@ -223,6 +373,7 @@ function loadModel(name: string, group: THREE.Group[], scale: number, position: 
 
 function createLight() {
     directionalLight.position.set(4.5, 21, 13)
+    // directionalLight.intensity = 2
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048
     directionalLight.shadow.mapSize.height = 2048

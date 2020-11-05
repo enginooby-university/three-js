@@ -22,6 +22,10 @@ class App {
         app.use('/jsm/webxr/VRButton.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/webxr/VRButton.js')));
         app.use('/jsm/loaders/OBJLoader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/loaders/OBJLoader.js')));
         app.use('/jsm/loaders/MTLLoader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/loaders/MTLLoader.js')));
+        app.use('/jsm/loaders/FBXLoader.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/loaders/FBXLoader.js')));
+        app.use('/jsm/libs/inflate.module.min.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/libs/inflate.module.min.js')));
+        app.use('/jsm/curves/NURBSCurve.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/curves/NURBSCurve.js')));
+        app.use('/jsm/curves/NURBSUtils.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/curves/NURBSUtils.js')));
         app.use('/jsm/postprocessing/EffectComposer.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js')));
         app.use('/jsm/postprocessing/RenderPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/RenderPass.js')));
         app.use('/jsm/postprocessing/BloomPass.js', express_1.default.static(path_1.default.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/BloomPass.js')));
