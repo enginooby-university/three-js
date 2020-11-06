@@ -76,8 +76,10 @@ let animationActions = new Array();
 let activeAction;
 let lastAction;
 const fbxLoader = new FBXLoader(loadingManager);
-let animationFolder;
+let animationsFolder;
 let model;
+let vanguardRightArm;
+let vanguardLeftArm;
 export function init() {
     showLoadingScreen();
     isInitialized = true;
@@ -93,35 +95,41 @@ export function init() {
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
+    // TODO: Refactor this, add FBX model to transformable group
     fbxLoader.load('./resources/models/vanguard.fbx', (object) => {
-        object.scale.set(.045, .045, .045);
+        object.traverse(function (child) {
+            console.log(child);
+            if (child.isSkinnedMesh) {
+                child.receiveShadow = true;
+                child.castShadow = true;
+            }
+        });
+        vanguardRightArm = object.getObjectByName('mixamorigRightArm');
+        vanguardLeftArm = object.getObjectByName('mixamorigLeftArm');
         mixer = new THREE.AnimationMixer(object);
         // get default animation (T-pose) from object
         let animationAction = mixer.clipAction(object.animations[0]);
         animationActions.push(animationAction);
+        object.scale.set(.045, .045, .045);
         model = object;
         scene.add(object);
-        // TODO: Refactor this, add FBX model to transformable group, handle shadow
         //add an animation from another file
         fbxLoader.load('./resources/models/vanguard@samba-dancing.fbx', (object) => {
             object.traverse(function (child) {
+                // console.log(child);
                 if (child.isMesh) {
-                    console.log(child);
-                    // if (material !== undefined) {
-                    //     const newMaterial = material.clone();
-                    //     (<THREE.Mesh>child).material = newMaterial // create a material for each mesh
-                    // }
                     child.receiveShadow = true;
                     child.castShadow = true;
                     transformableObjects.push(child);
+                }
+                if (child.isBone) {
+                    child.castShadow = true;
                 }
             });
             console.log("loaded samba");
             object.animations[0].tracks.shift();
             let animationAction = mixer.clipAction(object.animations[0]);
             animationActions.push(animationAction);
-            // object.castShadow = true
-            // object.receiveShadow = true
             //add an animation from another file
             fbxLoader.load('./resources/models/vanguard@belly-dancing.fbx', (object) => {
                 console.log("loaded bellydance");
@@ -137,17 +145,17 @@ export function init() {
                     animationActions.push(animationAction);
                     modelReady = true;
                 }, (xhr) => {
-                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
                 }, (error) => {
                     console.log(error);
                 });
             }, (xhr) => {
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
             }, (error) => {
                 console.log(error);
             });
         }, (xhr) => {
-            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
         }, (error) => {
             console.log(error);
         });
@@ -213,12 +221,20 @@ export function createDatGUI() {
             },
         };
         const vanguardFolder = DatHelper.createObjectFolder(gui, model, 'Vanguard');
-        animationFolder = vanguardFolder.addFolder('animations');
-        animationFolder.add(animations, "default");
-        animationFolder.add(animations, "samba");
-        animationFolder.add(animations, "bellydance");
-        animationFolder.add(animations, "goofyrunning");
-        animationFolder.open();
+        animationsFolder = vanguardFolder.addFolder('Animations');
+        animationsFolder.add(animations, "default");
+        animationsFolder.add(animations, "samba");
+        animationsFolder.add(animations, "bellydance");
+        animationsFolder.add(animations, "goofyrunning");
+        animationsFolder.open();
+        const bodyPartsFolder = vanguardFolder.addFolder('Body parts');
+        // TODO: Refactor with array
+        if (vanguardRightArm) {
+            DatHelper.createObjectFolder(bodyPartsFolder, vanguardRightArm, "Right arm");
+        }
+        if (vanguardLeftArm) {
+            DatHelper.createObjectFolder(bodyPartsFolder, vanguardLeftArm, "Left arm");
+        }
     }
 }
 const clock = new THREE.Clock();

@@ -27,5 +27,6 @@ export function setupControls() {
 export function createDatGUI() {
     gui = new GUI();
 }
+// const clock: THREE.Clock = new THREE.Clock()
 export function render() {
 }

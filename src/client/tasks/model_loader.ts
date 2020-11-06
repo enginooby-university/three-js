@@ -14,7 +14,7 @@ export let skybox: string //= 'none'
 export const setSkybox = (name: string) => skybox = name
 
 // group of objects affected by DragControls & TransformControls
-export let transformableObjects: THREE.Mesh[] = []
+export let transformableObjects: THREE.Object3D[] = []
 export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
@@ -87,8 +87,11 @@ let animationActions: THREE.AnimationAction[] = new Array()
 let activeAction: THREE.AnimationAction
 let lastAction: THREE.AnimationAction
 const fbxLoader: FBXLoader = new FBXLoader(loadingManager);
-let animationFolder: GUI
+let animationsFolder: GUI
 let model: THREE.Group
+
+let vanguardRightArm: THREE.Bone
+let vanguardLeftArm: THREE.Bone
 
 export function init() {
     showLoadingScreen()
@@ -108,35 +111,44 @@ export function init() {
     //     scene.add(child)
     // })
 
+    // TODO: Refactor this, add FBX model to transformable group
     fbxLoader.load(
         './resources/models/vanguard.fbx',
         (object) => {
-            object.scale.set(.045, .045, .045)
-            mixer = new THREE.AnimationMixer(object);
+            object.traverse(function (child) {
+                console.log(child);
+                if ((<THREE.SkinnedMesh>child).isSkinnedMesh) {
+                    (<THREE.SkinnedMesh>child).receiveShadow = true;
+                    (<THREE.SkinnedMesh>child).castShadow = true;
+                }
+            })
 
+            vanguardRightArm = object.getObjectByName('mixamorigRightArm') as THREE.Bone
+            vanguardLeftArm = object.getObjectByName('mixamorigLeftArm') as THREE.Bone
+
+            mixer = new THREE.AnimationMixer(object);
             // get default animation (T-pose) from object
             let animationAction = mixer.clipAction((object as any).animations[0]);
             animationActions.push(animationAction)
 
+            object.scale.set(.045, .045, .045)
             model = object
             scene.add(object);
 
-            // TODO: Refactor this, add FBX model to transformable group, handle shadow
             //add an animation from another file
             fbxLoader.load(
                 './resources/models/vanguard@samba-dancing.fbx',
                 (object) => {
                     object.traverse(function (child) {
-                        if ((<THREE.Mesh>child).isMesh) {
-                            console.log(child);
-                            // if (material !== undefined) {
-                            //     const newMaterial = material.clone();
-                            //     (<THREE.Mesh>child).material = newMaterial // create a material for each mesh
-                            // }
+                        // console.log(child);
 
+                        if ((<THREE.Mesh>child).isMesh) {
                             (<THREE.Mesh>child).receiveShadow = true;
                             (<THREE.Mesh>child).castShadow = true;
                             transformableObjects.push(<THREE.Mesh>child)
+                        }
+                        if ((<THREE.Bone>child).isBone) {
+                            child.castShadow = true
                         }
                     })
 
@@ -144,8 +156,6 @@ export function init() {
                     (object as any).animations[0].tracks.shift()
                     let animationAction = mixer.clipAction((object as any).animations[0]);
                     animationActions.push(animationAction)
-                    // object.castShadow = true
-                    // object.receiveShadow = true
 
                     //add an animation from another file
                     fbxLoader.load(
@@ -169,7 +179,7 @@ export function init() {
                                     modelReady = true
                                 },
                                 (xhr) => {
-                                    console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+                                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
                                 },
                                 (error) => {
                                     console.log(error);
@@ -177,7 +187,7 @@ export function init() {
                             )
                         },
                         (xhr) => {
-                            console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+                            // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
                         },
                         (error) => {
                             console.log(error);
@@ -185,7 +195,7 @@ export function init() {
                     )
                 },
                 (xhr) => {
-                    console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
                 },
                 (error) => {
                     console.log(error);
@@ -267,20 +277,27 @@ export function createDatGUI() {
         }
 
         const vanguardFolder = DatHelper.createObjectFolder(gui, model, 'Vanguard')
-        animationFolder = vanguardFolder.addFolder('animations')
-        animationFolder.add(animations, "default")
-        animationFolder.add(animations, "samba")
-        animationFolder.add(animations, "bellydance")
-        animationFolder.add(animations, "goofyrunning")
-        animationFolder.open()
+        animationsFolder = vanguardFolder.addFolder('Animations')
+        animationsFolder.add(animations, "default")
+        animationsFolder.add(animations, "samba")
+        animationsFolder.add(animations, "bellydance")
+        animationsFolder.add(animations, "goofyrunning")
+        animationsFolder.open()
+
+        const bodyPartsFolder = vanguardFolder.addFolder('Body parts')
+        // TODO: Refactor with array
+        if (vanguardRightArm) {
+            DatHelper.createObjectFolder(bodyPartsFolder, vanguardRightArm, "Right arm")
+        }
+        if (vanguardLeftArm) {
+            DatHelper.createObjectFolder(bodyPartsFolder, vanguardLeftArm, "Left arm")
+        }
     }
 }
 
 const clock: THREE.Clock = new THREE.Clock()
-
 export function render() {
     if (modelReady) mixer.update(clock.getDelta());
-
 }
 
 const DatFunction = {
