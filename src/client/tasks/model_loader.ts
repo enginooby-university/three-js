@@ -131,6 +131,10 @@ export function init() {
             let animationAction = mixer.clipAction((object as any).animations[0]);
             animationActions.push(animationAction)
 
+            // object.children is a list of bones
+            const skeletonHelper = new THREE.SkeletonHelper(object);
+            scene.add(skeletonHelper);
+
             object.scale.set(.045, .045, .045)
             model = object
             scene.add(object);
