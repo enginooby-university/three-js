@@ -30,8 +30,9 @@ const loadingManager = new THREE.LoadingManager(() => {
     monkeys[0].rotation.set(5.54, 0.8, 0.6);
     cats[0].rotation.set(4.7, 0, 3.17);
     cats[0].position.set(1.8, 0, 2.7);
-    // model.rotation.set(Math.PI / 2, 0, -Math.PI / 2)
-    model.position.set(-2.5, -0.25, 3);
+    vanguardModel.position.set(-2.5, -0.25, 3);
+    vanguardRightArm = vanguardModel.getObjectByName('mixamorigRightArm');
+    vanguardLeftArm = vanguardModel.getObjectByName('mixamorigLeftArm');
     activeAction = animationActions[0];
     setAction(animationActions[1]);
     isLoaded = true;
@@ -60,7 +61,9 @@ const loadingManager = new THREE.LoadingManager(() => {
     }
 });
 const mtlLoader = new MTLLoader(loadingManager); // common
-let objLoader; // seperate object for different material
+const fbxLoader = new FBXLoader(loadingManager);
+let objLoader; // seperate object if use different materials
+// TODO: Refactor with array
 let trees = [];
 let treeFolder;
 const TREE_SCALE = 0.004;
@@ -71,15 +74,14 @@ let cats = [];
 let catFolder;
 const CAT_SCALE = 0.08;
 let mixer;
-let modelReady = false;
-let animationActions = new Array();
+let animationActions = [];
 let activeAction;
 let lastAction;
-const fbxLoader = new FBXLoader(loadingManager);
 let animationsFolder;
-let model;
+let vanguardModel;
 let vanguardRightArm;
 let vanguardLeftArm;
+const VANGUARD_SCALE = 0.045;
 export function init() {
     showLoadingScreen();
     isInitialized = true;
@@ -88,82 +90,61 @@ export function init() {
     createFloor();
     setupControls();
     // samples
-    loadModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
+    loadOBJModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
     loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5));
-    loadModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial);
+    loadOBJModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial);
+    loadFBXModel('vanguard', VANGUARD_SCALE, () => loadFBXAnimation('vanguard@samba-dancing', [0], () => loadFBXAnimation('vanguard@belly-dancing', [], () => loadFBXAnimation('vanguard@goofy-running', [0]))));
     // TODO: this will execute before model loaded => nothing is added to scene!
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
+}
+function loadFBXModel(name, scale, loadAnimation) {
     // TODO: Refactor this, add FBX model to transformable group
-    fbxLoader.load('./resources/models/vanguard.fbx', (object) => {
+    //  let model: THREE.Group = new THREE.Group()
+    fbxLoader.load(`./resources/models/${name}.fbx`, (object) => {
         object.traverse(function (child) {
-            console.log(child);
+            // console.log(child);
             if (child.isSkinnedMesh) {
                 child.receiveShadow = true;
                 child.castShadow = true;
             }
         });
-        vanguardRightArm = object.getObjectByName('mixamorigRightArm');
-        vanguardLeftArm = object.getObjectByName('mixamorigLeftArm');
         mixer = new THREE.AnimationMixer(object);
-        // get default animation (T-pose) from object
+        // get default animation from model
         let animationAction = mixer.clipAction(object.animations[0]);
         animationActions.push(animationAction);
         // object.children is a list of bones
         const skeletonHelper = new THREE.SkeletonHelper(object);
         scene.add(skeletonHelper);
-        object.scale.set(.045, .045, .045);
-        model = object;
+        object.scale.set(scale, scale, scale);
+        vanguardModel = object;
         scene.add(object);
-        //add an animation from another file
-        fbxLoader.load('./resources/models/vanguard@samba-dancing.fbx', (object) => {
-            object.traverse(function (child) {
-                // console.log(child);
-                if (child.isMesh) {
-                    child.receiveShadow = true;
-                    child.castShadow = true;
-                    transformableObjects.push(child);
-                }
-                if (child.isBone) {
-                    child.castShadow = true;
-                }
-            });
-            console.log("loaded samba");
-            object.animations[0].tracks.shift();
-            let animationAction = mixer.clipAction(object.animations[0]);
-            animationActions.push(animationAction);
-            //add an animation from another file
-            fbxLoader.load('./resources/models/vanguard@belly-dancing.fbx', (object) => {
-                console.log("loaded bellydance");
-                let animationAction = mixer.clipAction(object.animations[0]);
-                animationActions.push(animationAction);
-                //add an animation from another file
-                fbxLoader.load('./resources/models/vanguard@goofy-running.fbx', (object) => {
-                    console.log("loaded goofyrunning");
-                    //delete the specific track that moves the object forward while running
-                    object.animations[0].tracks.shift();
-                    //console.dir((object as any).animations[0])
-                    let animationAction = mixer.clipAction(object.animations[0]);
-                    animationActions.push(animationAction);
-                    modelReady = true;
-                }, (xhr) => {
-                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
-                }, (error) => {
-                    console.log(error);
-                });
-            }, (xhr) => {
-                // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
-            }, (error) => {
-                console.log(error);
-            });
-        }, (xhr) => {
-            // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
-        }, (error) => {
-            console.log(error);
-        });
+        if (loadAnimation !== undefined) {
+            loadAnimation();
+        }
     }, (xhr) => {
-        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+    }, (error) => {
+        console.log(error);
+    });
+}
+function loadFBXAnimation(name, exclusiveTracks, loadAnotherAnimation) {
+    fbxLoader.load(`./resources/models/${name}.fbx`, (object) => {
+        // delete the specific track (VectorKeyframeTrack) that moves the object forward while running
+        // console.dir((object as any).animations[0]);
+        if (exclusiveTracks !== undefined) {
+            exclusiveTracks.forEach(index => object.animations[index].tracks.shift());
+        }
+        // generate animation for model clip
+        const animationAction = mixer.clipAction(object.animations[0]);
+        animationActions.push(animationAction);
+        console.log(`${name} animation loaded`);
+        if (loadAnotherAnimation !== undefined) {
+            loadAnotherAnimation();
+        }
+    }, (xhr) => {
+        // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
     }, (error) => {
         console.log(error);
     });
@@ -223,7 +204,7 @@ export function createDatGUI() {
                 setAction(animationActions[3]);
             },
         };
-        const vanguardFolder = DatHelper.createObjectFolder(gui, model, 'Vanguard');
+        const vanguardFolder = DatHelper.createObjectFolder(gui, vanguardModel, 'Vanguard');
         animationsFolder = vanguardFolder.addFolder('Animations');
         animationsFolder.add(animations, "default");
         animationsFolder.add(animations, "samba");
@@ -242,7 +223,7 @@ export function createDatGUI() {
 }
 const clock = new THREE.Clock();
 export function render() {
-    if (modelReady)
+    if (isLoaded)
         mixer.update(clock.getDelta());
 }
 const DatFunction = {
@@ -254,10 +235,10 @@ const DatFunction = {
                 loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 1, Math.floor(Math.random() * 5)));
                 break;
             case 'Tree':
-                loadModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)), new THREE.MeshPhongMaterial());
+                loadOBJModel('tree', trees, TREE_SCALE, new THREE.Vector3(Math.floor(Math.random() * 5), 0, Math.floor(Math.random() * 5)), new THREE.MeshPhongMaterial());
                 break;
             case 'Cat':
-                loadModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
+                loadOBJModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
                 break;
         }
     }
@@ -280,14 +261,14 @@ function loadMTLModel(name, group, scale, position) {
         materials.preload();
         objLoader = new OBJLoader(loadingManager);
         objLoader.setMaterials(materials);
-        loadModel(name, group, scale, position);
+        loadOBJModel(name, group, scale, position);
     }, (xhr) => {
         // console.log((xhr.loaded / xhr.total * 100) + '% materials loaded');
     }, (error) => {
         console.log('An error happened');
     });
 }
-function loadModel(name, group, scale, position, material) {
+function loadOBJModel(name, group, scale, position, material) {
     if (objLoader === undefined) {
         objLoader = new OBJLoader(loadingManager);
     }
