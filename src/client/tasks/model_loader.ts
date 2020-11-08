@@ -33,36 +33,43 @@ let isLoaded: boolean = false
 let addingMode: boolean = false // if not adding model, don't recreate Dat GUI
 const loadingManager = new THREE.LoadingManager(() => {
     // setup samples
-    monkeys[0].rotation.set(5.54, 0.8, 0.6);
-    cats[0].rotation.set(4.7, 0, 3.17)
-    cats[0].position.set(1.8, 0, 2.7)
-    vanguardModel.position.set(-2.5, -0.25, 3)
-    vanguardRightArm = vanguardModel.getObjectByName('mixamorigRightArm') as THREE.Bone
-    vanguardLeftArm = vanguardModel.getObjectByName('mixamorigLeftArm') as THREE.Bone
-    activeAction = animationActions[0]
-    setAction(animationActions[1])
+    const monkeyDemo = monkeys[0]
+    monkeyDemo.rotation.set(5.54, 0.8, 0.6)
+    const catDemo = cats[0]
+    catDemo.rotation.set(4.7, 0, 3.17)
+    catDemo.position.set(1.8, 0, 2.7)
+    const vanguardDemo: Vanguard = vanguards[0]
+    vanguardDemo.group.position.set(vanguardDemo.position.x, vanguardDemo.position.y, vanguardDemo.position.z)
+    vanguardDemo.setAction(2)
+    vanguardDemo.getBones()
 
     isLoaded = true
     hideLoadingScreen()
 
-    if (!addingMode) {// first loading when init the scene
+    if (!addingMode) { // first loading models when init the scene
         createDatGUI()
-    } else {// add by Dat GUI
+    } else { // adding models by Dat GUI
+        const randX = Math.floor(Math.random() * 5)
+        const randZ = Math.floor(Math.random() * 5)
         switch (addModelController.getValue()) {
             case 'Monkey':
-                addNewModelToGroupFolder(monkeys, monkeyFolder)
+                addNewModelToGroupFolder(monkeys, monkeysFolder)
                 break
             case 'Tree':
-                addNewModelToGroupFolder(trees, treeFolder)
+                addNewModelToGroupFolder(trees, treesFolder)
                 break
             case 'Cat':
-                addNewModelToGroupFolder(cats, catFolder)
+                addNewModelToGroupFolder(cats, catsFolder)
                 // transform new model properly
-                const randX = Math.floor(Math.random() * 5)
-                const randZ = Math.floor(Math.random() * 5)
-                cats[cats.length - 1].rotation.set(4.7, 0, 3.17)
-                cats[cats.length - 1].position.set(randX, 0, randZ)
+                const newCat = cats[cats.length - 1]
+                newCat.rotation.set(4.7, 0, 3.17)
+                newCat.position.set(randX, 0, randZ)
                 break
+            case 'Vanguard':
+                const newVanguard = vanguards[vanguards.length - 1]
+                newVanguard.group.position.set(randX, -0.25, randZ)
+                newVanguard.getBones()
+                addNewFBXModelToGroupFolder(vanguards, vanguardsFolder)
         }
         addingMode = false // indicate finish adding
     }
@@ -74,27 +81,21 @@ let objLoader: OBJLoader // seperate object if use different materials
 
 // TODO: Refactor with array
 let trees: THREE.Group[] = []
-let treeFolder: GUI
+let treesFolder: GUI
 const TREE_SCALE: number = 0.004
 
 let monkeys: THREE.Group[] = []
-let monkeyFolder: GUI
+let monkeysFolder: GUI
 const MONKEY_SCALE: number = 1
 
 let cats: THREE.Group[] = []
-let catFolder: GUI
+let catsFolder: GUI
 const CAT_SCALE = 0.08
 
-let mixer: THREE.AnimationMixer
-let animationActions: THREE.AnimationAction[] = []
-let activeAction: THREE.AnimationAction
-let lastAction: THREE.AnimationAction
-let animationsFolder: GUI
-
-let vanguardModel: THREE.Group
+let vanguards: Vanguard[] = []
+let vanguardsFolder: GUI
 let vanguardRightArm: THREE.Bone
 let vanguardLeftArm: THREE.Bone
-const VANGUARD_SCALE = 0.045
 
 export function init() {
     showLoadingScreen()
@@ -103,28 +104,21 @@ export function init() {
     createLight()
     createFloor()
     setupControls()
+    initSampleModels()
+}
 
-    // samples
+function initSampleModels() {
     loadOBJModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial())
     loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5))
     loadOBJModel('cat', cats, CAT_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial)
-    loadFBXModel('vanguard', VANGUARD_SCALE,
-        () => loadFBXAnimation('vanguard@samba-dancing', [0],
-            () => loadFBXAnimation('vanguard@belly-dancing', [],
-                () => loadFBXAnimation('vanguard@goofy-running', [0]))),
-    )
-
-    // TODO: this will execute before model loaded => nothing is added to scene!
-    // transformableObjects.forEach(child => {
-    //     scene.add(child)
-    // })
+    vanguards.push(new Vanguard(-2.5, -0.25, 3))
 }
 
-function loadFBXModel(name: string, scale: number, loadAnimation?: Function) {
-    // TODO: Refactor this, add FBX model to transformable group
+function loadFBXModel(model: Vanguard, loadAnimation?: Function) {
+    // TODO:  add FBX model to transformable group
     //  let model: THREE.Group = new THREE.Group()
     fbxLoader.load(
-        `./resources/models/${name}.fbx`,
+        `./resources/models/${model.NAME}.fbx`,
         (object) => {
             object.traverse(function (child) {
                 // console.log(child);
@@ -134,17 +128,18 @@ function loadFBXModel(name: string, scale: number, loadAnimation?: Function) {
                 }
             })
 
-            mixer = new THREE.AnimationMixer(object);
+            model.mixer = new THREE.AnimationMixer(object);
             // get default animation from model
-            let animationAction = mixer.clipAction((object as any).animations[0]);
-            animationActions.push(animationAction)
+            const animationAction = model.mixer.clipAction((object as any).animations[0]);
+            model.animationActions.push(animationAction)
 
             // object.children is a list of bones
             const skeletonHelper = new THREE.SkeletonHelper(object);
             scene.add(skeletonHelper);
 
-            object.scale.set(scale, scale, scale)
-            vanguardModel = object
+            object.scale.set(model.SCALE, model.SCALE, model.SCALE)
+
+            model.group = object
             scene.add(object);
 
             if (loadAnimation !== undefined) {
@@ -160,9 +155,9 @@ function loadFBXModel(name: string, scale: number, loadAnimation?: Function) {
     )
 }
 
-function loadFBXAnimation(name: string, exclusiveTracks?: number[], loadAnotherAnimation?: Function) {
+function loadFBXAnimation(model: Vanguard, animationName: string, exclusiveTracks?: number[], loadAnotherAnimation?: Function) {
     fbxLoader.load(
-        `./resources/models/${name}.fbx`,
+        `./resources/models/${animationName}.fbx`,
         (object) => {
             // delete the specific track (VectorKeyframeTrack) that moves the object forward while running
             // console.dir((object as any).animations[0]);
@@ -171,11 +166,11 @@ function loadFBXAnimation(name: string, exclusiveTracks?: number[], loadAnotherA
                 )
             }
 
-            // generate animation for model clip
-            const animationAction = mixer.clipAction((object as any).animations[0]);
-            animationActions.push(animationAction)
+            // generate animation for model clip.
+            const animationAction = model.mixer.clipAction((object as any).animations[0]);
+            model.animationActions.push(animationAction)
 
-            console.log(`${name} animation loaded`);
+            console.log(`${animationName} animation loaded`);
 
             if (loadAnotherAnimation !== undefined) {
                 loadAnotherAnimation()
@@ -190,17 +185,6 @@ function loadFBXAnimation(name: string, exclusiveTracks?: number[], loadAnotherA
     )
 }
 
-const setAction = (toAction: THREE.AnimationAction) => {
-    if (toAction != activeAction) {
-        lastAction = activeAction
-        activeAction = toAction
-        // lastAction.stop()
-        lastAction.fadeOut(1)
-        activeAction.reset()
-        activeAction.fadeIn(1)
-        activeAction.play()
-    }
-}
 
 export function setupControls() {
     attachToDragControls(transformableObjects)
@@ -217,7 +201,8 @@ export function createDatGUI() {
         const modelOptions = {
             Monkey: "Monkey",
             Tree: "Tree",
-            Cat: "Cat"
+            Cat: "Cat",
+            Vanguard: "Vanguard"
         }
         const selectModel = {
             name: "Cat"
@@ -227,53 +212,38 @@ export function createDatGUI() {
         addModelFolder.add(DatFunction, 'addModel').name('Click to add')
         addModelFolder.open()
 
-        treeFolder = gui.addFolder('Trees')
-        monkeyFolder = gui.addFolder('Monkeys')
-        catFolder = gui.addFolder('Cats')
+        treesFolder = gui.addFolder('Trees')
+        monkeysFolder = gui.addFolder('Monkeys')
+        catsFolder = gui.addFolder('Cats')
         // TODO: Refactor this
-        createGroupFolder(trees, treeFolder)
-        createGroupFolder(monkeys, monkeyFolder)
-        createGroupFolder(cats, catFolder)
+        createGroupFolder(trees, treesFolder)
+        createGroupFolder(monkeys, monkeysFolder)
+        createGroupFolder(cats, catsFolder)
 
-        // Vanguard
-        // TODO: use dropdown lish instead
-        const animations = {
-            default: function () {
-                setAction(animationActions[0])
-            },
-            samba: function () {
-                setAction(animationActions[1])
-            },
-            bellydance: function () {
-                setAction(animationActions[2])
-            },
-            goofyrunning: function () {
-                setAction(animationActions[3])
-            },
+        if (vanguards) {
+            vanguardsFolder = gui.addFolder('Vanguards')
+            for (let i = 0; i < vanguards.length; i++) {
+                vanguards[i].createDatGUI(vanguardsFolder, i + 1)
+            }
         }
 
-        const vanguardFolder = DatHelper.createObjectFolder(gui, vanguardModel, 'Vanguard')
-        animationsFolder = vanguardFolder.addFolder('Animations')
-        animationsFolder.add(animations, "default")
-        animationsFolder.add(animations, "samba")
-        animationsFolder.add(animations, "bellydance")
-        animationsFolder.add(animations, "goofyrunning")
-        animationsFolder.open()
-
-        const bodyPartsFolder = vanguardFolder.addFolder('Body parts')
-        // TODO: Refactor with array
-        if (vanguardRightArm) {
-            DatHelper.createObjectFolder(bodyPartsFolder, vanguardRightArm, "Right arm")
-        }
-        if (vanguardLeftArm) {
-            DatHelper.createObjectFolder(bodyPartsFolder, vanguardLeftArm, "Left arm")
-        }
+        // const bodyPartsFolder = vanguardFolder.addFolder('Body parts')
+        // // TODO: Refactor with array
+        // if (vanguardRightArm) {
+        //     DatHelper.createObjectFolder(bodyPartsFolder, vanguardRightArm, "Right arm")
+        // }
+        // if (vanguardLeftArm) {
+        //     DatHelper.createObjectFolder(bodyPartsFolder, vanguardLeftArm, "Left arm")
+        // }
     }
 }
 
-const clock: THREE.Clock = new THREE.Clock()
 export function render() {
-    if (isLoaded) mixer.update(clock.getDelta());
+    if (isLoaded && vanguards) {
+        vanguards.forEach(vanguard => {
+            vanguard.mixer.update(vanguard.clock.getDelta())
+        })
+    }
 }
 
 const DatFunction = {
@@ -289,6 +259,9 @@ const DatFunction = {
                 break
             case 'Cat':
                 loadOBJModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0), new THREE.MeshPhongMaterial())
+                break
+            case 'Vanguard':
+                vanguards.push(new Vanguard(0, 0, 0))
                 break
         }
     }
@@ -307,6 +280,10 @@ function addNewModelToGroupFolder(group: THREE.Group[], groupFolder: GUI) {
     const newModelIndex = group.length - 1
     const singularName = groupFolder.name.substring(0, groupFolder.name.length - 1);
     DatHelper.createObjectFolder(groupFolder, group[newModelIndex], `${singularName} ${newModelIndex + 1}`)
+}
+
+function addNewFBXModelToGroupFolder(group: Vanguard[], groupFolder: GUI) {
+    group[group.length - 1].createDatGUI(groupFolder, group.length)
 
 }
 
@@ -366,7 +343,6 @@ function loadOBJModel(name: string, group: THREE.Group[], scale: number, positio
 
 function createLight() {
     directionalLight.position.set(4.5, 21, 13)
-    // directionalLight.intensity = 2
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048
     directionalLight.shadow.mapSize.height = 2048
@@ -393,4 +369,143 @@ function createFloor() {
 
     transformableObjects.push(plane)
     scene.add(plane)
+}
+
+class Vanguard {
+    group: THREE.Group
+    mixer: THREE.AnimationMixer
+    animationActions: THREE.AnimationAction[]
+    activeActionIndex: number
+    lastActionIndex: number
+    position: THREE.Vector3
+    bones: THREE.Bone[]
+    selectBone: THREE.Bone // selected bone for editing in Dat GUI
+    readonly NAME: string = "vanguard"
+    readonly SCALE: number = 0.045
+    readonly clock: THREE.Clock
+
+    constructor(x: number, y: number, z: number) {
+        this.group = new THREE.Group()
+        this.mixer = new THREE.AnimationMixer(this.group)
+        this.clock = new THREE.Clock()
+        this.bones = []
+        this.selectBone = new THREE.Bone()
+        this.animationActions = []
+        this.activeActionIndex = 0
+        this.lastActionIndex = 0
+        this.position = new THREE.Vector3(x, y, z)
+        this.loadModel()
+    }
+
+    loadModel() {
+        loadFBXModel(this,    // animationActions[0]
+            () => loadFBXAnimation(this, 'vanguard@samba-dancing', [0],   // animationActions[1]
+                () => loadFBXAnimation(this, 'vanguard@belly-dancing', [],    // animationActions[2]
+                    () => loadFBXAnimation(this, 'vanguard@goofy-running', [0]))),    // animationActions[3]
+        )
+    }
+
+    setAction(toActionIndex: number) {
+        if (toActionIndex != this.activeActionIndex) {
+            this.lastActionIndex = this.activeActionIndex
+            this.activeActionIndex = toActionIndex
+            // lastAction.stop()
+            this.animationActions[this.lastActionIndex].fadeOut(1)
+            this.animationActions[this.activeActionIndex].reset()
+            this.animationActions[this.activeActionIndex].fadeIn(1)
+            this.animationActions[this.activeActionIndex].play()
+        }
+    }
+
+    getBones() {
+        let bones: THREE.Bone[] = []
+
+        this.group.traverse(function (child) {
+            // console.log(child);
+            if ((<THREE.Bone>child).isBone) {
+                bones.push((<THREE.Bone>child))
+            }
+        })
+
+        // filter duplicatte bones by name
+        bones = bones.filter(
+            (bone, i, arr) => arr.findIndex(t => t.name === bone.name) === i
+        );
+
+        // shorten bone names
+        bones.forEach(bone => bone.name = bone.name
+            .replace("mixamo", "")
+            .replace("rig", "")
+            .replace("left", "L_")
+            .replace("Left", "L_")
+            .replace("right", "R_")
+            .replace("Right", "R_")
+        )
+
+        this.bones = bones
+    }
+
+    createDatGUI(groupFolder: GUI, index: number) {
+        const vanguardFolder = DatHelper.createObjectFolder(groupFolder, this.group, `Vanguard ${index}`)
+        const animationOptions = {
+            "default": 0,
+            "samba dancing": 1,
+            "belly dancing": 2,
+            "goofy running": 3,
+        }
+        const selectAnimation = {
+            index: 0
+        }
+        vanguardFolder.add(selectAnimation, 'index', animationOptions).name('animation').onChange((value) => this.setAction(value)).setValue(this.activeActionIndex)
+
+        const selectBone = {
+            name: ''
+        }
+        const boneParam = {
+            xPosition: 0,
+            yPosition: 0,
+            zPosition: 0,
+            xRotation: 0,
+            yRotation: 0,
+            zRotation: 0,
+            xScale: 1,
+            yScale: 1,
+            zScale: 1,
+        }
+        const boneFolder = vanguardFolder.addFolder("Edit bone")
+        boneFolder.add(selectBone, 'name', this.bones.map(bone => bone.name))
+            .name('Select')
+            .onChange(value => this.selectBone = this.bones.find(bone => bone.name === value)!)
+
+        const bonePositionFolder = boneFolder.addFolder("position")
+        bonePositionFolder.add(boneParam, 'xPosition', -50, 50, 0.1)
+            .name('x')
+            .onChange(value => this.selectBone.position.x = value)
+        bonePositionFolder.add(boneParam, 'yPosition', -50, 50, 0.1)
+            .name('y')
+            .onChange(value => this.selectBone.position.y = value)
+        bonePositionFolder.add(boneParam, 'zPosition', -50, 50, 0.1)
+            .name('z')
+            .onChange(value => this.selectBone.position.z = value)
+        const boneRotationFolder = boneFolder.addFolder("rotation")
+        boneRotationFolder.add(boneParam, 'xRotation', 0, Math.PI * 2, 0.01)
+            .name('x')
+            .onChange(value => this.selectBone.rotation.x = value)
+        boneRotationFolder.add(boneParam, 'yRotation', 0, Math.PI * 2, 0.01)
+            .name('y')
+            .onChange(value => this.selectBone.rotation.x = value)
+        boneRotationFolder.add(boneParam, 'zRotation', 0, Math.PI * 2, 0.01)
+            .name('z')
+            .onChange(value => this.selectBone.rotation.x = value)
+        const boneScaleFolder = boneFolder.addFolder("scale")
+        boneScaleFolder.add(boneParam, 'xScale', 0, 5, 0.1)
+            .name('x')
+            .onChange(value => this.selectBone.scale.x = value)
+        boneScaleFolder.add(boneParam, 'yScale', 0, 5, 0.1)
+            .name('y')
+            .onChange(value => this.selectBone.scale.y = value)
+        boneScaleFolder.add(boneParam, 'zScale', 0, 5, 0.1)
+            .name('z')
+            .onChange(value => this.selectBone.scale.z = value)
+    }
 }
