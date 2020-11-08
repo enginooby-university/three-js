@@ -78,7 +78,7 @@ export class FBXModel {
     }
 
     createDatGUI(groupFolder: GUI, index: number) {
-        const modelFolder = DatHelper.createObjectFolder(groupFolder, this.group, `Vanguard ${index}`)
+        const modelFolder = DatHelper.createObjectFolder(groupFolder, this.group, `${this.NAME} ${index}`)
         const animationOptions = {
             "default": 0,
             "samba dancing": 1,

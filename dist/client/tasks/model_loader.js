@@ -6,6 +6,7 @@ import { OBJLoader } from '/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '/jsm/loaders/MTLLoader.js';
 import { FBXLoader } from '/jsm/loaders/FBXLoader.js';
 import { Vanguard } from '../models/fbx-models/vanguard.js';
+import { Pearl } from '../models/fbx-models/pearl.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -30,14 +31,20 @@ const loadingManager = new THREE.LoadingManager(() => {
     const monkeyDemo = monkeys[0];
     monkeyDemo.rotation.set(5.54, 0.8, 0.6);
     const catDemo = cats[0];
-    catDemo.rotation.set(4.7, 0, 3.17);
-    catDemo.position.set(1.8, 0, 2.7);
+    catDemo.rotation.set(4.7, 0, 5.54);
+    catDemo.position.set(4, 0, -3);
     const vanguardDemo = vanguards[0];
     vanguardDemo.group.position.set(vanguardDemo.position.x, vanguardDemo.position.y, vanguardDemo.position.z);
     vanguardDemo.setAction(2);
     vanguardDemo.getBones();
     scene.add(vanguardDemo.group);
     scene.add(vanguardDemo.skeletonHelper);
+    const pearlDemo = pearls[0];
+    pearlDemo.group.position.set(pearlDemo.position.x, pearlDemo.position.y, pearlDemo.position.z);
+    pearlDemo.setAction(1);
+    pearlDemo.getBones();
+    scene.add(pearlDemo.group);
+    scene.add(pearlDemo.skeletonHelper);
     isLoaded = true;
     hideLoadingScreen();
     if (!addingMode) { // first loading models when init the scene
@@ -67,6 +74,13 @@ const loadingManager = new THREE.LoadingManager(() => {
                 scene.add(newVanguard.group);
                 scene.add(newVanguard.skeletonHelper);
                 addNewFBXModelToGroupFolder(vanguards, vanguardsFolder);
+            case 'Pearl':
+                const newPearl = pearls[pearls.length - 1];
+                newPearl.group.position.set(randX, -0.25, randZ);
+                newPearl.getBones();
+                scene.add(newPearl.group);
+                scene.add(newPearl.skeletonHelper);
+                addNewFBXModelToGroupFolder(pearls, pearlsFolder);
         }
         addingMode = false; // indicate finish adding
     }
@@ -86,6 +100,8 @@ let catsFolder;
 const CAT_SCALE = 0.08;
 let vanguards = [];
 let vanguardsFolder;
+let pearls = [];
+let pearlsFolder;
 export function init() {
     showLoadingScreen();
     isInitialized = true;
@@ -101,6 +117,7 @@ function initSampleModels() {
     loadMTLModel('monkey', monkeys, MONKEY_SCALE, new THREE.Vector3(1.5, 0, 1.5));
     loadOBJModel('cat', cats, CAT_SCALE, new THREE.Vector3(0, 0, 0), new THREE.MeshPhongMaterial);
     vanguards.push(new Vanguard(fbxLoader, -2.5, -0.25, 3));
+    pearls.push(new Pearl(fbxLoader, 2.5, 0, 2.8));
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -115,7 +132,8 @@ function createDatGUI() {
             Monkey: "Monkey",
             Tree: "Tree",
             Cat: "Cat",
-            Vanguard: "Vanguard"
+            Vanguard: "Vanguard",
+            Pearl: "Pearl"
         };
         const selectModel = {
             name: "Cat"
@@ -137,12 +155,23 @@ function createDatGUI() {
                 vanguards[i].createDatGUI(vanguardsFolder, i + 1);
             }
         }
+        if (pearls) {
+            pearlsFolder = gui.addFolder('Pearls');
+            for (let i = 0; i < pearls.length; i++) {
+                pearls[i].createDatGUI(pearlsFolder, i + 1);
+            }
+        }
     }
 }
 export function render() {
     if (isLoaded && vanguards) {
         vanguards.forEach(vanguard => {
             vanguard.mixer.update(vanguard.clock.getDelta());
+        });
+    }
+    if (isLoaded && pearls) {
+        pearls.forEach(pearl => {
+            pearl.mixer.update(pearl.clock.getDelta());
         });
     }
 }
@@ -162,6 +191,9 @@ const DatFunction = {
                 break;
             case 'Vanguard':
                 vanguards.push(new Vanguard(fbxLoader, 0, 0, 0));
+                break;
+            case 'Pearl':
+                pearls.push(new Pearl(fbxLoader, 0, 0, 0));
                 break;
         }
     }
