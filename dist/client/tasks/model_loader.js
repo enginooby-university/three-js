@@ -82,8 +82,6 @@ let catsFolder;
 const CAT_SCALE = 0.08;
 let vanguards = [];
 let vanguardsFolder;
-let vanguardRightArm;
-let vanguardLeftArm;
 export function init() {
     showLoadingScreen();
     isInitialized = true;
@@ -92,6 +90,7 @@ export function init() {
     createFloor();
     setupControls();
     initSampleModels();
+    createDatGUI();
 }
 function initSampleModels() {
     loadOBJModel('tree', trees, TREE_SCALE, new Vector3(0, 0, 0), new THREE.MeshPhongMaterial());
@@ -155,7 +154,7 @@ export function setupControls() {
     // add to scene to display helpers
     scene.add(transformControls);
 }
-export function createDatGUI() {
+function createDatGUI() {
     if (isLoaded) {
         gui = new GUI({ width: 232 });
         const modelOptions = {
@@ -184,14 +183,6 @@ export function createDatGUI() {
                 vanguards[i].createDatGUI(vanguardsFolder, i + 1);
             }
         }
-        // const bodyPartsFolder = vanguardFolder.addFolder('Body parts')
-        // // TODO: Refactor with array
-        // if (vanguardRightArm) {
-        //     DatHelper.createObjectFolder(bodyPartsFolder, vanguardRightArm, "Right arm")
-        // }
-        // if (vanguardLeftArm) {
-        //     DatHelper.createObjectFolder(bodyPartsFolder, vanguardLeftArm, "Left arm")
-        // }
     }
 }
 export function render() {

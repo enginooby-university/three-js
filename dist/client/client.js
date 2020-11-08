@@ -297,15 +297,17 @@ function switchScene(scenceIndex) {
         unselectPreviousObject();
         // destroy Dat GUI for previous scene (if it exists)
         if (currentTask.gui !== undefined) {
-            currentTask.gui.destroy();
+            // (currentTask.gui as GUI).destroy()
+            currentTask.gui.hide();
         }
     }
     currentTask = Array.from(Tasks)[scenceIndex][0];
     if (!currentTask.isInitialized) {
         currentTask.init();
     }
-    // create Dat GUI for current scene
-    currentTask.createDatGUI();
+    else {
+        currentTask.gui.show();
+    }
     currentTask.setupControls();
     currentScene = currentTask.scene;
     // update source link corresponding to current task (scene)

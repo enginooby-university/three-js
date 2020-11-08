@@ -17,6 +17,7 @@ export function init() {
     transformableObjects.forEach(child => {
         scene.add(child);
     });
+    createDatGUI();
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -24,9 +25,9 @@ export function setupControls() {
     // add to scene to display helpers
     scene.add(transformControls);
 }
-export function createDatGUI() {
-    gui = new GUI();
-}
 // const clock: THREE.Clock = new THREE.Clock()
 export function render() {
+}
+function createDatGUI() {
+    gui = new GUI();
 }

@@ -46,6 +46,7 @@ export function init() {
     // add meshes to scene by group instead, to transform the group
     table.position.y = 0.8;
     scene.add(table);
+    createDatGUI();
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -71,7 +72,7 @@ function createLeg(color, material, x, y, z) {
     transformableObjects.push(newLeg);
     return newLeg;
 }
-export function createDatGUI() {
+function createDatGUI() {
     gui = new GUI();
     gui.width = 232;
     DatHelper.createObjectFolder(gui, table, "Table");

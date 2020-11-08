@@ -57,6 +57,7 @@ export function init() {
     // add meshes to scene by group instead, to transform the group
     table.position.y = 0.8
     scene.add(table)
+    createDatGUI()
 }
 
 export function setupControls() {
@@ -88,8 +89,7 @@ function createLeg(color: string | number | THREE.Color, material: THREE.MeshBas
 
     return newLeg
 }
-
-export function createDatGUI() {
+function createDatGUI() {
     gui = new GUI()
     gui.width = 232
 

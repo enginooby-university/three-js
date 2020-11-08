@@ -94,8 +94,6 @@ const CAT_SCALE = 0.08
 
 let vanguards: Vanguard[] = []
 let vanguardsFolder: GUI
-let vanguardRightArm: THREE.Bone
-let vanguardLeftArm: THREE.Bone
 
 export function init() {
     showLoadingScreen()
@@ -105,6 +103,7 @@ export function init() {
     createFloor()
     setupControls()
     initSampleModels()
+    createDatGUI()
 }
 
 function initSampleModels() {
@@ -194,7 +193,7 @@ export function setupControls() {
     scene.add(transformControls)
 }
 
-export function createDatGUI() {
+function createDatGUI() {
     if (isLoaded) {
         gui = new GUI({ width: 232 })
 
@@ -226,15 +225,6 @@ export function createDatGUI() {
                 vanguards[i].createDatGUI(vanguardsFolder, i + 1)
             }
         }
-
-        // const bodyPartsFolder = vanguardFolder.addFolder('Body parts')
-        // // TODO: Refactor with array
-        // if (vanguardRightArm) {
-        //     DatHelper.createObjectFolder(bodyPartsFolder, vanguardRightArm, "Right arm")
-        // }
-        // if (vanguardLeftArm) {
-        //     DatHelper.createObjectFolder(bodyPartsFolder, vanguardLeftArm, "Left arm")
-        // }
     }
 }
 

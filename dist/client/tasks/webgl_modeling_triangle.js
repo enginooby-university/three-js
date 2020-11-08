@@ -31,6 +31,7 @@ export function init() {
     transformableObjects.push(triangle);
     setupControls();
     transformableObjects.forEach(child => scene.add(child));
+    createDatGUI();
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -38,7 +39,7 @@ export function setupControls() {
     // add to scene to display helpers
     scene.add(transformControls);
 }
-export function createDatGUI() {
+function createDatGUI() {
     gui = new GUI();
     gui.width = 232;
     DatHelper.createObjectFolder(gui, triangle, "Triangle");

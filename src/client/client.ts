@@ -343,17 +343,18 @@ function switchScene(scenceIndex: number) {
 
         // destroy Dat GUI for previous scene (if it exists)
         if (currentTask.gui !== undefined) {
-            (currentTask.gui as GUI).destroy()
+            // (currentTask.gui as GUI).destroy()
+            (currentTask.gui as GUI).hide()
         }
     }
 
     currentTask = Array.from(Tasks)[scenceIndex][0]
     if (!currentTask.isInitialized) {
         currentTask.init()
+    } else {
+        (currentTask.gui as GUI).show()
     }
 
-    // create Dat GUI for current scene
-    currentTask.createDatGUI()
     currentTask.setupControls()
 
     currentScene = currentTask.scene
