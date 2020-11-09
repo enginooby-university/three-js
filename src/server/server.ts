@@ -13,6 +13,8 @@ class App {
         const app = express()
         app.use(express.static(path.join(__dirname, '../client')))
         app.use('/build/three.module.js', express.static(path.join(__dirname, '../../node_modules/three/build/three.module.js')))
+        app.use('/cannon/build/cannon.min.js', express.static(path.join(__dirname, '../../node_modules/cannon/build/cannon.min.js')))
+
         app.use('/jsm/controls/OrbitControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/OrbitControls.js')))
         app.use('/jsm/controls/DragControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/DragControls.js')))
         app.use('/jsm/controls/TransformControls.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/controls/TransformControls.js')))

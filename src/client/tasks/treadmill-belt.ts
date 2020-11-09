@@ -84,7 +84,6 @@ export function render() {
         // reset ball position
         ball.position.set(-beltParam.width / 2 + ballGeometry.parameters.radius, 3, 0)
     }
-
 }
 
 function createDatGUI() {

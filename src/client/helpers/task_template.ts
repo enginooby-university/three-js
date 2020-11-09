@@ -17,11 +17,13 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 export function init(){
     isInitialized = true
     scene.background = new THREE.Color(0x333333)
+    
     setupControls()
+    createDatGUI()
+
     transformableObjects.forEach(child => {
         scene.add(child)
     })
-    createDatGUI()
 }
 
 export function setupControls() {
