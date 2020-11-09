@@ -73,14 +73,16 @@ const loadingManager = new THREE.LoadingManager(() => {
                 newVanguard.getBones();
                 scene.add(newVanguard.group);
                 scene.add(newVanguard.skeletonHelper);
-                addNewFBXModelToGroupFolder(vanguards, vanguardsFolder);
+                addFBXModelFolder(vanguards, vanguardsFolder);
+                break;
             case 'Pearl':
                 const newPearl = pearls[pearls.length - 1];
                 newPearl.group.position.set(randX, -0.25, randZ);
                 newPearl.getBones();
                 scene.add(newPearl.group);
                 scene.add(newPearl.skeletonHelper);
-                addNewFBXModelToGroupFolder(pearls, pearlsFolder);
+                addFBXModelFolder(pearls, pearlsFolder);
+                break;
         }
         addingMode = false; // indicate finish adding
     }
@@ -166,12 +168,12 @@ function createDatGUI() {
 export function render() {
     if (isLoaded && vanguards) {
         vanguards.forEach(vanguard => {
-            vanguard.mixer.update(vanguard.clock.getDelta());
+            vanguard.mixer.update(vanguard.clock.getDelta() * vanguard.speed / 100);
         });
     }
     if (isLoaded && pearls) {
         pearls.forEach(pearl => {
-            pearl.mixer.update(pearl.clock.getDelta());
+            pearl.mixer.update(pearl.clock.getDelta() * pearl.speed / 100);
         });
     }
 }
@@ -211,7 +213,7 @@ function addNewModelToGroupFolder(group, groupFolder) {
     const singularName = groupFolder.name.substring(0, groupFolder.name.length - 1);
     DatHelper.createObjectFolder(groupFolder, group[newModelIndex], `${singularName} ${newModelIndex + 1}`);
 }
-function addNewFBXModelToGroupFolder(group, groupFolder) {
+function addFBXModelFolder(group, groupFolder) {
     group[group.length - 1].createDatGUI(groupFolder, group.length);
 }
 function loadMTLModel(name, group, scale, position) {

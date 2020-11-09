@@ -9,6 +9,7 @@ export class FBXModel {
     skeletonHelper: THREE.SkeletonHelper
     animationActions: THREE.AnimationAction[]
     animations: Object = {} // names of animations along with its exclusive tracks
+    speed: number
     activeActionIndex: number
     lastActionIndex: number
     position: THREE.Vector3
@@ -27,6 +28,7 @@ export class FBXModel {
         this.bones = []
         this.selectBone = new THREE.Bone()
         this.animationActions = []
+        this.speed = 100
         this.activeActionIndex = 0
         this.lastActionIndex = 0
         this.position = new THREE.Vector3(x, y, z)
@@ -97,6 +99,8 @@ export class FBXModel {
         modelFolder.add(selectAnimation, 'name', animationOptions).name('animation')
             .onChange(value => this.setAction(animationOptions.indexOf(value)))
             .setValue(animationOptions[1])
+        modelFolder.add(this, 'speed', 10, 500, 1).name("speed (%)")
+
         this.creatBoneFolder(modelFolder)
     }
 
