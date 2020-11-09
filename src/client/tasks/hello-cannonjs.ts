@@ -32,6 +32,7 @@ export function init() {
     createCube()
     createSphere()
     createFloor()
+    createIcosahedron()
     setupControls()
     createDatGUI()
 
@@ -59,6 +60,8 @@ export function render() {
     cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
     sphereMesh.position.set(sphereBody.position.x, sphereBody.position.y, sphereBody.position.z);
     sphereMesh.quaternion.set(sphereBody.quaternion.x, sphereBody.quaternion.y, sphereBody.quaternion.z, sphereBody.quaternion.w);
+    icosahedronMesh.position.set(icosahedronBody.position.x, icosahedronBody.position.y, icosahedronBody.position.z);
+    icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
 }
 
 function createDatGUI() {
@@ -138,6 +141,31 @@ function createSphere() {
     sphereBody.position.y = sphereMesh.position.y
     sphereBody.position.z = sphereMesh.position.z
     world.addBody(sphereBody)
+}
+
+let icosahedronMesh: THREE.Mesh
+let icosahedronBody: CANNON.Body
+function createIcosahedron() {
+    const icosahedronGeometry: THREE.IcosahedronGeometry = new THREE.IcosahedronGeometry(1, 0)
+    icosahedronMesh = new THREE.Mesh(icosahedronGeometry, normalMaterial)
+    icosahedronMesh.position.x = 1
+    icosahedronMesh.position.y = 3
+    icosahedronMesh.castShadow = true
+    scene.add(icosahedronMesh)
+
+    const icosahedronPoints = (<THREE.Geometry>icosahedronMesh.geometry).vertices.map(function (v) {
+        return new CANNON.Vec3(v.x, v.y, v.z)
+    })
+    const icosahedronFaces = (<THREE.Geometry>icosahedronMesh.geometry).faces.map(function (f) {
+        return [f.a, f.b, f.c]
+    })
+    const icosahedronShape = new CANNON.ConvexPolyhedron(icosahedronPoints, icosahedronFaces as any)
+    icosahedronBody = new CANNON.Body({ mass: 1 });
+    icosahedronBody.addShape(icosahedronShape)
+    icosahedronBody.position.x = icosahedronMesh.position.x
+    icosahedronBody.position.y = icosahedronMesh.position.y
+    icosahedronBody.position.z = icosahedronMesh.position.z
+    world.addBody(icosahedronBody)
 }
 
 function createFloor() {
