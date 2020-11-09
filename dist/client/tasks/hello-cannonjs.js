@@ -22,6 +22,7 @@ export function init() {
     setupPhysic();
     createLights();
     createCube();
+    createSphere();
     createFloor();
     setupControls();
     createDatGUI();
@@ -41,9 +42,11 @@ export function render() {
     if (delta > .1)
         delta = .1;
     world.step(delta);
-    // Copy coordinates from Cannon.js to Three.js
+    // Copy coordinates from Cannon.js to Three.js (sync)
     cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
     cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
+    sphereMesh.position.set(sphereBody.position.x, sphereBody.position.y, sphereBody.position.z);
+    sphereMesh.quaternion.set(sphereBody.quaternion.x, sphereBody.quaternion.y, sphereBody.quaternion.z, sphereBody.quaternion.w);
 }
 function createDatGUI() {
     gui = new GUI();
@@ -91,6 +94,7 @@ function createCube() {
     cubeMesh.position.y = 3;
     cubeMesh.castShadow = true;
     scene.add(cubeMesh);
+    // transformableObjects.push(cubeMesh)
     const cubeShape = new CANNON.Box(new CANNON.Vec3(.5, .5, .5));
     cubeBody = new CANNON.Body({ mass: 1 });
     cubeBody.addShape(cubeShape);
@@ -98,6 +102,23 @@ function createCube() {
     cubeBody.position.y = cubeMesh.position.y;
     cubeBody.position.z = cubeMesh.position.z;
     world.addBody(cubeBody);
+}
+let sphereMesh;
+let sphereBody;
+function createSphere() {
+    const sphereGeometry = new THREE.SphereGeometry();
+    sphereMesh = new THREE.Mesh(sphereGeometry, normalMaterial);
+    sphereMesh.position.x = -1;
+    sphereMesh.position.y = 3;
+    sphereMesh.castShadow = true;
+    scene.add(sphereMesh);
+    const sphereShape = new CANNON.Sphere(1);
+    sphereBody = new CANNON.Body({ mass: 1 });
+    sphereBody.addShape(sphereShape);
+    sphereBody.position.x = sphereMesh.position.x;
+    sphereBody.position.y = sphereMesh.position.y;
+    sphereBody.position.z = sphereMesh.position.z;
+    world.addBody(sphereBody);
 }
 function createFloor() {
     const planeGeometry = new THREE.PlaneGeometry(10, 10);
