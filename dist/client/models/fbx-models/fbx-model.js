@@ -60,6 +60,7 @@ export class FBXModel {
         this.bones = bones;
     }
     createDatGUI(groupFolder, index) {
+        // TODO: multiple scale in Dat with this.scale
         const modelFolder = DatHelper.createObjectFolder(groupFolder, this.group, `${this.name} ${index}`);
         const animationOptions = ["default"];
         for (let i = 0; i < Object.keys(this.animations).length; i++) {
@@ -117,12 +118,15 @@ export class FBXModel {
         const boneScaleFolder = boneFolder.addFolder("scale");
         boneScaleFolder.add(boneParam, 'xScale', 0, 5, 0.1)
             .name('x')
+            .setValue(1)
             .onChange(value => this.selectBone.scale.x = value);
         boneScaleFolder.add(boneParam, 'yScale', 0, 5, 0.1)
             .name('y')
+            .setValue(1)
             .onChange(value => this.selectBone.scale.y = value);
         boneScaleFolder.add(boneParam, 'zScale', 0, 5, 0.1)
             .name('z')
+            .setValue(1)
             .onChange(value => this.selectBone.scale.z = value);
     }
     loadFBXModel(fbxLoader, loadAnimation) {

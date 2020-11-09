@@ -21,7 +21,7 @@ let pause = false;
 export let muted = true;
 let orbitControlsEnabled = true;
 let currentTask; // TODO: use type, maybe create class for each task?
-const FIRST_SCENE_INDEX = 2;
+const FIRST_SCENE_INDEX = 4;
 let currentScene;
 const canvas = document.getElementById("threejs-canvas");
 export const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
@@ -64,7 +64,7 @@ let texture_rt;
 let texture_lf;
 let materialArray;
 const Param = {
-    Skybox: "arid",
+    Skybox: "dust",
     BloomPass: {
         opacity: 1
     },

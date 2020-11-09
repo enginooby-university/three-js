@@ -5,7 +5,7 @@ import { transformControls, attachToDragControls, muted } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
-export let skybox = 'arid';
+export let skybox;
 export const setSkybox = (name) => skybox = name;
 let Param = {
     VerBallAmount: 5,

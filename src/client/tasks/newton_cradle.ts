@@ -6,7 +6,7 @@ import { transformControls, attachToDragControls, muted, raycaster } from '../cl
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
-export let skybox: string = 'arid'
+export let skybox: string 
 export const setSkybox = (name: string) => skybox = name
 
 let Param = {

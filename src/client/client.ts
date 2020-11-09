@@ -24,7 +24,7 @@ export let muted: boolean = true
 let orbitControlsEnabled: boolean = true
 
 let currentTask: any // TODO: use type, maybe create class for each task?
-const FIRST_SCENE_INDEX: number = 2
+const FIRST_SCENE_INDEX: number = 4
 let currentScene: THREE.Scene
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 export const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false })
@@ -75,7 +75,7 @@ let texture_lf: THREE.Texture
 let materialArray: THREE.MeshBasicMaterial[]
 
 const Param = {
-    Skybox: "arid",
+    Skybox: "dust",
     BloomPass: {
         opacity: 1
     },
