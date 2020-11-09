@@ -8,19 +8,18 @@ export class FBXModel {
     mixer: THREE.AnimationMixer
     skeletonHelper: THREE.SkeletonHelper
     animationActions: THREE.AnimationAction[]
+    animations: Object = {} // names of animations along with its exclusive tracks
     activeActionIndex: number
     lastActionIndex: number
     position: THREE.Vector3
     bones: THREE.Bone[]
     selectBone: THREE.Bone // selected bone for editing in Dat GUI
-    readonly NAME: string
-    readonly SCALE: number
+    protected name: string = ""
+    protected scale: number = 0
     readonly clock: THREE.Clock
 
-    constructor(fbxLoader: FBXLoader, name: string, scale: number, x: number, y: number, z: number) {
-        this.NAME = name
-        this.SCALE = scale
-
+    constructor(fbxLoader: FBXLoader, x: number, y: number, z: number) {
+        this.initInfo()
         this.group = new THREE.Group()
         this.mixer = new THREE.AnimationMixer(this.group)
         this.skeletonHelper = new THREE.SkeletonHelper(this.group);
@@ -31,10 +30,17 @@ export class FBXModel {
         this.activeActionIndex = 0
         this.lastActionIndex = 0
         this.position = new THREE.Vector3(x, y, z)
-        this.loadModel(fbxLoader)
+        this.loadFBXModel(fbxLoader)
     }
 
-    loadModel(fbxLoader: FBXLoader) {
+    protected initInfo() {
+        this.name = "example"
+        this.scale = 0.045
+        this.animations = {
+            "animation1": [],
+            "animation2": [],
+            "animation3": [],
+        }
     }
 
     setAction(toActionIndex: number) {
@@ -78,18 +84,19 @@ export class FBXModel {
     }
 
     createDatGUI(groupFolder: GUI, index: number) {
-        const modelFolder = DatHelper.createObjectFolder(groupFolder, this.group, `${this.NAME} ${index}`)
-        const animationOptions = {
-            "default": 0,
-            "samba dancing": 1,
-            "belly dancing": 2,
-            "goofy running": 3,
+        const modelFolder = DatHelper.createObjectFolder(groupFolder, this.group, `${this.name} ${index}`)
+
+        const animationOptions = ["default"]
+        for (let i = 0; i < Object.keys(this.animations).length; i++) {
+            animationOptions[i + 1] = Object.keys(this.animations)[i]
         }
         const selectAnimation = {
-            index: 0
+            name: "default"
         }
         modelFolder.add(this.skeletonHelper, "visible").name("skeleton")
-        modelFolder.add(selectAnimation, 'index', animationOptions).name('animation').onChange((value) => this.setAction(value)).setValue(this.activeActionIndex)
+        modelFolder.add(selectAnimation, 'name', animationOptions).name('animation')
+            .onChange(value => this.setAction(animationOptions.indexOf(value)))
+            .setValue(animationOptions[1])
         this.creatBoneFolder(modelFolder)
     }
 
@@ -149,7 +156,7 @@ export class FBXModel {
         // TODO:  add FBX model to transformable group
         //  let model: THREE.Group = new THREE.Group()
         fbxLoader.load(
-            `./resources/models/${this.NAME}.fbx`,
+            `./resources/models/${this.name}.fbx`,
             (object) => {
                 object.traverse(function (child) {
                     // console.log(child);
@@ -167,11 +174,41 @@ export class FBXModel {
                 const animationAction = this.mixer.clipAction((object as any).animations[0]);
                 this.animationActions.push(animationAction)
 
-                object.scale.set(this.SCALE, this.SCALE, this.SCALE)
+                object.scale.set(this.scale, this.scale, this.scale)
                 this.group = object
 
                 if (loadAnimation !== undefined) {
                     loadAnimation()
+                } else {
+                    this.loadFBXAnimations(fbxLoader, 0)
+                }
+            },
+            (xhr) => {
+                // console.log((xhr.loaded / xhr.total * 100) + '% loaded')
+            },
+            (error) => {
+                console.log(error);
+            }
+        )
+    }
+
+    // @param count: index of the animation in animations[]
+    loadFBXAnimations(fbxLoader: FBXLoader, count: number) {
+        const animationName: string = `${this.name}@${Object.keys(this.animations)[count]}`
+        fbxLoader.load(
+            `./resources/models/${animationName}.fbx`,
+            (object) => {
+                // remove specific tracks in the animation clip
+                (Object.values(this.animations)[0] as number[]).forEach(index => (object as any).animations[index].tracks.shift())
+
+                // generate animation from the animation clip
+                const animationAction = this.mixer.clipAction((object as any).animations[0]);
+                this.animationActions.push(animationAction)
+
+                console.log(`${animationName} animation loaded`);
+
+                if (count < Object.keys(this.animations).length - 1) {
+                    this.loadFBXAnimations(fbxLoader, count + 1)
                 }
             },
             (xhr) => {
