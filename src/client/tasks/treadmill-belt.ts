@@ -29,8 +29,8 @@ const beltParam = {
 const beltGeometry: THREE.PlaneGeometry = new THREE.PlaneGeometry(beltParam.width, beltParam.length)
 const beltMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({ color: 0x48485c })
 
-const BALL_RADIUS: number = 0.3
-const ballGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64)
+// const BALL_RADIUS: number = 0.3
+const ballGeometry: THREE.SphereGeometry = new THREE.SphereGeometry(0.3, 64, 64)
 const ballMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({
     metalness: 1,
     roughness: 0.6,
@@ -65,13 +65,13 @@ export function setupControls() {
 // const clock: THREE.Clock = new THREE.Clock()
 export function render() {
     // ball is falling after appear
-    if (ball.position.y > beltParam.toFloor + BALL_RADIUS && ball.position.x < beltParam.width / 2 + BALL_RADIUS) {
+    if (ball.position.y > beltParam.toFloor + ballGeometry.parameters.radius && ball.position.x < beltParam.width / 2 + ballGeometry.parameters.radius) {
         ball.position.y -= 0.1
         // ball is rotating on the belt
-    } else if (ball.position.y <= beltParam.toFloor + BALL_RADIUS && ball.position.x < beltParam.width / 2 + BALL_RADIUS) {
+    } else if (ball.position.y <= beltParam.toFloor + ballGeometry.parameters.radius && ball.position.x < beltParam.width / 2 + ballGeometry.parameters.radius) {
         // ball.rotation.x += 0.01
         // update ball height when change beltToFloor dynamically
-        ball.position.y = beltParam.toFloor + BALL_RADIUS
+        ball.position.y = beltParam.toFloor + ballGeometry.parameters.radius
         ball.position.x += 0.05
         // ball is falling after leave the belt
     } else {
@@ -80,16 +80,17 @@ export function render() {
     }
 
     // ball touch the floor
-    if (ball.position.y <= BALL_RADIUS) {
+    if (ball.position.y <= ballGeometry.parameters.radius) {
         // reset ball position
-        ball.position.set(-beltParam.width / 2 + BALL_RADIUS, 3, 0)
+        ball.position.set(-beltParam.width / 2 + ballGeometry.parameters.radius, 3, 0)
     }
 
 }
 
 function createDatGUI() {
+    ballGeometry.parameters
     gui = new GUI()
-    const beltFolder = gui.addFolder("Threadmill belt")
+    const beltFolder = gui.addFolder("Treadmill belt")
     beltFolder.add(beltParam, 'length', 1.5, 8, 0.1).onChange(value => belt.scale.y = value / 4)
     beltFolder.add(beltParam, 'width', 1, 8, 0.1).onChange(value => belt.scale.x = value / 4)
     beltFolder.add(beltParam, 'toFloor', 0.5, 3, 0.1).name('height').onChange(value => belt.position.y = value)
@@ -97,6 +98,11 @@ function createDatGUI() {
     beltFolder.open()
 
     const ballFolder = gui.addFolder("Ball")
+    ballFolder.add(ballGeometry.parameters, "radius", 0.1, 1, 0.1).onChange(value=>{
+        ball.scale.x = value * 3.2
+        ball.scale.y = value * 3.2
+        ball.scale.z = value * 3.2
+    })
     DatHelper.createPhysicalMaterialFolder(ballFolder, ballMaterial)
     ballFolder.open()
 }
@@ -108,16 +114,17 @@ function createBelt() {
     belt.position.y = beltParam.toFloor
     belt.receiveShadow = true;
 
-    transformableObjects.push(belt)
-    // scene.add(belt)
+    // transformableObjects.push(belt)
+    scene.add(belt)
 }
 
 function createBall() {
     ball = new THREE.Mesh(ballGeometry, ballMaterial)
-    ball.position.set(-beltParam.width / 2 + BALL_RADIUS, 3, 0)
+    ball.position.set(-beltParam.width / 2 + ballGeometry.parameters.radius, 3, 0)
     ball.castShadow = true
 
-    transformableObjects.push(ball)
+    // transformableObjects.push(ball)
+    scene.add(ball)
     return ball
 }
 
@@ -144,6 +151,6 @@ function createFloor() {
     plane.position.y = -0.01
     plane.receiveShadow = true;
 
-    transformableObjects.push(plane)
+    // transformableObjects.push(plane)
     scene.add(plane)
 }
