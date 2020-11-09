@@ -373,7 +373,6 @@ function animate(time) {
     render();
 }
 function render() {
-    raycaster.setFromCamera(mouse, camera);
     if (!pause) { // only render current active scene
         currentTask.render();
     }
@@ -431,6 +430,7 @@ function onWindowClick(event) {
     setTimeout(updateSelectObject, 10);
 }
 function updateSelectObject() {
+    raycaster.setFromCamera(mouse, camera);
     const intersectObjects = raycaster.intersectObjects(currentTask.transformableObjects, false);
     try {
         unselectPreviousObject();

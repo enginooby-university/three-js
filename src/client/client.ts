@@ -436,8 +436,6 @@ function animate(time: number) {
 }
 
 function render() {
-    raycaster.setFromCamera(mouse, camera)
-
     if (!pause) { // only render current active scene
         currentTask.render()
     }
@@ -504,6 +502,7 @@ function onWindowClick(event: MouseEvent) {
     setTimeout(updateSelectObject, 10)
 }
 function updateSelectObject() {
+    raycaster.setFromCamera(mouse, camera)
     const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(currentTask.transformableObjects, false)
 
     try {
