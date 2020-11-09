@@ -25,6 +25,7 @@ export function init() {
     createSphere();
     createFloor();
     createIcosahedron();
+    createTorusKnot();
     setupControls();
     createDatGUI();
     transformableObjects.forEach(child => {
@@ -50,6 +51,8 @@ export function render() {
     sphereMesh.quaternion.set(sphereBody.quaternion.x, sphereBody.quaternion.y, sphereBody.quaternion.z, sphereBody.quaternion.w);
     icosahedronMesh.position.set(icosahedronBody.position.x, icosahedronBody.position.y, icosahedronBody.position.z);
     icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
+    torusKnotMesh.position.set(torusKnotBody.position.x, torusKnotBody.position.y, torusKnotBody.position.z);
+    torusKnotMesh.quaternion.set(torusKnotBody.quaternion.x, torusKnotBody.quaternion.y, torusKnotBody.quaternion.z, torusKnotBody.quaternion.w);
 }
 function createDatGUI() {
     gui = new GUI();
@@ -145,6 +148,32 @@ function createIcosahedron() {
     icosahedronBody.position.y = icosahedronMesh.position.y;
     icosahedronBody.position.z = icosahedronMesh.position.z;
     world.addBody(icosahedronBody);
+}
+let torusKnotMesh;
+let torusKnotBody;
+function createTorusKnot() {
+    const torusKnotGeometry = new THREE.TorusKnotGeometry();
+    torusKnotMesh = new THREE.Mesh(torusKnotGeometry, normalMaterial);
+    torusKnotMesh.position.x = 4;
+    torusKnotMesh.position.y = 3;
+    torusKnotMesh.castShadow = true;
+    scene.add(torusKnotMesh);
+    const torusKnotShape = createTrimesh(torusKnotMesh.geometry);
+    torusKnotBody = new CANNON.Body({ mass: 1 });
+    torusKnotBody.addShape(torusKnotShape);
+    torusKnotBody.position.x = torusKnotMesh.position.x;
+    torusKnotBody.position.y = torusKnotMesh.position.y;
+    torusKnotBody.position.z = torusKnotMesh.position.z;
+    world.addBody(torusKnotBody);
+}
+function createTrimesh(geometry) {
+    // convert to buffer geometry
+    if (!geometry.attributes) {
+        geometry = new THREE.BufferGeometry().fromGeometry(geometry);
+    }
+    const vertices = geometry.attributes.position.array;
+    const indices = Object.keys(vertices).map(Number);
+    return new CANNON.Trimesh(vertices, indices);
 }
 function createFloor() {
     const planeGeometry = new THREE.PlaneGeometry(10, 10);
