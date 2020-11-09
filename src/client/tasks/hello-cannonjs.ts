@@ -56,6 +56,7 @@ export function render() {
     if (delta > .1) delta = .1
     world.step(delta)
 
+    // TODO: link meshes with body using dictionary... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
     cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
     cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
@@ -69,6 +70,7 @@ export function render() {
 
 function createDatGUI() {
     gui = new GUI()
+    // TODO: create Dat helper for Cannon world
     const gravityFolder = gui.addFolder("Gravity")
     gravityFolder.add(world.gravity, "x", -10.0, 10.0, 0.1)
     gravityFolder.add(world.gravity, "y", -10.0, 10.0, 0.1)
@@ -156,6 +158,7 @@ function createIcosahedron() {
     icosahedronMesh.castShadow = true
     scene.add(icosahedronMesh)
 
+    // TODO: helper
     const icosahedronPoints = (<THREE.Geometry>icosahedronMesh.geometry).vertices.map(function (v) {
         return new CANNON.Vec3(v.x, v.y, v.z)
     })
@@ -190,6 +193,7 @@ function createTorusKnot() {
     world.addBody(torusKnotBody)
 }
 
+// TODO: helper
 function createTrimesh(geometry: THREE.Geometry | THREE.BufferGeometry) {
     // convert to buffer geometry
     if (!(geometry as THREE.BufferGeometry).attributes) {
