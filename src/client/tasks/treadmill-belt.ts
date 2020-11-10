@@ -6,7 +6,7 @@ import { transformControls, attachToDragControls, muted, hideLoadingScreen, show
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
-export let skybox: string //= 'dust'
+export let skybox: string = 'dust'
 export const setSkybox = (name: string) => skybox = name
 
 // group of objects affected by DragControls & TransformControls

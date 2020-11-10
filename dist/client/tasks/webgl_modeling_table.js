@@ -5,7 +5,7 @@ import * as DatHelper from '../helpers/dat_helper.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
-export let skybox; //= 'none'
+export let skybox = 'dust';
 export const setSkybox = (name) => skybox = name;
 // group of objects affected by DragControls & TransformControls
 export let transformableObjects = [];

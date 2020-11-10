@@ -1,7 +1,6 @@
 import * as THREE from '/build/three.module.js'
 
 class CannonHelper {
-
     constructor() { }
 
     public static createTrimesh(geometry: THREE.Geometry | THREE.BufferGeometry): CANNON.Trimesh {

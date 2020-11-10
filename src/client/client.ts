@@ -341,15 +341,19 @@ function switchScene(scenceIndex: number) {
     if (currentTask !== undefined) {
         unselectPreviousObject()
 
-        // destroy Dat GUI for previous scene (if it exists)
+        // hide Dat GUI for previous scene (if it exists)
         if (currentTask.gui !== undefined) {
             // (currentTask.gui as GUI).destroy()
             (currentTask.gui as GUI).hide()
         }
     }
 
+
     currentTask = Array.from(Tasks)[scenceIndex][0]
+
+    let currentSceneIsNew: boolean = false
     if (!currentTask.isInitialized) {
+        currentSceneIsNew = true
         currentTask.init()
     } else {
         (currentTask.gui as GUI).show()
@@ -366,12 +370,15 @@ function switchScene(scenceIndex: number) {
 
     orbitControls.enabled = orbitControlsEnabled
 
-    // update skybox controller value
-    if (skyboxController !== undefined) {
+     // update skybox controller value
+     if (skyboxController !== undefined) {
         if (currentTask.skybox === undefined) {
             Param.Skybox = 'none'
         } else {
             Param.Skybox = currentTask.skybox
+            if(currentSceneIsNew) {
+                generateSkybox()
+            }
         }
         skyboxController.updateDisplay()
     }
@@ -453,12 +460,16 @@ function render() {
 
 /* SKYBOX */
 function generateSkybox() {
+    console.log("Creating sky box...")
     loadTextures()
     loadMaterials()
     skybox = new THREE.Mesh(skyboxGeometry, materialArray)
     skybox.name = "skybox"
-    currentScene.remove(skybox)
-    skybox.visible = true
+
+    // if (currentScene.getObjectByName("skybox")) {
+    //     currentScene.remove(skybox)
+    //     skybox.visible = true
+    // }
     currentScene.add(skybox)
 }
 

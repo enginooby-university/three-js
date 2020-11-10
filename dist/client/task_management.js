@@ -4,6 +4,7 @@ import * as Task3 from './tasks/newton_cradle.js';
 import * as Task4 from './tasks/model_loader.js';
 import * as Task5 from './tasks/treadmill-belt.js';
 import * as Task6 from './tasks/hello-cannonjs.js';
+// TODO: create Task class
 export const Tasks = new Map([
     [Task1, 'webgl_modeling_triangle.ts'],
     [Task2, 'webgl_modeling_table.ts'],
