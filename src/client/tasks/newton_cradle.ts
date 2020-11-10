@@ -296,7 +296,7 @@ function createFloor() {
     plane.position.y = -0.01
     plane.receiveShadow = true;
 
-    transformableObjects.push(plane)
+    // transformableObjects.push(plane)
     scene.add(plane)
 }
 

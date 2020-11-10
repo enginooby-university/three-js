@@ -278,6 +278,6 @@ function createFloor() {
     plane.position.y = -0.01;
     plane.receiveShadow = true;
     plane.scale.set(1, 1, 1);
-    transformableObjects.push(plane);
+    // transformableObjects.push(plane)
     scene.add(plane);
 }

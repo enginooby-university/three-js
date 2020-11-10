@@ -259,7 +259,7 @@ function createFloor() {
     plane.rotateX(-Math.PI / 2);
     plane.position.y = -0.01;
     plane.receiveShadow = true;
-    transformableObjects.push(plane);
+    // transformableObjects.push(plane)
     scene.add(plane);
 }
 function createBalls(verAmount, horAmount) {

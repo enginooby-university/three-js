@@ -269,6 +269,7 @@ function createFloor() {
     planeMesh.rotateX(-Math.PI / 2)
     planeMesh.receiveShadow = true;
     scene.add(planeMesh)
+    
     const planeShape = new CANNON.Plane()
     const planeBody = new CANNON.Body({ mass: 0 })
     planeBody.addShape(planeShape)
