@@ -1,5 +1,6 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
+import CannonHelper from '../helpers/cannon-helper.js'
 import * as THREE from '/build/three.module.js'
 import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 import '/cannon/build/cannon.min.js'
@@ -172,14 +173,7 @@ function createIcosahedron() {
     icosahedronMesh.castShadow = true
     scene.add(icosahedronMesh)
 
-    // TODO: helper
-    const icosahedronPoints = (<THREE.Geometry>icosahedronMesh.geometry).vertices.map(function (v) {
-        return new CANNON.Vec3(v.x, v.y, v.z)
-    })
-    const icosahedronFaces = (<THREE.Geometry>icosahedronMesh.geometry).faces.map(function (f) {
-        return [f.a, f.b, f.c]
-    })
-    const icosahedronShape = new CANNON.ConvexPolyhedron(icosahedronPoints, icosahedronFaces)
+    const icosahedronShape =CannonHelper.createConvexPolyhedron(icosahedronGeometry)
     icosahedronBody = new CANNON.Body({ mass: 1 });
     icosahedronBody.addShape(icosahedronShape)
     icosahedronBody.position.x = icosahedronMesh.position.x
@@ -220,24 +214,13 @@ function createTorusKnot() {
     torusKnotMesh.castShadow = true
     scene.add(torusKnotMesh)
 
-    const torusKnotShape = createTrimesh(<THREE.Geometry>torusKnotMesh.geometry)
+    const torusKnotShape = CannonHelper.createTrimesh(<THREE.Geometry>torusKnotMesh.geometry)
     torusKnotBody = new CANNON.Body({ mass: 1 });
     torusKnotBody.addShape(torusKnotShape)
     torusKnotBody.position.x = torusKnotMesh.position.x
     torusKnotBody.position.y = torusKnotMesh.position.y
     torusKnotBody.position.z = torusKnotMesh.position.z
     world.addBody(torusKnotBody)
-}
-
-// TODO: helper
-function createTrimesh(geometry: THREE.Geometry | THREE.BufferGeometry) {
-    // convert to buffer geometry
-    if (!(geometry as THREE.BufferGeometry).attributes) {
-        geometry = new THREE.BufferGeometry().fromGeometry(geometry as THREE.Geometry);
-    }
-    const vertices = (geometry as THREE.BufferGeometry).attributes.position.array
-    const indices = Object.keys(vertices).map(Number);
-    return new CANNON.Trimesh(vertices as [], indices);
 }
 
 let monkeyMesh: THREE.Object3D
@@ -254,7 +237,8 @@ function loadMonkey() {
             monkeyMesh.position.x = 0
             monkeyMesh.position.y = 20
             monkeyMesh.position.z = 3
-            const monkeyShape = createTrimesh((monkeyMesh as THREE.Mesh).geometry)
+
+            const monkeyShape = CannonHelper.createTrimesh((monkeyMesh as THREE.Mesh).geometry)
             monkeyBody = new CANNON.Body({ mass: 1 });
             monkeyBody.addShape(monkeyShape)
             //monkeyBody.addShape(cubeShape)

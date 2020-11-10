@@ -1,4 +1,5 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
+import CannonHelper from '../helpers/cannon-helper.js';
 import * as THREE from '/build/three.module.js';
 import { transformControls, attachToDragControls } from '../client.js';
 import '/cannon/build/cannon.min.js';
@@ -150,14 +151,7 @@ function createIcosahedron() {
     icosahedronMesh.position.y = 3;
     icosahedronMesh.castShadow = true;
     scene.add(icosahedronMesh);
-    // TODO: helper
-    const icosahedronPoints = icosahedronMesh.geometry.vertices.map(function (v) {
-        return new CANNON.Vec3(v.x, v.y, v.z);
-    });
-    const icosahedronFaces = icosahedronMesh.geometry.faces.map(function (f) {
-        return [f.a, f.b, f.c];
-    });
-    const icosahedronShape = new CANNON.ConvexPolyhedron(icosahedronPoints, icosahedronFaces);
+    const icosahedronShape = CannonHelper.createConvexPolyhedron(icosahedronGeometry);
     icosahedronBody = new CANNON.Body({ mass: 1 });
     icosahedronBody.addShape(icosahedronShape);
     icosahedronBody.position.x = icosahedronMesh.position.x;
@@ -194,23 +188,13 @@ function createTorusKnot() {
     torusKnotMesh.position.y = 3;
     torusKnotMesh.castShadow = true;
     scene.add(torusKnotMesh);
-    const torusKnotShape = createTrimesh(torusKnotMesh.geometry);
+    const torusKnotShape = CannonHelper.createTrimesh(torusKnotMesh.geometry);
     torusKnotBody = new CANNON.Body({ mass: 1 });
     torusKnotBody.addShape(torusKnotShape);
     torusKnotBody.position.x = torusKnotMesh.position.x;
     torusKnotBody.position.y = torusKnotMesh.position.y;
     torusKnotBody.position.z = torusKnotMesh.position.z;
     world.addBody(torusKnotBody);
-}
-// TODO: helper
-function createTrimesh(geometry) {
-    // convert to buffer geometry
-    if (!geometry.attributes) {
-        geometry = new THREE.BufferGeometry().fromGeometry(geometry);
-    }
-    const vertices = geometry.attributes.position.array;
-    const indices = Object.keys(vertices).map(Number);
-    return new CANNON.Trimesh(vertices, indices);
 }
 let monkeyMesh;
 let monkeyBody;
@@ -224,7 +208,7 @@ function loadMonkey() {
         monkeyMesh.position.x = 0;
         monkeyMesh.position.y = 20;
         monkeyMesh.position.z = 3;
-        const monkeyShape = createTrimesh(monkeyMesh.geometry);
+        const monkeyShape = CannonHelper.createTrimesh(monkeyMesh.geometry);
         monkeyBody = new CANNON.Body({ mass: 1 });
         monkeyBody.addShape(monkeyShape);
         //monkeyBody.addShape(cubeShape)
