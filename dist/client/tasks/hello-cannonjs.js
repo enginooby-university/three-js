@@ -2,6 +2,7 @@ import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
 import { transformControls, attachToDragControls } from '../client.js';
 import '/cannon/build/cannon.min.js';
+import CannonDebugRenderer from '../utils/cannonDebugRenderer.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -12,6 +13,7 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let world;
+let cannonDebugRenderer;
 let light1;
 let light2;
 const normalMaterial = new THREE.MeshNormalMaterial();
@@ -44,6 +46,7 @@ export function render() {
     if (delta > .1)
         delta = .1;
     world.step(delta);
+    cannonDebugRenderer.update();
     // TODO: link meshes with body using dictionary... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
     cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
@@ -92,6 +95,7 @@ function setupPhysic() {
     //world.broadphase = new CANNON.NaiveBroadphase() //
     //world.solver.iterations = 10
     //world.allowSleep = true
+    cannonDebugRenderer = new CannonDebugRenderer(scene, world);
 }
 let cubeMesh;
 let cubeBody;

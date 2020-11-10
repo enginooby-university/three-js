@@ -3,6 +3,7 @@ import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 import '/cannon/build/cannon.min.js'
+import CannonDebugRenderer from '../utils/cannonDebugRenderer.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -15,7 +16,9 @@ export let transformableObjects: THREE.Mesh[] = []
 export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
+
 let world: CANNON.World
+let cannonDebugRenderer: CannonDebugRenderer
 
 let light1: THREE.SpotLight
 let light2: THREE.SpotLight
@@ -55,6 +58,7 @@ export function render() {
     let delta = clock.getDelta()
     if (delta > .1) delta = .1
     world.step(delta)
+    cannonDebugRenderer.update()
 
     // TODO: link meshes with body using dictionary... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
@@ -108,6 +112,8 @@ function setupPhysic() {
     //world.broadphase = new CANNON.NaiveBroadphase() //
     //world.solver.iterations = 10
     //world.allowSleep = true
+
+    cannonDebugRenderer = new CannonDebugRenderer(scene, world)
 }
 
 let cubeMesh: THREE.Mesh
@@ -165,7 +171,7 @@ function createIcosahedron() {
     const icosahedronFaces = (<THREE.Geometry>icosahedronMesh.geometry).faces.map(function (f) {
         return [f.a, f.b, f.c]
     })
-    const icosahedronShape = new CANNON.ConvexPolyhedron(icosahedronPoints, icosahedronFaces as any)
+    const icosahedronShape = new CANNON.ConvexPolyhedron(icosahedronPoints, icosahedronFaces)
     icosahedronBody = new CANNON.Body({ mass: 1 });
     icosahedronBody.addShape(icosahedronShape)
     icosahedronBody.position.x = icosahedronMesh.position.x
@@ -183,7 +189,7 @@ function createTorusKnot() {
     torusKnotMesh.position.y = 3
     torusKnotMesh.castShadow = true
     scene.add(torusKnotMesh)
-   
+
     const torusKnotShape = createTrimesh(<THREE.Geometry>torusKnotMesh.geometry)
     torusKnotBody = new CANNON.Body({ mass: 1 });
     torusKnotBody.addShape(torusKnotShape)
@@ -201,7 +207,7 @@ function createTrimesh(geometry: THREE.Geometry | THREE.BufferGeometry) {
     }
     const vertices = (geometry as THREE.BufferGeometry).attributes.position.array
     const indices = Object.keys(vertices).map(Number);
-    return new (CANNON as any).Trimesh(vertices as [], indices);
+    return new CANNON.Trimesh(vertices as [], indices);
 }
 
 function createFloor() {
