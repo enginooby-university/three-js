@@ -4,6 +4,7 @@ import * as THREE from '/build/three.module.js'
 import { transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 import '/cannon/build/cannon.min.js'
 import CannonDebugRenderer from '../utils/cannonDebugRenderer.js'
+import { OBJLoader } from '/jsm/loaders/OBJLoader.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -37,6 +38,7 @@ export function init() {
     createIcosahedron()
     createTorusKnot()
     createCylinder()
+    loadMonkey()
     setupControls()
     createDatGUI()
 
@@ -60,7 +62,7 @@ export function render() {
     world.step(delta)
     cannonDebugRenderer.update()
 
-    // TODO: link meshes with body using dictionary... and refactor this
+    // TODO: link meshes with body using map... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
     cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
     cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
@@ -72,10 +74,14 @@ export function render() {
     icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
     torusKnotMesh.position.set(torusKnotBody.position.x, torusKnotBody.position.y, torusKnotBody.position.z);
     torusKnotMesh.quaternion.set(torusKnotBody.quaternion.x, torusKnotBody.quaternion.y, torusKnotBody.quaternion.z, torusKnotBody.quaternion.w);
+    if (monkeyLoaded) {
+        monkeyMesh.position.set(monkeyBody.position.x, monkeyBody.position.y, monkeyBody.position.z);
+        monkeyMesh.quaternion.set(monkeyBody.quaternion.x, monkeyBody.quaternion.y, monkeyBody.quaternion.z, monkeyBody.quaternion.w);
+    }
 }
 
 function createDatGUI() {
-    gui = new GUI({width: 232})
+    gui = new GUI({ width: 232 })
     // TODO: create Dat helper for Cannon world
     const gravityFolder = gui.addFolder("Gravity")
     gravityFolder.add(world.gravity, "x", -10.0, 10.0, 0.1)
@@ -232,6 +238,45 @@ function createTrimesh(geometry: THREE.Geometry | THREE.BufferGeometry) {
     const vertices = (geometry as THREE.BufferGeometry).attributes.position.array
     const indices = Object.keys(vertices).map(Number);
     return new CANNON.Trimesh(vertices as [], indices);
+}
+
+let monkeyMesh: THREE.Object3D
+let monkeyBody: CANNON.Body
+let monkeyLoaded: Boolean = false
+const objLoader: OBJLoader = new OBJLoader();
+function loadMonkey() {
+    objLoader.load(
+        `./resources/models/monkey.obj`,
+        (object) => {
+            scene.add(object)
+            monkeyMesh = object.children[0];
+            (monkeyMesh as THREE.Mesh).material = normalMaterial
+            monkeyMesh.position.x = 0
+            monkeyMesh.position.y = 20
+            monkeyMesh.position.z = 3
+            const monkeyShape = createTrimesh((monkeyMesh as THREE.Mesh).geometry)
+            monkeyBody = new CANNON.Body({ mass: 1 });
+            monkeyBody.addShape(monkeyShape)
+            //monkeyBody.addShape(cubeShape)
+            // monkeyBody.addShape(sphereShape)
+            // monkeyBody.addShape(cylinderShape)
+            // monkeyBody.addShape(icosahedronShape)
+            // monkeyBody.addShape(new CANNON.Plane())
+            // monkeyBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2)
+            monkeyBody.position.x = monkeyMesh.position.x
+            monkeyBody.position.y = monkeyMesh.position.y
+            monkeyBody.position.z = monkeyMesh.position.z
+            world.addBody(monkeyBody)
+            monkeyLoaded = true
+        },
+        (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        (error) => {
+            console.log('An error happened');
+        }
+    );
+
 }
 
 function createFloor() {

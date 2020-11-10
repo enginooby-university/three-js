@@ -3,6 +3,7 @@ import * as THREE from '/build/three.module.js';
 import { transformControls, attachToDragControls } from '../client.js';
 import '/cannon/build/cannon.min.js';
 import CannonDebugRenderer from '../utils/cannonDebugRenderer.js';
+import { OBJLoader } from '/jsm/loaders/OBJLoader.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -29,6 +30,7 @@ export function init() {
     createIcosahedron();
     createTorusKnot();
     createCylinder();
+    loadMonkey();
     setupControls();
     createDatGUI();
     transformableObjects.forEach(child => {
@@ -48,7 +50,7 @@ export function render() {
         delta = .1;
     world.step(delta);
     cannonDebugRenderer.update();
-    // TODO: link meshes with body using dictionary... and refactor this
+    // TODO: link meshes with body using map... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
     cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
     cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
@@ -60,6 +62,10 @@ export function render() {
     icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
     torusKnotMesh.position.set(torusKnotBody.position.x, torusKnotBody.position.y, torusKnotBody.position.z);
     torusKnotMesh.quaternion.set(torusKnotBody.quaternion.x, torusKnotBody.quaternion.y, torusKnotBody.quaternion.z, torusKnotBody.quaternion.w);
+    if (monkeyLoaded) {
+        monkeyMesh.position.set(monkeyBody.position.x, monkeyBody.position.y, monkeyBody.position.z);
+        monkeyMesh.quaternion.set(monkeyBody.quaternion.x, monkeyBody.quaternion.y, monkeyBody.quaternion.z, monkeyBody.quaternion.w);
+    }
 }
 function createDatGUI() {
     gui = new GUI({ width: 232 });
@@ -205,6 +211,38 @@ function createTrimesh(geometry) {
     const vertices = geometry.attributes.position.array;
     const indices = Object.keys(vertices).map(Number);
     return new CANNON.Trimesh(vertices, indices);
+}
+let monkeyMesh;
+let monkeyBody;
+let monkeyLoaded = false;
+const objLoader = new OBJLoader();
+function loadMonkey() {
+    objLoader.load(`./resources/models/monkey.obj`, (object) => {
+        scene.add(object);
+        monkeyMesh = object.children[0];
+        monkeyMesh.material = normalMaterial;
+        monkeyMesh.position.x = 0;
+        monkeyMesh.position.y = 20;
+        monkeyMesh.position.z = 3;
+        const monkeyShape = createTrimesh(monkeyMesh.geometry);
+        monkeyBody = new CANNON.Body({ mass: 1 });
+        monkeyBody.addShape(monkeyShape);
+        //monkeyBody.addShape(cubeShape)
+        // monkeyBody.addShape(sphereShape)
+        // monkeyBody.addShape(cylinderShape)
+        // monkeyBody.addShape(icosahedronShape)
+        // monkeyBody.addShape(new CANNON.Plane())
+        // monkeyBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2)
+        monkeyBody.position.x = monkeyMesh.position.x;
+        monkeyBody.position.y = monkeyMesh.position.y;
+        monkeyBody.position.z = monkeyMesh.position.z;
+        world.addBody(monkeyBody);
+        monkeyLoaded = true;
+    }, (xhr) => {
+        console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+    }, (error) => {
+        console.log('An error happened');
+    });
 }
 function createFloor() {
     const planeGeometry = new THREE.PlaneGeometry(10, 10);
