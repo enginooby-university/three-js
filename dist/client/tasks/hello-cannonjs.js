@@ -6,7 +6,7 @@ import CannonDebugRenderer from '../utils/cannonDebugRenderer.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
-export let skybox; //= 'none'
+export let skybox = 'cocoa';
 export const setSkybox = (name) => skybox = name;
 // group of objects affected by DragControls & TransformControls
 export let transformableObjects = [];
@@ -28,6 +28,7 @@ export function init() {
     createFloor();
     createIcosahedron();
     createTorusKnot();
+    createCylinder();
     setupControls();
     createDatGUI();
     transformableObjects.forEach(child => {
@@ -53,13 +54,15 @@ export function render() {
     cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
     sphereMesh.position.set(sphereBody.position.x, sphereBody.position.y, sphereBody.position.z);
     sphereMesh.quaternion.set(sphereBody.quaternion.x, sphereBody.quaternion.y, sphereBody.quaternion.z, sphereBody.quaternion.w);
+    cylinderMesh.position.set(cylinderBody.position.x, cylinderBody.position.y, cylinderBody.position.z);
+    cylinderMesh.quaternion.set(cylinderBody.quaternion.x, cylinderBody.quaternion.y, cylinderBody.quaternion.z, cylinderBody.quaternion.w);
     icosahedronMesh.position.set(icosahedronBody.position.x, icosahedronBody.position.y, icosahedronBody.position.z);
     icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
     torusKnotMesh.position.set(torusKnotBody.position.x, torusKnotBody.position.y, torusKnotBody.position.z);
     torusKnotMesh.quaternion.set(torusKnotBody.quaternion.x, torusKnotBody.quaternion.y, torusKnotBody.quaternion.z, torusKnotBody.quaternion.w);
 }
 function createDatGUI() {
-    gui = new GUI();
+    gui = new GUI({ width: 232 });
     // TODO: create Dat helper for Cannon world
     const gravityFolder = gui.addFolder("Gravity");
     gravityFolder.add(world.gravity, "x", -10.0, 10.0, 0.1);
@@ -155,6 +158,26 @@ function createIcosahedron() {
     icosahedronBody.position.y = icosahedronMesh.position.y;
     icosahedronBody.position.z = icosahedronMesh.position.z;
     world.addBody(icosahedronBody);
+}
+let cylinderMesh;
+let cylinderBody;
+function createCylinder() {
+    const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 2, 8);
+    cylinderMesh = new THREE.Mesh(cylinderGeometry, normalMaterial);
+    cylinderMesh.position.x = 0;
+    cylinderMesh.position.y = 3;
+    cylinderMesh.position.z = -3;
+    cylinderMesh.castShadow = true;
+    scene.add(cylinderMesh);
+    const cylinderShape = new CANNON.Cylinder(1, 1, 2, 8);
+    cylinderBody = new CANNON.Body({ mass: 1 });
+    const cylinderQuaternion = new CANNON.Quaternion();
+    cylinderQuaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), Math.PI / 2);
+    cylinderBody.addShape(cylinderShape, new CANNON.Vec3, cylinderQuaternion);
+    cylinderBody.position.x = cylinderMesh.position.x;
+    cylinderBody.position.y = cylinderMesh.position.y;
+    cylinderBody.position.z = cylinderMesh.position.z;
+    world.addBody(cylinderBody);
 }
 let torusKnotMesh;
 let torusKnotBody;
