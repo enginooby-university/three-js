@@ -13,6 +13,7 @@ import { RenderPass } from '/jsm/postprocessing/RenderPass.js';
 // import { BloomPass } from '/jsm/postprocessing/BloomPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js';
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js';
+const socket = io();
 export let camera;
 const CAMERA_FOV = 50; //degrees
 const CAMERA_NEAR = 0.001;

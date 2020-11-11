@@ -1,12 +1,14 @@
 import express from "express"
 import path from "path"
 import http from "http"
+import socketIO from "socket.io"
 
 const port: number = 3000
 
 class App {
     private server: http.Server
     private port: number
+    private io: socketIO.Server
 
     constructor(port: number) {
         this.port = port
@@ -42,14 +44,19 @@ class App {
         app.use('/jsm/postprocessing/Pass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/Pass.js')))
         app.use('/jsm/shaders/ConvolutionShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/ConvolutionShader.js')))
         app.use('/jsm/postprocessing/SMAAPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/SMAAPass.js')))
-        app.use('/jsm/shaders/SMAAShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/SMAAShader.js')))
+        app.use('/jsm/shaders/SMAAShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/SMAAShader.js')));
 
         this.server = new http.Server(app);
+        this.io = new socketIO.Server(this.server)
     }
 
     public Start() {
-        this.server.listen(this.port, () => {
-            console.log( `Server listening on port ${this.port}.` )
+        this.server.listen(process.env.PORT || this.port, () => {
+            console.log(`Server listening on port ${this.port}.`)
+        })       
+
+        this.io.on("connection", socket=>{
+            console.log(`Welcome ${socket.id}`)
         })
     }
 }

@@ -14,6 +14,8 @@ import { RenderPass } from '/jsm/postprocessing/RenderPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js'
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js'
 
+const socket: SocketIOClient.Socket = io()
+
 export let camera: THREE.PerspectiveCamera
 const CAMERA_FOV: number = 50 //degrees
 const CAMERA_NEAR: number = 0.001
