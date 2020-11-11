@@ -11,7 +11,7 @@ export let gui;
 export let skybox = 'cocoa';
 export const setSkybox = (name) => skybox = name;
 // group of objects affected by DragControls & TransformControls
-export let transformableObjects = [];
+export let transformableObjects = []; // TODO: transform mesh along with its body 
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let world;
@@ -20,6 +20,8 @@ let light1;
 let light2;
 const normalMaterial = new THREE.MeshNormalMaterial();
 const phongMaterial = new THREE.MeshPhongMaterial();
+const physicObjects = [];
+const importedPhysicObjects = [];
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
@@ -51,22 +53,17 @@ export function render() {
         delta = .1;
     world.step(delta);
     cannonDebugRenderer.update();
-    // TODO: link meshes with body using map... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
-    cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
-    cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
-    sphereMesh.position.set(sphereBody.position.x, sphereBody.position.y, sphereBody.position.z);
-    sphereMesh.quaternion.set(sphereBody.quaternion.x, sphereBody.quaternion.y, sphereBody.quaternion.z, sphereBody.quaternion.w);
-    cylinderMesh.position.set(cylinderBody.position.x, cylinderBody.position.y, cylinderBody.position.z);
-    cylinderMesh.quaternion.set(cylinderBody.quaternion.x, cylinderBody.quaternion.y, cylinderBody.quaternion.z, cylinderBody.quaternion.w);
-    icosahedronMesh.position.set(icosahedronBody.position.x, icosahedronBody.position.y, icosahedronBody.position.z);
-    icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
-    torusKnotMesh.position.set(torusKnotBody.position.x, torusKnotBody.position.y, torusKnotBody.position.z);
-    torusKnotMesh.quaternion.set(torusKnotBody.quaternion.x, torusKnotBody.quaternion.y, torusKnotBody.quaternion.z, torusKnotBody.quaternion.w);
-    if (monkeyLoaded) {
-        monkeyMesh.position.set(monkeyBody.position.x, monkeyBody.position.y, monkeyBody.position.z);
-        monkeyMesh.quaternion.set(monkeyBody.quaternion.x, monkeyBody.quaternion.y, monkeyBody.quaternion.z, monkeyBody.quaternion.w);
-    }
+    physicObjects.forEach(object => {
+        object.mesh.position.set(object.body.position.x, object.body.position.y, object.body.position.z);
+        object.mesh.quaternion.set(object.body.quaternion.x, object.body.quaternion.y, object.body.quaternion.z, object.body.quaternion.w);
+    });
+    importedPhysicObjects.forEach(object => {
+        if (object.isLoaded) {
+            object.mesh.position.set(object.body.position.x, object.body.position.y, object.body.position.z);
+            object.mesh.quaternion.set(object.body.quaternion.x, object.body.quaternion.y, object.body.quaternion.z, object.body.quaternion.w);
+        }
+    });
 }
 function createDatGUI() {
     gui = new GUI({ width: 232 });
@@ -124,6 +121,7 @@ function createCube() {
     cubeBody.position.y = cubeMesh.position.y;
     cubeBody.position.z = cubeMesh.position.z;
     world.addBody(cubeBody);
+    physicObjects.push({ mesh: cubeMesh, body: cubeBody });
 }
 let sphereMesh;
 let sphereBody;
@@ -141,6 +139,7 @@ function createSphere() {
     sphereBody.position.y = sphereMesh.position.y;
     sphereBody.position.z = sphereMesh.position.z;
     world.addBody(sphereBody);
+    physicObjects.push({ mesh: sphereMesh, body: sphereBody });
 }
 let icosahedronMesh;
 let icosahedronBody;
@@ -158,6 +157,7 @@ function createIcosahedron() {
     icosahedronBody.position.y = icosahedronMesh.position.y;
     icosahedronBody.position.z = icosahedronMesh.position.z;
     world.addBody(icosahedronBody);
+    physicObjects.push({ mesh: icosahedronMesh, body: icosahedronBody });
 }
 let cylinderMesh;
 let cylinderBody;
@@ -178,6 +178,7 @@ function createCylinder() {
     cylinderBody.position.y = cylinderMesh.position.y;
     cylinderBody.position.z = cylinderMesh.position.z;
     world.addBody(cylinderBody);
+    physicObjects.push({ mesh: cylinderMesh, body: cylinderBody });
 }
 let torusKnotMesh;
 let torusKnotBody;
@@ -195,10 +196,10 @@ function createTorusKnot() {
     torusKnotBody.position.y = torusKnotMesh.position.y;
     torusKnotBody.position.z = torusKnotMesh.position.z;
     world.addBody(torusKnotBody);
+    physicObjects.push({ mesh: torusKnotMesh, body: torusKnotBody });
 }
 let monkeyMesh;
 let monkeyBody;
-let monkeyLoaded = false;
 const objLoader = new OBJLoader();
 function loadMonkey() {
     objLoader.load(`./resources/models/monkey.obj`, (object) => {
@@ -221,7 +222,7 @@ function loadMonkey() {
         monkeyBody.position.y = monkeyMesh.position.y;
         monkeyBody.position.z = monkeyMesh.position.z;
         world.addBody(monkeyBody);
-        monkeyLoaded = true;
+        importedPhysicObjects.push({ mesh: monkeyMesh, body: monkeyBody, isLoaded: true });
     }, (xhr) => {
         console.log((xhr.loaded / xhr.total * 100) + '% loaded');
     }, (error) => {

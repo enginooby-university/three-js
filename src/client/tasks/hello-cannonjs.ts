@@ -14,7 +14,7 @@ export let skybox: string = 'cocoa'
 export const setSkybox = (name: string) => skybox = name
 
 // group of objects affected by DragControls & TransformControls
-export let transformableObjects: THREE.Mesh[] = []
+export let transformableObjects: THREE.Mesh[] = [] // TODO: transform mesh along with its body 
 export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
@@ -25,7 +25,18 @@ let light1: THREE.SpotLight
 let light2: THREE.SpotLight
 
 const normalMaterial: THREE.MeshNormalMaterial = new THREE.MeshNormalMaterial()
-const phongMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial()
+const phongMaterial: THREE.MeshPhongMaterial = new THREE.MeshPhongMaterial();
+
+type PhysicObject = {
+    mesh: THREE.Mesh,
+    body: CANNON.Body
+}
+// object loaded by model loader
+type ImportedPhysicObject = PhysicObject & {
+    isLoaded: boolean
+}
+const physicObjects: PhysicObject[] = []
+const importedPhysicObjects: ImportedPhysicObject[] = []
 
 export function init() {
     isInitialized = true
@@ -63,22 +74,18 @@ export function render() {
     world.step(delta)
     cannonDebugRenderer.update()
 
-    // TODO: link meshes with body using map... and refactor this
     // Copy coordinates from Cannon.js to Three.js (sync)
-    cubeMesh.position.set(cubeBody.position.x, cubeBody.position.y, cubeBody.position.z);
-    cubeMesh.quaternion.set(cubeBody.quaternion.x, cubeBody.quaternion.y, cubeBody.quaternion.z, cubeBody.quaternion.w);
-    sphereMesh.position.set(sphereBody.position.x, sphereBody.position.y, sphereBody.position.z);
-    sphereMesh.quaternion.set(sphereBody.quaternion.x, sphereBody.quaternion.y, sphereBody.quaternion.z, sphereBody.quaternion.w);
-    cylinderMesh.position.set(cylinderBody.position.x, cylinderBody.position.y, cylinderBody.position.z);
-    cylinderMesh.quaternion.set(cylinderBody.quaternion.x, cylinderBody.quaternion.y, cylinderBody.quaternion.z, cylinderBody.quaternion.w);
-    icosahedronMesh.position.set(icosahedronBody.position.x, icosahedronBody.position.y, icosahedronBody.position.z);
-    icosahedronMesh.quaternion.set(icosahedronBody.quaternion.x, icosahedronBody.quaternion.y, icosahedronBody.quaternion.z, icosahedronBody.quaternion.w);
-    torusKnotMesh.position.set(torusKnotBody.position.x, torusKnotBody.position.y, torusKnotBody.position.z);
-    torusKnotMesh.quaternion.set(torusKnotBody.quaternion.x, torusKnotBody.quaternion.y, torusKnotBody.quaternion.z, torusKnotBody.quaternion.w);
-    if (monkeyLoaded) {
-        monkeyMesh.position.set(monkeyBody.position.x, monkeyBody.position.y, monkeyBody.position.z);
-        monkeyMesh.quaternion.set(monkeyBody.quaternion.x, monkeyBody.quaternion.y, monkeyBody.quaternion.z, monkeyBody.quaternion.w);
-    }
+    physicObjects.forEach(object => {
+        object.mesh.position.set(object.body.position.x, object.body.position.y, object.body.position.z)
+        object.mesh.quaternion.set(object.body.quaternion.x, object.body.quaternion.y, object.body.quaternion.z, object.body.quaternion.w)
+    })
+
+    importedPhysicObjects.forEach(object => {
+        if (object.isLoaded) {
+            object.mesh.position.set(object.body.position.x, object.body.position.y, object.body.position.z)
+            object.mesh.quaternion.set(object.body.quaternion.x, object.body.quaternion.y, object.body.quaternion.z, object.body.quaternion.w)
+        }
+    })
 }
 
 function createDatGUI() {
@@ -143,6 +150,8 @@ function createCube() {
     cubeBody.position.y = cubeMesh.position.y
     cubeBody.position.z = cubeMesh.position.z
     world.addBody(cubeBody)
+
+    physicObjects.push({ mesh: cubeMesh, body: cubeBody })
 }
 
 let sphereMesh: THREE.Mesh
@@ -154,6 +163,7 @@ function createSphere() {
     sphereMesh.position.y = 3
     sphereMesh.castShadow = true
     scene.add(sphereMesh)
+
     const sphereShape = new CANNON.Sphere(1)
     sphereBody = new CANNON.Body({ mass: 1 });
     sphereBody.addShape(sphereShape)
@@ -161,6 +171,8 @@ function createSphere() {
     sphereBody.position.y = sphereMesh.position.y
     sphereBody.position.z = sphereMesh.position.z
     world.addBody(sphereBody)
+
+    physicObjects.push({ mesh: sphereMesh, body: sphereBody })
 }
 
 let icosahedronMesh: THREE.Mesh
@@ -173,13 +185,15 @@ function createIcosahedron() {
     icosahedronMesh.castShadow = true
     scene.add(icosahedronMesh)
 
-    const icosahedronShape =CannonHelper.createConvexPolyhedron(icosahedronGeometry)
+    const icosahedronShape = CannonHelper.createConvexPolyhedron(icosahedronGeometry)
     icosahedronBody = new CANNON.Body({ mass: 1 });
     icosahedronBody.addShape(icosahedronShape)
     icosahedronBody.position.x = icosahedronMesh.position.x
     icosahedronBody.position.y = icosahedronMesh.position.y
     icosahedronBody.position.z = icosahedronMesh.position.z
     world.addBody(icosahedronBody)
+
+    physicObjects.push({ mesh: icosahedronMesh, body: icosahedronBody })
 }
 
 let cylinderMesh: THREE.Mesh
@@ -202,6 +216,8 @@ function createCylinder() {
     cylinderBody.position.y = cylinderMesh.position.y
     cylinderBody.position.z = cylinderMesh.position.z
     world.addBody(cylinderBody)
+
+    physicObjects.push({ mesh: cylinderMesh, body: cylinderBody })
 }
 
 let torusKnotMesh: THREE.Mesh
@@ -221,11 +237,12 @@ function createTorusKnot() {
     torusKnotBody.position.y = torusKnotMesh.position.y
     torusKnotBody.position.z = torusKnotMesh.position.z
     world.addBody(torusKnotBody)
+
+    physicObjects.push({ mesh: torusKnotMesh, body: torusKnotBody })
 }
 
 let monkeyMesh: THREE.Object3D
 let monkeyBody: CANNON.Body
-let monkeyLoaded: Boolean = false
 const objLoader: OBJLoader = new OBJLoader();
 function loadMonkey() {
     objLoader.load(
@@ -251,7 +268,8 @@ function loadMonkey() {
             monkeyBody.position.y = monkeyMesh.position.y
             monkeyBody.position.z = monkeyMesh.position.z
             world.addBody(monkeyBody)
-            monkeyLoaded = true
+
+            importedPhysicObjects.push({ mesh: <THREE.Mesh>monkeyMesh, body: monkeyBody, isLoaded: true })
         },
         (xhr) => {
             console.log((xhr.loaded / xhr.total * 100) + '% loaded');
@@ -260,7 +278,6 @@ function loadMonkey() {
             console.log('An error happened');
         }
     );
-
 }
 
 function createFloor() {
@@ -269,7 +286,7 @@ function createFloor() {
     planeMesh.rotateX(-Math.PI / 2)
     planeMesh.receiveShadow = true;
     scene.add(planeMesh)
-    
+
     const planeShape = new CANNON.Plane()
     const planeBody = new CANNON.Body({ mass: 0 })
     planeBody.addShape(planeShape)

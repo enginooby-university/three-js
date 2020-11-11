@@ -92,7 +92,6 @@ const Param = {
         opacity: 0.33,
         // emissive: 0xff0000
     },
-    // ShowHelpers: true
 }
 
 export const raycaster: THREE.Raycaster = new THREE.Raycaster()
