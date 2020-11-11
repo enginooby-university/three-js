@@ -11,6 +11,17 @@ export function createObjectFolder(gui: GUI, object: THREE.Object3D, objectName:
     return objectFolder
 }
 
+export function createBodyFolder(gui: GUI, body: CANNON.Body, bodyName: string) {
+    const bodyFolder = gui.addFolder(bodyName)
+    bodyFolder.add(body, "mass", 0, 20, 0.1)
+    createBodyPositionFolder(bodyFolder, body)
+    createBodyVelocityFolder(bodyFolder, body)
+    // createBodyQuaternionFolder(bodyFolder, body)
+    // bodyFolder.open()
+
+    return bodyFolder
+}
+
 export function createCameraFolder(gui: GUI, perspectiveCamera: THREE.PerspectiveCamera, cameraName: string) {
     const cameraFolder = gui.addFolder(cameraName)
     createObjectPositionFolder(cameraFolder, perspectiveCamera)
@@ -140,11 +151,38 @@ export function createMaterialFolder(gui: GUI, material: THREE.Material) {
     return materialFolder
 }
 
+function createBodyPositionFolder(parentFolder: GUI, body: CANNON.Body) {
+    const bodyPositionFolder = parentFolder.addFolder("position")
+    bodyPositionFolder.add(body.position, "x", -30, 30, 0.01).listen()
+    bodyPositionFolder.add(body.position, "y", 0, 30, 0.01).listen()
+    bodyPositionFolder.add(body.position, "z", -30, 30, 0.01).listen()
+
+    return bodyPositionFolder
+}
+
+function createBodyQuaternionFolder(parentFolder: GUI, body: CANNON.Body) {
+    const bodyQuaternionFolder = parentFolder.addFolder("quaternion")
+    bodyQuaternionFolder.add(body.quaternion, "x", -Math.PI * 2, Math.PI * 2, 0.01).listen()
+    bodyQuaternionFolder.add(body.quaternion, "y", -Math.PI * 2, Math.PI * 2, 0.01).listen()
+    bodyQuaternionFolder.add(body.quaternion, "z", -Math.PI * 2, Math.PI * 2, 0.01).listen()
+
+    return bodyQuaternionFolder
+}
+
+function createBodyVelocityFolder(parentFolder: GUI, body: CANNON.Body) {
+    const bodyQuaternionFolder = parentFolder.addFolder("velocity")
+    bodyQuaternionFolder.add(body.velocity, "x", -10, 10, 0.01).listen()
+    bodyQuaternionFolder.add(body.velocity, "y", -10, 10, 0.01).listen()
+    bodyQuaternionFolder.add(body.velocity, "z", -10, 10, 0.01).listen()
+
+    return bodyQuaternionFolder
+}
+
 function createObjectPositionFolder(parentFolder: GUI, object: THREE.Object3D) {
     const objectPositionFolder = parentFolder.addFolder("position")
-    objectPositionFolder.add(object.position, "x", -50, 50, 0.01).listen()
-    objectPositionFolder.add(object.position, "y", -50, 50, 0.01).listen()
-    objectPositionFolder.add(object.position, "z", -50, 50, 0.01).listen()
+    objectPositionFolder.add(object.position, "x", -30, 30, 0.01).listen()
+    objectPositionFolder.add(object.position, "y", 0, 30, 0.01).listen()
+    objectPositionFolder.add(object.position, "z", -30, 30, 0.01).listen()
 
     return objectPositionFolder
 }

@@ -1,4 +1,5 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
+import * as DatHelper from '../helpers/dat_helper.js';
 import CannonHelper from '../helpers/cannon-helper.js';
 import * as THREE from '/build/three.module.js';
 import { transformControls, attachToDragControls } from '../client.js';
@@ -22,6 +23,12 @@ const normalMaterial = new THREE.MeshNormalMaterial();
 const phongMaterial = new THREE.MeshPhongMaterial();
 const physicObjects = [];
 const importedPhysicObjects = [];
+const loadingManager = new THREE.LoadingManager(() => {
+    importedPhysicObjects.forEach(object => {
+        if (object.isLoaded)
+            DatHelper.createBodyFolder(gui, object.body, object.mesh.name);
+    });
+});
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
@@ -68,11 +75,16 @@ export function render() {
 function createDatGUI() {
     gui = new GUI({ width: 232 });
     // TODO: create Dat helper for Cannon world
-    const gravityFolder = gui.addFolder("Gravity");
+    const physicFolder = gui.addFolder("Physic");
+    const gravityFolder = physicFolder.addFolder("Gravity");
     gravityFolder.add(world.gravity, "x", -10.0, 10.0, 0.1);
     gravityFolder.add(world.gravity, "y", -10.0, 10.0, 0.1);
     gravityFolder.add(world.gravity, "z", -10.0, 10.0, 0.1);
     gravityFolder.open();
+    physicFolder.open();
+    physicObjects.forEach(object => {
+        DatHelper.createBodyFolder(gui, object.body, object.mesh.name);
+    });
 }
 function createLights() {
     light1 = new THREE.SpotLight();
@@ -112,6 +124,7 @@ function createCube() {
     cubeMesh.position.x = -3;
     cubeMesh.position.y = 3;
     cubeMesh.castShadow = true;
+    cubeMesh.name = "Cube";
     scene.add(cubeMesh);
     // transformableObjects.push(cubeMesh)
     const cubeShape = new CANNON.Box(new CANNON.Vec3(.5, .5, .5));
@@ -131,6 +144,7 @@ function createSphere() {
     sphereMesh.position.x = -1;
     sphereMesh.position.y = 3;
     sphereMesh.castShadow = true;
+    sphereMesh.name = "Sphere";
     scene.add(sphereMesh);
     const sphereShape = new CANNON.Sphere(1);
     sphereBody = new CANNON.Body({ mass: 1 });
@@ -149,6 +163,7 @@ function createIcosahedron() {
     icosahedronMesh.position.x = 1;
     icosahedronMesh.position.y = 3;
     icosahedronMesh.castShadow = true;
+    icosahedronMesh.name = "Icosahedron";
     scene.add(icosahedronMesh);
     const icosahedronShape = CannonHelper.createConvexPolyhedron(icosahedronGeometry);
     icosahedronBody = new CANNON.Body({ mass: 1 });
@@ -168,6 +183,7 @@ function createCylinder() {
     cylinderMesh.position.y = 3;
     cylinderMesh.position.z = -3;
     cylinderMesh.castShadow = true;
+    cylinderMesh.name = "Cylinder";
     scene.add(cylinderMesh);
     const cylinderShape = new CANNON.Cylinder(1, 1, 2, 8);
     cylinderBody = new CANNON.Body({ mass: 1 });
@@ -188,6 +204,7 @@ function createTorusKnot() {
     torusKnotMesh.position.x = 4;
     torusKnotMesh.position.y = 3;
     torusKnotMesh.castShadow = true;
+    torusKnotMesh.name = "Torus knot";
     scene.add(torusKnotMesh);
     const torusKnotShape = CannonHelper.createTrimesh(torusKnotMesh.geometry);
     torusKnotBody = new CANNON.Body({ mass: 1 });
@@ -200,8 +217,9 @@ function createTorusKnot() {
 }
 let monkeyMesh;
 let monkeyBody;
-const objLoader = new OBJLoader();
+let objLoader;
 function loadMonkey() {
+    objLoader = new OBJLoader(loadingManager);
     objLoader.load(`./resources/models/monkey.obj`, (object) => {
         scene.add(object);
         monkeyMesh = object.children[0];
@@ -209,6 +227,7 @@ function loadMonkey() {
         monkeyMesh.position.x = 0;
         monkeyMesh.position.y = 20;
         monkeyMesh.position.z = 3;
+        monkeyMesh.name = "Monkey";
         const monkeyShape = CannonHelper.createTrimesh(monkeyMesh.geometry);
         monkeyBody = new CANNON.Body({ mass: 1 });
         monkeyBody.addShape(monkeyShape);
