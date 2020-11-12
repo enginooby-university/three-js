@@ -81,7 +81,7 @@ let texture_lf: THREE.Texture
 let materialArray: THREE.MeshBasicMaterial[]
 
 const Param = {
-    Skybox: "cocoa",
+    Skybox: "arid",
     BloomPass: {
         opacity: 1
     },
@@ -354,7 +354,6 @@ function switchScene(scenceIndex: number) {
             (currentTask.gui as GUI).hide()
         }
     }
-
 
     currentTask = Array.from(Tasks)[scenceIndex][0]
 

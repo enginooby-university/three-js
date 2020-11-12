@@ -69,7 +69,7 @@ let texture_rt;
 let texture_lf;
 let materialArray;
 const Param = {
-    Skybox: "cocoa",
+    Skybox: "arid",
     BloomPass: {
         opacity: 1
     },
