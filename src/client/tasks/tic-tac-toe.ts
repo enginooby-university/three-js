@@ -17,23 +17,19 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 const UNCLAIMED: number = 0
 const RED: number = 1
 const GREEN: number = 2
-let mouseClicked: boolean = false
-// const mouse = { x: 0, y: 0, clicked: false };
-let currentTurn: number = RED
+let currentTurn: number = GREEN
 var gameOver: boolean = false;
 
 const pointGeometry = new THREE.SphereGeometry(0.3, 25, 25)
 const points: THREE.Mesh[] = [];
-let selectedPoint: THREE.Mesh
-const point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0x00ff00 }));
 
 const winCombinations: number[][] = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14], [15, 16, 17],
-    [18, 19, 20], [21, 22, 23], [24, 25, 26],
-    [6, 15, 24], [7, 16, 25], [8, 17, 26], [3, 12, 21], [4, 13, 22], [5, 14, 23],
-    [0, 9, 18], [1, 10, 19], [2, 11, 20],
-    [18, 21, 24], [19, 22, 25], [20, 23, 26], [9, 12, 25], [10, 13, 16], [11, 14, 17],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14],
+    [15, 16, 17], [18, 19, 20], [21, 22, 23], [24, 25, 26],
+    [6, 15, 24], [7, 16, 25], [8, 17, 26], [3, 12, 21], [4, 13, 22], 
+    [5, 14, 23], [0, 9, 18], [1, 10, 19], [2, 11, 20],
+    [18, 21, 24], [19, 22, 25], [20, 23, 26], [9, 12, 25], [10, 13, 16], 
+    [11, 14, 17], [0, 3, 6], [1, 4, 7], [2, 5, 8],
     [6, 16, 26], [8, 16, 24], [3, 13, 23], [5, 13, 21], [0, 10, 20], [2, 10, 18],
     [18, 22, 26], [20, 22, 24], [2, 14, 26], [8, 10, 20], [2, 4, 6], [0, 4, 8],
     [0, 12, 24], [6, 12, 18], [2, 13, 24], [6, 13, 20], [0, 13, 26], [8, 13, 18],
@@ -65,7 +61,6 @@ export function setupControls() {
 
 // const clock: THREE.Clock = new THREE.Clock()
 export function render() {
-    // updateControls()
 }
 
 function createLights() {
@@ -124,8 +119,14 @@ function resetGame() {
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
         (point.material as any).color.setHex(0xffffff);
-        currentTurn = ((currentTurn == RED) ? GREEN : RED);
     });
+
+    // loser goes first in new game
+    currentTurn = ((currentTurn == RED) ? GREEN : RED);
+    if (currentTurn == RED) {
+        aiMove()
+        changeTurn(RED)
+    }
 }
 
 function checkWin(color: number) {
@@ -139,7 +140,6 @@ function checkWin(color: number) {
                     count++;
             })
             if (count === 3) {
-                // won
                 won = true;
                 throw breakEx;
             }
@@ -150,11 +150,83 @@ function checkWin(color: number) {
     return won;
 }
 
-function countClaim(comb: number[]) { //??
+function aiMove() {
+    let moved: boolean = false
+    var movedEx = {}
+
+    // offensive move
+    try {
+        winCombinations.forEach(function (winCombination) {
+            const counts = countClaims(winCombination);
+            if ((counts["red"] === 2) && (counts["green"] === 0)) {
+                winCombination.forEach(function (index) {
+                    if (points[index].userData.claim == UNCLAIMED) {
+                        points[index].userData.claim = RED;
+                        (points[index].material as any).color.setHex(0xff0000);
+                    }
+                });
+                moved = true;
+                throw movedEx;
+            }
+        })
+    } catch (ex) {
+        if (ex != movedEx) throw ex;
+    }
+    if (moved) return;
+
+    try {
+        // defensive move
+        winCombinations.forEach(function (winCombination) {
+            var counts = countClaims(winCombination);
+            if ((countClaims(winCombination)["green"] === 2) && (counts["red"] === 0)) {
+                winCombination.forEach(function (index) {
+                    if (points[index].userData.claim == UNCLAIMED) {
+                        points[index].userData.claim = RED;
+                        (points[index].material as any).color.setHex(0xff0000);
+                    }
+                });
+                moved = true;
+                throw movedEx;
+            }
+        });
+    } catch (ex) {
+        if (ex != movedEx) throw ex;
+    }
+
+    if (moved) return;
+
+    // random move
+    const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
+    try {
+        preferredIndexes.forEach(function (index) {
+            if (points[index].userData.claim == UNCLAIMED) {
+                points[index].userData.claim = RED;
+                (points[index].material as any).color.setHex(0xff0000);
+                moved = true;
+                throw movedEx;
+            }
+        });
+
+        // all the preferred are taken, just take first unclaimed
+        points.forEach(function (point) {
+            if (point.userData.claim == UNCLAIMED) {
+                point.userData.claim = RED;
+                (point.material as any).color.setHex(0xff0000);
+                moved = true;
+                throw movedEx;
+            }
+        });
+    } catch (ex) {
+        if (ex != movedEx) throw ex;
+    }
+}
+
+// count number of claimed points in a win combination for each color
+function countClaims(winCombination: number[]) {
     let redCount: number = 0
     let greenCount: number = 0
 
-    comb.forEach(function (index) {
+    winCombination.forEach(function (index) {
         if (points[index].userData.claim == RED) {
             redCount++;
         }
@@ -166,30 +238,22 @@ function countClaim(comb: number[]) { //??
     return { "red": redCount, "green": greenCount };
 }
 
-function changeTurn(color: number) {
-    if (checkWin(color)) {
-        gameOver = true;
+// @param color: just finished its turn
+function changeTurn(previousColor: number) {
+    if (checkWin(previousColor)) {
+        // gameOver = true;
+        console.log(`${previousColor} won`)
+        resetGame()
     } else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    }
-
-    if (gameOver) {
-        resetGame()
-        gameOver = false
-        mouseClicked = false
-        return
-    }
-
-    // console.log(`Turn ${currentTurn}`)
-}
-
-function updateControls() {
-    if (!(gameOver) && (currentTurn === RED)) {
-        // redComputerMove();
-        changeTurn(RED);
-        return;
+        console.log(`${currentTurn} turn`)
+        if (currentTurn == RED) {
+            aiMove()
+            changeTurn(RED)
+        }
     }
 }
+
 
 /* EVENTS */
 window.addEventListener('click', selectPoint, false);
@@ -231,7 +295,6 @@ function hoverPoint(event: MouseEvent) {
         if (hoveredPoint)
             (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
         hoveredPoint = null;
-
     }
 }
 
