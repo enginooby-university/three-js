@@ -118,7 +118,6 @@ function createPoints() {
             })
         })
     });
-
 }
 
 function resetGame() {
@@ -151,7 +150,6 @@ function checkWin(color: number) {
     return won;
 }
 
-
 function countClaim(comb: number[]) { //??
     let redCount: number = 0
     let greenCount: number = 0
@@ -175,28 +173,30 @@ function changeTurn(color: number) {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
     }
 
-    console.log(`Turn ${currentTurn}`)
-}
-
-
-window.addEventListener('click', selectPoint, false);
-function selectPoint(event: MouseEvent) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera)
-    const intersectObjects: THREE.Intersection[] = raycaster.intersectObjects(points, false)
     if (gameOver) {
         resetGame()
         gameOver = false
         mouseClicked = false
         return
     }
+
+    // console.log(`Turn ${currentTurn}`)
+}
+
+function updateControls() {
+    if (!(gameOver) && (currentTurn === RED)) {
+        // redComputerMove();
+        changeTurn(RED);
+        return;
+    }
+}
+
+/* EVENTS */
+window.addEventListener('click', selectPoint, false);
+function selectPoint(event: MouseEvent) {
+    const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object as THREE.Mesh
-        console.log(selectedPoint.userData.claim)
         if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
             (selectedPoint.material as any).color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
             selectedPoint.userData.claim = currentTurn
@@ -205,11 +205,40 @@ function selectPoint(event: MouseEvent) {
     }
 }
 
+let hoveredPoint: THREE.Mesh | null
+window.addEventListener('mousemove', hoverPoint, false)
+function hoverPoint(event: MouseEvent) {
+    const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
 
-function updateControls() {
-    if (!(gameOver) && (currentTurn === RED)) {
-        // redComputerMove();
-        changeTurn(RED);
-        return;
+    if (intersectObjects.length) {
+        const currentHoveredPoint = intersectObjects[0].object as THREE.Mesh
+        // no affect on claimed points
+        if (currentHoveredPoint.userData.claim == RED || currentHoveredPoint.userData.claim == GREEN) return
+        // if move to new unclaimed point
+        if (hoveredPoint != currentHoveredPoint) {
+            if (hoveredPoint)
+                (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
+            hoveredPoint = currentHoveredPoint;
+            (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
+
+            if (currentTurn == RED) {
+                (hoveredPoint.material as any).emissive.setHex(0xff0000);
+            } else if (currentTurn == GREEN) {
+                (hoveredPoint.material as any).emissive.setHex(0x00ff00);
+            }
+        }
+    } else {
+        if (hoveredPoint)
+            (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
+        hoveredPoint = null;
+
     }
+}
+
+function getIntersectObjects(event: MouseEvent) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera)
+    return raycaster.intersectObjects(points, false) as THREE.Intersection[]
 }

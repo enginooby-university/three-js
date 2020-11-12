@@ -143,31 +143,13 @@ function changeTurn(color) {
     else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
     }
-    console.log(`Turn ${currentTurn}`);
-}
-window.addEventListener('click', selectPoint, false);
-function selectPoint(event) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const intersectObjects = raycaster.intersectObjects(points, false);
     if (gameOver) {
         resetGame();
         gameOver = false;
         mouseClicked = false;
         return;
     }
-    if (intersectObjects.length) {
-        const selectedPoint = intersectObjects[0].object;
-        console.log(selectedPoint.userData.claim);
-        if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
-            selectedPoint.material.color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
-            selectedPoint.userData.claim = currentTurn;
-            changeTurn(currentTurn);
-        }
-    }
+    // console.log(`Turn ${currentTurn}`)
 }
 function updateControls() {
     if (!(gameOver) && (currentTurn === RED)) {
@@ -175,4 +157,52 @@ function updateControls() {
         changeTurn(RED);
         return;
     }
+}
+/* EVENTS */
+window.addEventListener('click', selectPoint, false);
+function selectPoint(event) {
+    const intersectObjects = getIntersectObjects(event);
+    if (intersectObjects.length) {
+        const selectedPoint = intersectObjects[0].object;
+        if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
+            selectedPoint.material.color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
+            selectedPoint.userData.claim = currentTurn;
+            changeTurn(currentTurn);
+        }
+    }
+}
+let hoveredPoint;
+window.addEventListener('mousemove', hoverPoint, false);
+function hoverPoint(event) {
+    const intersectObjects = getIntersectObjects(event);
+    if (intersectObjects.length) {
+        const currentHoveredPoint = intersectObjects[0].object;
+        // no affect on claimed points
+        if (currentHoveredPoint.userData.claim == RED || currentHoveredPoint.userData.claim == GREEN)
+            return;
+        // if move to new unclaimed point
+        if (hoveredPoint != currentHoveredPoint) {
+            if (hoveredPoint)
+                hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
+            hoveredPoint = currentHoveredPoint;
+            hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
+            if (currentTurn == RED) {
+                hoveredPoint.material.emissive.setHex(0xff0000);
+            }
+            else if (currentTurn == GREEN) {
+                hoveredPoint.material.emissive.setHex(0x00ff00);
+            }
+        }
+    }
+    else {
+        if (hoveredPoint)
+            hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
+        hoveredPoint = null;
+    }
+}
+function getIntersectObjects(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    return raycaster.intersectObjects(points, false);
 }
