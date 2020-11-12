@@ -47,8 +47,19 @@ class App {
         this.server.listen(process.env.PORT || this.port, () => {
             console.log(`Server listening on port ${this.port}.`);
         });
-        this.io.on("connection", socket => {
-            console.log(`Welcome ${socket.id}`);
+        this.io.on("connection", (socket) => {
+            console.log(`User connected: ${socket.id}`);
+            socket.emit("message", `Welcome ${socket.id}`);
+            socket.broadcast.emit("message", "Everybody, say hello to " + socket.id);
+            socket.on("changeSceneData", (data) => {
+                // emit to all sockets except the socket making change
+                socket.broadcast.emit("updateSceneData", data);
+                // emit to all sockets
+                // this.io.sockets.emit("updateSceneData", data)
+            });
+            socket.on("disconnect", () => {
+                console.log(`User disconnected: ${socket.id}`);
+            });
         });
     }
 }

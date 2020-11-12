@@ -1,22 +1,29 @@
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as DatHelper from '../helpers/dat_helper.js';
+import Helper from '../helpers/common-helpers.js';
 import * as THREE from '/build/three.module.js';
-import { transformControls, attachToDragControls, muted } from '../client.js';
+import { socket, transformControls, attachToDragControls, muted } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
 export let skybox = 'arid';
 export const setSkybox = (name) => skybox = name;
-let Param = {
-    VerBallAmount: 5,
-    VerBallSpeed: 3,
-    VerBallMaxAngle: 40,
-    HorBallAmount: 3,
-    HorBallSpeed: 5,
-    HorBallMaxAngle: 60,
+let sceneData = {
+    verBallAmount: 5,
+    verBallSpeed: 0.03,
+    verBallMaxAngle: Helper.toRadian(40),
+    horBallAmount: 3,
+    horBallSpeed: 0.05,
+    horBallMaxAngle: Helper.toRadian(60),
 };
-let verBallAmount = 5;
-let horBallAmount = 3;
+function copySceneData(currentSceneData, newSceneData) {
+    currentSceneData.verBallAmount = newSceneData.verBallAmount;
+    currentSceneData.verBallMaxAngle = newSceneData.verBallMaxAngle;
+    currentSceneData.verBallSpeed = newSceneData.verBallSpeed;
+    currentSceneData.horBallAmount = newSceneData.horBallAmount;
+    currentSceneData.horBallMaxAngle = newSceneData.horBallMaxAngle;
+    currentSceneData.horBallSpeed = newSceneData.horBallSpeed;
+}
 const BALL_RADIUS = 0.5;
 const sphereGeometry = new THREE.SphereGeometry(BALL_RADIUS, 64, 64);
 const ballMaterial = new THREE.MeshPhysicalMaterial({
@@ -44,10 +51,6 @@ let firstHorRope;
 let lastHorRope;
 const ropeGeometry = new THREE.CylinderGeometry(0.03, 0.03, ROPE_LENGHT);
 const ropeMaterial = new THREE.MeshPhysicalMaterial({ color: 0xff0000 });
-let rotateSpeedVerBall = 0.03;
-let maxAngleVerBall = 40 * Math.PI / 180;
-let rotateSpeedHorBall = 0.05;
-let maxAngleHorBall = 60 * Math.PI / 180;
 let firstVerRopeRotateVel;
 let lastVerRopeRotateVel;
 let firstHorRopeRotateVel;
@@ -66,8 +69,8 @@ export function init() {
     isInitialized = true;
     // change ropes' origin (pivot) for rotation
     ropeGeometry.translate(0, -ROPE_LENGHT / 2, 0);
-    createBalls(verBallAmount, horBallAmount);
-    createRopes(verBallAmount, horBallAmount);
+    createBalls(sceneData.verBallAmount, sceneData.horBallAmount);
+    createRopes(sceneData.verBallAmount, sceneData.horBallAmount);
     createBars();
     createLight();
     createFloor();
@@ -90,30 +93,47 @@ export function setupControls() {
 function createDatGUI() {
     gui = new GUI();
     gui.width = 232;
+    const controllers = [];
     const verticalGroupFolder = gui.addFolder('Vertical group');
-    verticalGroupFolder.add(Param, 'VerBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
-        verBallAmount = Param.VerBallAmount;
+    controllers.push(verticalGroupFolder.add(sceneData, 'verBallAmount', 3, 9, 1).name('Ball number').onFinishChange((value) => {
         updateBallNumber();
-    });
-    verticalGroupFolder.add(Param, 'VerBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
-        rotateSpeedVerBall = Param.VerBallSpeed / 100;
-    });
-    verticalGroupFolder.add(Param, 'VerBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
-        maxAngleVerBall = Param.VerBallMaxAngle * Math.PI / 180;
-    });
+        socket.emit('changeSceneData', sceneData);
+    }));
+    controllers.push(verticalGroupFolder.add(sceneData, 'verBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').onFinishChange(value => {
+        socket.emit('changeSceneData', sceneData);
+    }));
+    controllers.push(verticalGroupFolder.add(sceneData, 'verBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').onFinishChange(value => {
+        socket.emit('changeSceneData', sceneData);
+    }));
     verticalGroupFolder.open();
     const horizontalGroupFolder = gui.addFolder('Horizontal group');
-    horizontalGroupFolder.add(Param, 'HorBallAmount', 3, 9, 1).name('Ball number').onChange(() => {
-        horBallAmount = Param.HorBallAmount;
+    horizontalGroupFolder.add(sceneData, 'horBallAmount', 3, 9, 1).name('Ball number').onFinishChange(() => {
         updateBallNumber();
+        socket.emit('changeSceneData', sceneData);
     });
-    horizontalGroupFolder.add(Param, 'HorBallSpeed', 1, 10, 1).name('Ball speed').onChange(() => {
-        rotateSpeedHorBall = Param.HorBallSpeed / 100;
-    });
-    horizontalGroupFolder.add(Param, 'HorBallMaxAngle', 10, 70, 1).name('Max angle').onChange(() => {
-        maxAngleHorBall = Param.HorBallMaxAngle * Math.PI / 180;
-    });
+    controllers.push(horizontalGroupFolder.add(sceneData, 'horBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').onFinishChange(value => {
+        socket.emit('changeSceneData', sceneData);
+    }));
+    controllers.push(horizontalGroupFolder.add(sceneData, 'horBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').onFinishChange(value => {
+        socket.emit('changeSceneData', sceneData);
+    }));
     horizontalGroupFolder.open();
+    // when receive update from other sockets
+    socket.on("updateSceneData", (newSceneData) => {
+        // update ball number in different sockets only when change ball number, of course :)
+        if (newSceneData.verBallAmount != sceneData.verBallAmount || newSceneData.horBallAmount != sceneData.horBallAmount) {
+            copySceneData(sceneData, newSceneData);
+            updateBallNumber();
+        }
+        else {
+            copySceneData(sceneData, newSceneData);
+        }
+        // update Dat controllers
+        controllers.forEach((controller) => {
+            controller.updateDisplay();
+        });
+        console.log(`User ${socket.id} made a change`);
+    });
     DatHelper.createDirectionalLightFolder(gui, directionalLight);
     const ballFolder = gui.addFolder("Balls");
     DatHelper.createPhysicalMaterialFolder(ballFolder, ballMaterial).open();
@@ -132,22 +152,22 @@ export function render() {
             playBallAudio();
             firstVerRopeRotateVel = 0;
             firstVerRope.rotation.z = 0;
-            lastVerRopeRotateVel = rotateSpeedVerBall;
+            lastVerRopeRotateVel = sceneData.verBallSpeed;
         }
-        if (firstVerRope.rotation.z <= -maxAngleVerBall) {
-            firstVerRopeRotateVel = rotateSpeedVerBall;
+        if (firstVerRope.rotation.z <= -sceneData.verBallMaxAngle) {
+            firstVerRopeRotateVel = sceneData.verBallSpeed;
         }
         // when first ball&rope is staying
     }
     else if (firstVerRopeRotateVel == 0) {
         if (lastVerRope.rotation.z <= 0) {
             playBallAudio();
-            firstVerRopeRotateVel = -rotateSpeedVerBall;
+            firstVerRopeRotateVel = -sceneData.verBallSpeed;
             lastVerRope.rotation.z = 0;
             lastVerRopeRotateVel = 0;
         }
-        if (lastVerRope.rotation.z >= maxAngleVerBall) {
-            lastVerRopeRotateVel = -rotateSpeedVerBall;
+        if (lastVerRope.rotation.z >= sceneData.verBallMaxAngle) {
+            lastVerRopeRotateVel = -sceneData.verBallSpeed;
         }
     }
     // when last ball&rope is staying
@@ -156,22 +176,22 @@ export function render() {
             playBallAudio();
             firstHorRopeRotateVel = 0;
             firstHorRope.rotation.x = 0;
-            lastHorRopeRotateVel = -rotateSpeedHorBall;
+            lastHorRopeRotateVel = -sceneData.horBallSpeed;
         }
-        if (firstHorRope.rotation.x >= maxAngleHorBall) {
-            firstHorRopeRotateVel = -rotateSpeedHorBall;
+        if (firstHorRope.rotation.x >= sceneData.horBallMaxAngle) {
+            firstHorRopeRotateVel = -sceneData.horBallSpeed;
         }
         // when first ball&rope is staying
     }
     else if (firstHorRopeRotateVel == 0) {
         if (lastHorRope.rotation.x >= 0) {
             playBallAudio();
-            firstHorRopeRotateVel = rotateSpeedHorBall;
+            firstHorRopeRotateVel = sceneData.horBallSpeed;
             lastHorRope.rotation.x = 0;
             lastHorRopeRotateVel = 0;
         }
-        if (lastHorRope.rotation.x <= -maxAngleHorBall) {
-            lastHorRopeRotateVel = rotateSpeedHorBall;
+        if (lastHorRope.rotation.x <= -sceneData.horBallMaxAngle) {
+            lastHorRopeRotateVel = sceneData.horBallSpeed;
         }
     }
     // update first and last rope rotations
@@ -180,13 +200,13 @@ export function render() {
     firstHorRope.rotation.x += firstHorRopeRotateVel;
     lastHorRope.rotation.x += lastHorRopeRotateVel;
     // update first and last ball positions
-    firstVerBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstVerRope.rotation.z) + BALL_RADIUS * (1 - verBallAmount + 2 * 0); // original x of first ver ball
+    firstVerBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(firstVerRope.rotation.z) + BALL_RADIUS * (1 - sceneData.verBallAmount + 2 * 0); // original x of first ver ball
     firstVerBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstVerRope.rotation.z);
-    lastVerBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastVerRope.rotation.z) + BALL_RADIUS * (1 - verBallAmount + 2 * (verBallAmount - 1)); // original x of last ver ball
+    lastVerBall.position.x = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(lastVerRope.rotation.z) + BALL_RADIUS * (1 - sceneData.verBallAmount + 2 * (sceneData.verBallAmount - 1)); // original x of last ver ball
     lastVerBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastVerRope.rotation.z);
-    firstHorBall.position.z = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(-firstHorRope.rotation.x) + BALL_RADIUS * (1 - horBallAmount + 2 * 0); // original z of first hor ball
+    firstHorBall.position.z = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(-firstHorRope.rotation.x) + BALL_RADIUS * (1 - sceneData.horBallAmount + 2 * 0); // original z of first hor ball
     firstHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(firstHorRope.rotation.x);
-    lastHorBall.position.z = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(-lastHorRope.rotation.x) + BALL_RADIUS * (1 - horBallAmount + 2 * (horBallAmount - 1)); // original z of last hor ball
+    lastHorBall.position.z = (ROPE_LENGHT + BALL_RADIUS) * Math.sin(-lastHorRope.rotation.x) + BALL_RADIUS * (1 - sceneData.horBallAmount + 2 * (sceneData.horBallAmount - 1)); // original z of last hor ball
     lastHorBall.position.y = ROPE_TO_FLOOR - (ROPE_LENGHT + BALL_RADIUS) * Math.cos(lastHorRope.rotation.x);
 }
 function updateBallNumber() {
@@ -215,9 +235,10 @@ function updateBallNumber() {
         scene.remove(rope);
         ropes = [];
     });
-    createBalls(verBallAmount, horBallAmount);
-    createRopes(verBallAmount, horBallAmount);
-    // add objects
+    // create and add objects to groups
+    createBalls(sceneData.verBallAmount, sceneData.horBallAmount);
+    createRopes(sceneData.verBallAmount, sceneData.horBallAmount);
+    // add objects to scene
     balls.forEach(ball => scene.add(ball));
     ropes.forEach(rope => scene.add(rope));
     if (objectIsSelected) {
@@ -316,11 +337,11 @@ function createRopes(verAmount, horAmount) {
         }
     }
     // init rotations
-    firstVerRope.rotation.z = -maxAngleVerBall; // firstVerRope = ropes[0]
-    firstVerRopeRotateVel = rotateSpeedVerBall;
+    firstVerRope.rotation.z = -sceneData.verBallMaxAngle; // firstVerRope = ropes[0]
+    firstVerRopeRotateVel = sceneData.verBallSpeed;
     lastVerRopeRotateVel = 0;
-    firstHorRope.rotation.x = maxAngleVerBall; // firstHorRope = ropes[verAmount]
-    firstHorRopeRotateVel = -rotateSpeedVerBall;
+    firstHorRope.rotation.x = sceneData.verBallMaxAngle; // firstHorRope = ropes[verAmount]
+    firstHorRopeRotateVel = -sceneData.horBallSpeed;
     lastHorRopeRotateVel = 0;
 }
 function createRope(x, y, z) {

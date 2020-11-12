@@ -14,7 +14,10 @@ import { RenderPass } from '/jsm/postprocessing/RenderPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js'
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js'
 
-const socket: SocketIOClient.Socket = io()
+export const socket: SocketIOClient.Socket = io()
+socket.on("message", (data: any) => {
+    console.log(data)
+})
 
 export let camera: THREE.PerspectiveCamera
 const CAMERA_FOV: number = 50 //degrees
@@ -26,7 +29,7 @@ export let muted: boolean = true
 let orbitControlsEnabled: boolean = true
 
 let currentTask: any // TODO: use type, maybe create class for each task?
-const FIRST_SCENE_INDEX: number = 5
+const FIRST_SCENE_INDEX: number = 2
 let currentScene: THREE.Scene
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
 export const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false })
@@ -371,13 +374,13 @@ function switchScene(scenceIndex: number) {
 
     orbitControls.enabled = orbitControlsEnabled
 
-     // update skybox controller value
-     if (skyboxController !== undefined) {
+    // update skybox controller value
+    if (skyboxController !== undefined) {
         if (currentTask.skybox === undefined) {
             Param.Skybox = 'none'
         } else {
             Param.Skybox = currentTask.skybox
-            if(currentSceneIsNew) {
+            if (currentSceneIsNew) {
                 generateSkybox()
             }
         }

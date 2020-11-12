@@ -1,14 +1,14 @@
 import express from "express"
 import path from "path"
 import http from "http"
-import socketIO from "socket.io"
+import SocketIO from "socket.io"
 
 const port: number = 3000
 
 class App {
     private server: http.Server
     private port: number
-    private io: socketIO.Server
+    private io: SocketIO.Server
 
     constructor(port: number) {
         this.port = port
@@ -47,16 +47,29 @@ class App {
         app.use('/jsm/shaders/SMAAShader.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/shaders/SMAAShader.js')));
 
         this.server = new http.Server(app);
-        this.io = new socketIO.Server(this.server)
+        this.io = new SocketIO.Server(this.server)
     }
 
     public Start() {
         this.server.listen(process.env.PORT || this.port, () => {
             console.log(`Server listening on port ${this.port}.`)
-        })       
+        })
 
-        this.io.on("connection", socket=>{
-            console.log(`Welcome ${socket.id}`)
+        this.io.on("connection", (socket: SocketIO.Socket) => {
+            console.log(`User connected: ${socket.id}`)
+            socket.emit("message", `Welcome ${socket.id}`);
+            socket.broadcast.emit("message", "Everybody, say hello to " + socket.id);
+
+            socket.on("changeSceneData", (data: any) => {
+                // emit to all sockets except the socket making change
+                socket.broadcast.emit("updateSceneData", data)
+
+                // emit to all sockets
+                // this.io.sockets.emit("updateSceneData", data)
+            })
+            socket.on("disconnect", () => {
+                console.log(`User disconnected: ${socket.id}`)
+            })
         })
     }
 }

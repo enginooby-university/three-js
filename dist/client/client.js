@@ -13,7 +13,10 @@ import { RenderPass } from '/jsm/postprocessing/RenderPass.js';
 // import { BloomPass } from '/jsm/postprocessing/BloomPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js';
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js';
-const socket = io();
+export const socket = io();
+socket.on("message", (data) => {
+    console.log(data);
+});
 export let camera;
 const CAMERA_FOV = 50; //degrees
 const CAMERA_NEAR = 0.001;
@@ -22,7 +25,7 @@ let pause = false;
 export let muted = true;
 let orbitControlsEnabled = true;
 let currentTask; // TODO: use type, maybe create class for each task?
-const FIRST_SCENE_INDEX = 5;
+const FIRST_SCENE_INDEX = 2;
 let currentScene;
 const canvas = document.getElementById("threejs-canvas");
 export const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
