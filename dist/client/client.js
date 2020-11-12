@@ -26,7 +26,7 @@ let pause = false;
 export let muted = true;
 let orbitControlsEnabled = true;
 let currentTask; // TODO: use type, maybe create class for each task?
-const FIRST_SCENE_INDEX = 2;
+const FIRST_SCENE_INDEX = 6;
 let currentScene;
 const canvas = document.getElementById("threejs-canvas");
 export const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false });
@@ -69,7 +69,7 @@ let texture_rt;
 let texture_lf;
 let materialArray;
 const Param = {
-    Skybox: "arid",
+    Skybox: "dust",
     BloomPass: {
         opacity: 1
     },
@@ -87,7 +87,7 @@ const Param = {
     },
 };
 export const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+export const mouse = new THREE.Vector2();
 init();
 animate(1);
 export function showLoadingScreen() {
@@ -435,8 +435,8 @@ function getTexturePath(texturePosition) {
 }
 /* END SKYBOX */
 /* WINDOW EVENTS */
-window.addEventListener('click', onWindowClick, false);
-function onWindowClick(event) {
+window.addEventListener('click', selectObject, false);
+function selectObject(event) {
     // calculate mouse position in normalized device coordinates
     // (-1 to +1) for both components
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
