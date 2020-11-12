@@ -14,6 +14,7 @@ import { RenderPass } from '/jsm/postprocessing/RenderPass.js';
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js';
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js';
 export const socket = io();
+export let socketEnabled = true;
 socket.on("message", (data) => {
     console.log(data);
 });
@@ -177,7 +178,8 @@ function createDatGUI() {
             "Arid": "arid",
             "Cocoa": "cocoa",
             "Dust": "dust",
-        }
+        },
+        socketEnabled: true
     };
     skyboxController = gui.add(Param, 'Skybox', options.skybox).onChange((value) => {
         if (value == 'none') {
@@ -189,6 +191,7 @@ function createDatGUI() {
         }
         currentTask.setSkybox(value);
     });
+    gui.add(options, "socketEnabled", true).name("Multi-user mode").onChange(() => socketEnabled = options.socketEnabled);
     const guiFolder = gui.addFolder('GUI');
     guiFolder.add(gui, 'width', 100, 300, 1);
     createControlFolder();

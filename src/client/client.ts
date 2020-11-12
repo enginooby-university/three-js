@@ -15,6 +15,7 @@ import { FilmPass } from '/jsm/postprocessing/FilmPass.js'
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js'
 
 export const socket: SocketIOClient.Socket = io()
+export let socketEnabled: boolean = true
 socket.on("message", (data: any) => {
     console.log(data)
 })
@@ -206,9 +207,9 @@ function createDatGUI() {
             "Arid": "arid",
             "Cocoa": "cocoa",
             "Dust": "dust",
-        }
+        },
+        socketEnabled: true
     }
-
     skyboxController = gui.add(Param, 'Skybox', options.skybox).onChange((value) => {
         if (value == 'none') {
             const currentSkybox = currentScene.getObjectByName('skybox')!
@@ -218,6 +219,8 @@ function createDatGUI() {
         }
         currentTask.setSkybox(value)
     })
+
+    gui.add(options, "socketEnabled", true).name("Multi-user mode").onChange(() => socketEnabled = options.socketEnabled)
 
     const guiFolder = gui.addFolder('GUI')
     guiFolder.add(gui, 'width', 100, 300, 1)

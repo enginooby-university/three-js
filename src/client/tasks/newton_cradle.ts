@@ -2,7 +2,7 @@ import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import Helper from '../helpers/common-helpers.js'
 import * as THREE from '/build/three.module.js'
-import { socket, transformControls, attachToDragControls, muted, raycaster } from '../client.js'
+import { socket, socketEnabled, transformControls, attachToDragControls, muted, raycaster } from '../client.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -127,32 +127,45 @@ function createDatGUI() {
     const verticalGroupFolder = gui.addFolder('Vertical group')
     controllers.push(verticalGroupFolder.add(sceneData, 'verBallAmount', 3, 9, 1).name('Ball number').onFinishChange((value) => {
         updateBallNumber()
-        socket.emit('changeSceneData', sceneData)
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     }))
 
     controllers.push(verticalGroupFolder.add(sceneData, 'verBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').onFinishChange(value => {
-        socket.emit('changeSceneData', sceneData)
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     }))
     controllers.push(verticalGroupFolder.add(sceneData, 'verBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').onFinishChange(value => {
-        socket.emit('changeSceneData', sceneData)
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     }))
     verticalGroupFolder.open()
 
     const horizontalGroupFolder = gui.addFolder('Horizontal group')
-    horizontalGroupFolder.add(sceneData, 'horBallAmount', 3, 9, 1).name('Ball number').onFinishChange(() => {
+    controllers.push(horizontalGroupFolder.add(sceneData, 'horBallAmount', 3, 9, 1).name('Ball number').onFinishChange(() => {
         updateBallNumber()
-        socket.emit('changeSceneData', sceneData)
-    })
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
+    }))
     controllers.push(horizontalGroupFolder.add(sceneData, 'horBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').onFinishChange(value => {
-        socket.emit('changeSceneData', sceneData)
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     }))
     controllers.push(horizontalGroupFolder.add(sceneData, 'horBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').onFinishChange(value => {
-        socket.emit('changeSceneData', sceneData)
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     }))
     horizontalGroupFolder.open()
 
     // when receive update from other sockets
     socket.on("updateSceneData", (newSceneData: SceneData) => {
+        if (!socketEnabled) return
         // update ball number in different sockets only when change ball number, of course :)
         if (newSceneData.verBallAmount != sceneData.verBallAmount || newSceneData.horBallAmount != sceneData.horBallAmount) {
             copySceneData(sceneData, newSceneData)
@@ -167,6 +180,7 @@ function createDatGUI() {
         })
         console.log(`User ${socket.id} made a change`)
     })
+
 
     DatHelper.createDirectionalLightFolder(gui, directionalLight)
     const ballFolder: GUI = gui.addFolder("Balls")
