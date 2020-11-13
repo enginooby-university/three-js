@@ -2,7 +2,6 @@ import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 import { raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
-import { create } from 'domain'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -16,7 +15,13 @@ export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
-    pointRadius: 1
+    wireframe: false,
+    pointRadius: 1,
+    metalness: 0.4,
+    roughness: 0.19,
+    opacity: 1,
+    widthSegments: 25,
+    heightSegments: 25,
 }
 
 const UNCLAIMED: number = 0
@@ -27,7 +32,7 @@ let vsAi: boolean = true  // RED
 var gameOver: boolean = false;
 
 let cage: THREE.LineSegments
-const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, 25, 25)
+const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments)
 const points: THREE.Mesh[] = [];
 
 const winCombinations: number[][] = [
@@ -79,40 +84,42 @@ export function render() {
         const targetX: number = point.userData.targetPosition.x
         const lowBoundX: number = targetX - MOVE_SPEED
         const highBoundX: number = targetX + MOVE_SPEED
-        if (point.position.x < lowBoundX) {
-            point.position.x += MOVE_SPEED
-        } else if (highBoundX < point.position.x) {
-            point.position.x -= MOVE_SPEED
-        } else {
-            if (point.position.x != targetX)
+        if (point.position.x != targetX) {
+            if (point.position.x < lowBoundX) {
+                point.position.x += MOVE_SPEED
+            } else if (highBoundX < point.position.x) {
+                point.position.x -= MOVE_SPEED
+            } else {
                 point.position.x = targetX
+            }
         }
 
         const targetY: number = point.userData.targetPosition.y
         const lowBoundY: number = targetY - MOVE_SPEED
         const highBoundY: number = targetY + MOVE_SPEED
-        if (point.position.y < lowBoundY) {
-            point.position.y += MOVE_SPEED
-        } else if (highBoundY < point.position.y) {
-            point.position.y -= MOVE_SPEED
-        } else {
-            if (point.position.y != targetY)
+        if (point.position.y != targetY) {
+            if (point.position.y < lowBoundY) {
+                point.position.y += MOVE_SPEED
+            } else if (highBoundY < point.position.y) {
+                point.position.y -= MOVE_SPEED
+            } else {
                 point.position.y = targetY
+            }
         }
 
         const targetZ: number = point.userData.targetPosition.z
         const lowBoundZ: number = targetZ - MOVE_SPEED
         const highBoundZ: number = targetZ + MOVE_SPEED
-        if (point.position.z < lowBoundZ) {
-            point.position.z += MOVE_SPEED
-        } else if (highBoundZ < point.position.z) {
-            point.position.z -= MOVE_SPEED
-        } else {
-            if (point.position.z != targetZ)
+        if (point.position.z != targetZ) {
+            if (point.position.z < lowBoundZ) {
+                point.position.z += MOVE_SPEED
+            } else if (highBoundZ < point.position.z) {
+                point.position.z -= MOVE_SPEED
+            } else {
                 point.position.z = targetZ
+            }
         }
     })
-
 }
 
 function createLights() {
@@ -137,8 +144,11 @@ function createDatGUI() {
         console.log(vsAi)
     })
 
-    const pointFolder: GUI = gui.addFolder("Points")
-    pointFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
+    const pointsFolder: GUI = gui.addFolder("Points")
+    pointsFolder.add(sceneData, "wireframe", false).onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = value)
+    })
+    pointsFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
         console.log(sceneData.pointRadius)
         points.forEach(point => {
             scene.remove(cage)
@@ -150,7 +160,31 @@ function createDatGUI() {
             updatePointsPositions()
         })
     })
-    pointFolder.open()
+
+    // const pointsMaterialFolder: GUI = pointsFolder.addFolder("Material")
+    pointsFolder.add(sceneData, "roughness", 0, 1).onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).roughness = value)
+    })
+    pointsFolder.add(sceneData, "metalness", 0, 1).onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).metalness = value)
+    })
+    pointsFolder.add(sceneData, "opacity", 0.5, 1).onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).opacity = value)
+    })
+    pointsFolder.add(sceneData, "widthSegments", 1, 25).onFinishChange(value => {
+        points.forEach(point => {
+            point.geometry.dispose()
+            point.geometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments)
+        })
+    })
+    pointsFolder.add(sceneData, "heightSegments", 1, 25).onFinishChange(value => {
+        points.forEach(point => {
+            point.geometry.dispose()
+            point.geometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments)
+        })
+    })
+
+    pointsFolder.open()
 }
 
 function createCage() {
@@ -187,7 +221,15 @@ function createPoints() {
     range.forEach(function (x) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                const point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                const pointMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff,
+                    metalness: sceneData.metalness,
+                    roughness: sceneData.roughness,
+                    transparent: true,
+                    wireframe: sceneData.wireframe,
+                    opacity: sceneData.opacity,
+                })
+                const point = new THREE.Mesh(pointGeometry, pointMaterial);
                 point.userData.id = index++
                 point.userData.claim = UNCLAIMED;
                 points.push(point);

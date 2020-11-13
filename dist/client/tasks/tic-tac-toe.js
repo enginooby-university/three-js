@@ -11,7 +11,13 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
-    pointRadius: 1
+    wireframe: false,
+    pointRadius: 1,
+    metalness: 0.4,
+    roughness: 0.19,
+    opacity: 1,
+    widthSegments: 25,
+    heightSegments: 25,
 };
 const UNCLAIMED = 0;
 const RED = 1;
@@ -20,7 +26,7 @@ let currentTurn = RED;
 let vsAi = true; // RED
 var gameOver = false;
 let cage;
-const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, 25, 25);
+const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
 const points = [];
 const winCombinations = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14],
@@ -64,41 +70,44 @@ export function render() {
         const targetX = point.userData.targetPosition.x;
         const lowBoundX = targetX - MOVE_SPEED;
         const highBoundX = targetX + MOVE_SPEED;
-        if (point.position.x < lowBoundX) {
-            point.position.x += MOVE_SPEED;
-        }
-        else if (highBoundX < point.position.x) {
-            point.position.x -= MOVE_SPEED;
-        }
-        else {
-            if (point.position.x != targetX)
+        if (point.position.x != targetX) {
+            if (point.position.x < lowBoundX) {
+                point.position.x += MOVE_SPEED;
+            }
+            else if (highBoundX < point.position.x) {
+                point.position.x -= MOVE_SPEED;
+            }
+            else {
                 point.position.x = targetX;
+            }
         }
         const targetY = point.userData.targetPosition.y;
         const lowBoundY = targetY - MOVE_SPEED;
         const highBoundY = targetY + MOVE_SPEED;
-        if (point.position.y < lowBoundY) {
-            point.position.y += MOVE_SPEED;
-        }
-        else if (highBoundY < point.position.y) {
-            point.position.y -= MOVE_SPEED;
-        }
-        else {
-            if (point.position.y != targetY)
+        if (point.position.y != targetY) {
+            if (point.position.y < lowBoundY) {
+                point.position.y += MOVE_SPEED;
+            }
+            else if (highBoundY < point.position.y) {
+                point.position.y -= MOVE_SPEED;
+            }
+            else {
                 point.position.y = targetY;
+            }
         }
         const targetZ = point.userData.targetPosition.z;
         const lowBoundZ = targetZ - MOVE_SPEED;
         const highBoundZ = targetZ + MOVE_SPEED;
-        if (point.position.z < lowBoundZ) {
-            point.position.z += MOVE_SPEED;
-        }
-        else if (highBoundZ < point.position.z) {
-            point.position.z -= MOVE_SPEED;
-        }
-        else {
-            if (point.position.z != targetZ)
+        if (point.position.z != targetZ) {
+            if (point.position.z < lowBoundZ) {
+                point.position.z += MOVE_SPEED;
+            }
+            else if (highBoundZ < point.position.z) {
+                point.position.z -= MOVE_SPEED;
+            }
+            else {
                 point.position.z = targetZ;
+            }
         }
     });
 }
@@ -121,8 +130,11 @@ function createDatGUI() {
         vsAi = value;
         console.log(vsAi);
     });
-    const pointFolder = gui.addFolder("Points");
-    pointFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
+    const pointsFolder = gui.addFolder("Points");
+    pointsFolder.add(sceneData, "wireframe", false).onFinishChange(value => {
+        points.forEach(point => point.material.wireframe = value);
+    });
+    pointsFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
         console.log(sceneData.pointRadius);
         points.forEach(point => {
             scene.remove(cage);
@@ -133,7 +145,29 @@ function createDatGUI() {
             updatePointsPositions();
         });
     });
-    pointFolder.open();
+    // const pointsMaterialFolder: GUI = pointsFolder.addFolder("Material")
+    pointsFolder.add(sceneData, "roughness", 0, 1).onFinishChange(value => {
+        points.forEach(point => point.material.roughness = value);
+    });
+    pointsFolder.add(sceneData, "metalness", 0, 1).onFinishChange(value => {
+        points.forEach(point => point.material.metalness = value);
+    });
+    pointsFolder.add(sceneData, "opacity", 0.5, 1).onFinishChange(value => {
+        points.forEach(point => point.material.opacity = value);
+    });
+    pointsFolder.add(sceneData, "widthSegments", 1, 25).onFinishChange(value => {
+        points.forEach(point => {
+            point.geometry.dispose();
+            point.geometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
+        });
+    });
+    pointsFolder.add(sceneData, "heightSegments", 1, 25).onFinishChange(value => {
+        points.forEach(point => {
+            point.geometry.dispose();
+            point.geometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
+        });
+    });
+    pointsFolder.open();
 }
 function createCage() {
     const bars = new THREE.Geometry();
@@ -155,7 +189,15 @@ function createPoints() {
     range.forEach(function (x) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                const point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                const pointMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xffffff,
+                    metalness: sceneData.metalness,
+                    roughness: sceneData.roughness,
+                    transparent: true,
+                    wireframe: sceneData.wireframe,
+                    opacity: sceneData.opacity,
+                });
+                const point = new THREE.Mesh(pointGeometry, pointMaterial);
                 point.userData.id = index++;
                 point.userData.claim = UNCLAIMED;
                 points.push(point);
