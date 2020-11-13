@@ -10,14 +10,17 @@ export const setSkybox = (name) => skybox = name;
 export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
+let sceneData = {
+    pointRadius: 1
+};
 const UNCLAIMED = 0;
 const RED = 1;
 const GREEN = 2;
 let currentTurn = RED;
 let vsAi = true; // RED
 var gameOver = false;
-const POINT_RADIUS = 1;
-const pointGeometry = new THREE.SphereGeometry(POINT_RADIUS, 25, 25);
+let cage;
+const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, 25, 25);
 const points = [];
 const winCombinations = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14],
@@ -42,7 +45,7 @@ export function init() {
     transformableObjects.forEach(child => {
         scene.add(child);
     });
-    // start game
+    // start game with AI
     if (currentTurn == RED && vsAi == true) {
         aiMove();
         changeTurn(RED);
@@ -76,33 +79,57 @@ function createDatGUI() {
         vsAi = value;
         console.log(vsAi);
     });
+    const pointFolder = gui.addFolder("Points");
+    pointFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
+        console.log(sceneData.pointRadius);
+        points.forEach(point => {
+            scene.remove(cage);
+            createCage();
+            point.scale.x = radius;
+            point.scale.y = radius;
+            point.scale.z = radius;
+            updatePointsPositions();
+        });
+    });
+    pointFolder.open();
 }
 function createCage() {
     const bars = new THREE.Geometry();
     const DISTANCE_FACTOR = 1.5; // number of points/2
+    const R = sceneData.pointRadius;
     bars.vertices.push(
     // x bars
-    new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * 1.5), 
+    new THREE.Vector3(R * 4, R * 1.5, R * -1.5), new THREE.Vector3(R * -4, R * 1.5, R * -1.5), new THREE.Vector3(R * 4, R * 1.5, R * 1.5), new THREE.Vector3(R * -4, R * 1.5, R * 1.5), new THREE.Vector3(R * 4, R * -1.5, R * -1.5), new THREE.Vector3(R * -4, R * -1.5, R * -1.5), new THREE.Vector3(R * 4, R * -1.5, R * 1.5), new THREE.Vector3(R * -4, R * -1.5, R * 1.5), 
     // y bars
-    new THREE.Vector3(POINT_RADIUS * 1.5, 4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * 1.5, -4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * 1.5, 4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * 1.5, -4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * -1.5, 4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * -1.5, -4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * -1.5, 4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * -1.5, -4 * POINT_RADIUS, POINT_RADIUS * -1.5), 
+    new THREE.Vector3(R * 1.5, R * 4, R * 1.5), new THREE.Vector3(R * 1.5, -R * 4, R * 1.5), new THREE.Vector3(R * 1.5, R * 4, R * -1.5), new THREE.Vector3(R * 1.5, -R * 4, R * -1.5), new THREE.Vector3(R * -1.5, R * 4, R * 1.5), new THREE.Vector3(R * -1.5, -R * 4, R * 1.5), new THREE.Vector3(R * -1.5, R * 4, R * -1.5), new THREE.Vector3(R * -1.5, -R * 4, R * -1.5), 
     // z bars
-    new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * 1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * 1.5, -4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * 1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * 1.5, -4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * -1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * -1.5, -4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * -1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * -1.5, -4 * POINT_RADIUS));
-    var cage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
+    new THREE.Vector3(R * 1.5, R * 1.5, R * 4), new THREE.Vector3(R * 1.5, R * 1.5, -R * 4), new THREE.Vector3(R * -1.5, R * 1.5, R * 4), new THREE.Vector3(R * -1.5, R * 1.5, -R * 4), new THREE.Vector3(R * 1.5, R * -1.5, R * 4), new THREE.Vector3(R * 1.5, R * -1.5, -R * 4), new THREE.Vector3(R * -1.5, R * -1.5, R * 4), new THREE.Vector3(R * -1.5, R * -1.5, -R * 4));
+    cage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
     scene.add(cage);
 }
 function createPoints() {
-    const range = [-POINT_RADIUS * 3, 0, POINT_RADIUS * 3];
+    const range = [-sceneData.pointRadius * 3, 0, sceneData.pointRadius * 3];
     let index = 0;
     range.forEach(function (x) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                var point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                const point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0xffffff }));
                 point.userData.id = index++;
                 point.userData.claim = UNCLAIMED;
                 points.push(point);
                 point.position.set(x, y, z);
-                // transformableObjects.push(point)
                 scene.add(point);
+            });
+        });
+    });
+}
+function updatePointsPositions() {
+    const range = [sceneData.pointRadius * -3, 0, sceneData.pointRadius * 3];
+    let index = 0;
+    range.forEach(function (x) {
+        range.forEach(function (y) {
+            range.forEach(function (z) {
+                points[index++].position.set(x, y, z);
             });
         });
     });
@@ -273,6 +300,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
+            console.log(`Point id: ${hoveredPoint.userData.id}`);
             if (currentTurn == RED) {
                 hoveredPoint.material.emissive.setHex(0xff0000);
             }

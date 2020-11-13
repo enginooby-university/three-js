@@ -2,6 +2,7 @@ import { GUI } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 import { raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
+import { create } from 'domain'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -14,6 +15,10 @@ export let transformableObjects: THREE.Mesh[] = []
 export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
+let sceneData = {
+    pointRadius: 1
+}
+
 const UNCLAIMED: number = 0
 const RED: number = 1
 const GREEN: number = 2
@@ -21,8 +26,8 @@ let currentTurn: number = RED
 let vsAi: boolean = true  // RED
 var gameOver: boolean = false;
 
-const POINT_RADIUS: number = 1
-const pointGeometry = new THREE.SphereGeometry(POINT_RADIUS, 25, 25)
+let cage: THREE.LineSegments
+const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, 25, 25)
 const points: THREE.Mesh[] = [];
 
 const winCombinations: number[][] = [
@@ -52,7 +57,7 @@ export function init() {
         scene.add(child)
     })
 
-    // start game
+    // start game with AI
     if (currentTurn == RED && vsAi == true) {
         aiMove()
         changeTurn(RED)
@@ -92,49 +97,76 @@ function createDatGUI() {
         vsAi = value
         console.log(vsAi)
     })
+
+    const pointFolder: GUI = gui.addFolder("Points")
+    pointFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
+        console.log(sceneData.pointRadius)
+        points.forEach(point => {
+            scene.remove(cage)
+            createCage()
+            point.scale.x = radius
+            point.scale.y = radius
+            point.scale.z = radius
+
+            updatePointsPositions()
+        })
+    })
+    pointFolder.open()
 }
 
 function createCage() {
     const bars = new THREE.Geometry();
     const DISTANCE_FACTOR: number = 1.5 // number of points/2
+    const R = sceneData.pointRadius
 
     bars.vertices.push(
         // x bars
-        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * -1.5),
-        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * 1.5),
-        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * -1.5),
-        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * 1.5),
+        new THREE.Vector3(R * 4, R * 1.5, R * -1.5), new THREE.Vector3(R * -4, R * 1.5, R * -1.5),
+        new THREE.Vector3(R * 4, R * 1.5, R * 1.5), new THREE.Vector3(R * -4, R * 1.5, R * 1.5),
+        new THREE.Vector3(R * 4, R * -1.5, R * -1.5), new THREE.Vector3(R * -4, R * -1.5, R * -1.5),
+        new THREE.Vector3(R * 4, R * -1.5, R * 1.5), new THREE.Vector3(R * -4, R * -1.5, R * 1.5),
 
         // y bars
-        new THREE.Vector3(POINT_RADIUS * 1.5, 4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * 1.5, -4 * POINT_RADIUS, POINT_RADIUS * 1.5),
-        new THREE.Vector3(POINT_RADIUS * 1.5, 4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * 1.5, -4 * POINT_RADIUS, POINT_RADIUS * -1.5),
-        new THREE.Vector3(POINT_RADIUS * -1.5, 4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * -1.5, -4 * POINT_RADIUS, POINT_RADIUS * 1.5),
-        new THREE.Vector3(POINT_RADIUS * -1.5, 4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * -1.5, -4 * POINT_RADIUS, POINT_RADIUS * -1.5),
+        new THREE.Vector3(R * 1.5, R * 4, R * 1.5), new THREE.Vector3(R * 1.5, -R * 4, R * 1.5),
+        new THREE.Vector3(R * 1.5, R * 4, R * -1.5), new THREE.Vector3(R * 1.5, -R * 4, R * -1.5),
+        new THREE.Vector3(R * -1.5, R * 4, R * 1.5), new THREE.Vector3(R * -1.5, -R * 4, R * 1.5),
+        new THREE.Vector3(R * -1.5, R * 4, R * -1.5), new THREE.Vector3(R * -1.5, -R * 4, R * -1.5),
 
         // z bars
-        new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * 1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * 1.5, -4 * POINT_RADIUS),
-        new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * 1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * 1.5, -4 * POINT_RADIUS),
-        new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * -1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * -1.5, -4 * POINT_RADIUS),
-        new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * -1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * -1.5, -4 * POINT_RADIUS),
+        new THREE.Vector3(R * 1.5, R * 1.5, R * 4), new THREE.Vector3(R * 1.5, R * 1.5, -R * 4),
+        new THREE.Vector3(R * -1.5, R * 1.5, R * 4), new THREE.Vector3(R * -1.5, R * 1.5, -R * 4),
+        new THREE.Vector3(R * 1.5, R * -1.5, R * 4), new THREE.Vector3(R * 1.5, R * -1.5, -R * 4),
+        new THREE.Vector3(R * -1.5, R * -1.5, R * 4), new THREE.Vector3(R * -1.5, R * -1.5, -R * 4),
     );
-    var cage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
+    cage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
     scene.add(cage);
 }
 
 function createPoints() {
-    const range: number[] = [-POINT_RADIUS * 3, 0, POINT_RADIUS * 3];
+    const range: number[] = [-sceneData.pointRadius * 3, 0, sceneData.pointRadius * 3];
     let index: number = 0;
     range.forEach(function (x) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                var point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0xffffff }));
+                const point = new THREE.Mesh(pointGeometry, new THREE.MeshPhongMaterial({ color: 0xffffff }));
                 point.userData.id = index++
                 point.userData.claim = UNCLAIMED;
                 points.push(point);
 
                 point.position.set(x, y, z);
-                // transformableObjects.push(point)
                 scene.add(point);
+            })
+        })
+    });
+}
+
+function updatePointsPositions() {
+    const range: number[] = [sceneData.pointRadius * -3, 0, sceneData.pointRadius * 3];
+    let index: number = 0;
+    range.forEach(function (x) {
+        range.forEach(function (y) {
+            range.forEach(function (z) {
+                points[index++].position.set(x, y, z);
             })
         })
     });
@@ -310,6 +342,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
+            console.log(`Point id: ${hoveredPoint.userData.id}`)
 
             if (currentTurn == RED) {
                 (hoveredPoint.material as any).emissive.setHex(0xff0000);
