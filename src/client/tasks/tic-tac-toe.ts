@@ -17,7 +17,8 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 const UNCLAIMED: number = 0
 const RED: number = 1
 const GREEN: number = 2
-let currentTurn: number = GREEN
+let currentTurn: number = RED
+let vsAi: boolean = true  // RED
 var gameOver: boolean = false;
 
 const pointGeometry = new THREE.SphereGeometry(0.3, 25, 25)
@@ -26,9 +27,9 @@ const points: THREE.Mesh[] = [];
 const winCombinations: number[][] = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14],
     [15, 16, 17], [18, 19, 20], [21, 22, 23], [24, 25, 26],
-    [6, 15, 24], [7, 16, 25], [8, 17, 26], [3, 12, 21], [4, 13, 22], 
+    [6, 15, 24], [7, 16, 25], [8, 17, 26], [3, 12, 21], [4, 13, 22],
     [5, 14, 23], [0, 9, 18], [1, 10, 19], [2, 11, 20],
-    [18, 21, 24], [19, 22, 25], [20, 23, 26], [9, 12, 25], [10, 13, 16], 
+    [18, 21, 24], [19, 22, 25], [20, 23, 26], [9, 12, 25], [10, 13, 16],
     [11, 14, 17], [0, 3, 6], [1, 4, 7], [2, 5, 8],
     [6, 16, 26], [8, 16, 24], [3, 13, 23], [5, 13, 21], [0, 10, 20], [2, 10, 18],
     [18, 22, 26], [20, 22, 24], [2, 14, 26], [8, 10, 20], [2, 4, 6], [0, 4, 8],
@@ -49,6 +50,12 @@ export function init() {
     transformableObjects.forEach(child => {
         scene.add(child)
     })
+
+    // start game
+    if (currentTurn == RED && vsAi == true) {
+        aiMove()
+        changeTurn(RED)
+    }
 }
 
 export function setupControls() {
@@ -72,7 +79,18 @@ function createLights() {
 }
 
 function createDatGUI() {
+    const gameModes = {
+        "Play with AI": true,
+        "Local multi-player": false,
+    }
+    const selectedGameMode = {
+        vsAi: true
+    }
     gui = new GUI()
+    gui.add(selectedGameMode, "vsAi", gameModes).name("Game mode").onChange(value => {
+        vsAi = value
+        console.log(vsAi)
+    })
 }
 
 function createCage() {
@@ -121,9 +139,11 @@ function resetGame() {
         (point.material as any).color.setHex(0xffffff);
     });
 
-    // loser goes first in new game
+    // loser in previous game goes first in new game
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    if (currentTurn == RED) {
+
+    // TODO: refactor duplication
+    if (currentTurn == RED && vsAi==true) {
         aiMove()
         changeTurn(RED)
     }
@@ -247,13 +267,12 @@ function changeTurn(previousColor: number) {
     } else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
         console.log(`${currentTurn} turn`)
-        if (currentTurn == RED) {
+        if (currentTurn == RED && vsAi == true) {
             aiMove()
             changeTurn(RED)
         }
     }
 }
-
 
 /* EVENTS */
 window.addEventListener('click', selectPoint, false);

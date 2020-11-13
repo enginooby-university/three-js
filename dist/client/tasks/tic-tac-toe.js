@@ -13,7 +13,8 @@ export const setSelectedObjectId = (index) => selectedObjectId = index;
 const UNCLAIMED = 0;
 const RED = 1;
 const GREEN = 2;
-let currentTurn = GREEN;
+let currentTurn = RED;
+let vsAi = true; // RED
 var gameOver = false;
 const pointGeometry = new THREE.SphereGeometry(0.3, 25, 25);
 const points = [];
@@ -40,6 +41,11 @@ export function init() {
     transformableObjects.forEach(child => {
         scene.add(child);
     });
+    // start game
+    if (currentTurn == RED && vsAi == true) {
+        aiMove();
+        changeTurn(RED);
+    }
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -57,7 +63,18 @@ function createLights() {
     scene.add(new THREE.AmbientLight(0x101010));
 }
 function createDatGUI() {
+    const gameModes = {
+        "Play with AI": true,
+        "Local multi-player": false,
+    };
+    const selectedGameMode = {
+        vsAi: true
+    };
     gui = new GUI();
+    gui.add(selectedGameMode, "vsAi", gameModes).name("Game mode").onChange(value => {
+        vsAi = value;
+        console.log(vsAi);
+    });
 }
 function createCage() {
     const base = new THREE.Geometry();
@@ -93,9 +110,10 @@ function resetGame() {
         point.userData.claim = UNCLAIMED;
         point.material.color.setHex(0xffffff);
     });
-    // loser goes first in new game
+    // loser in previous game goes first in new game
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    if (currentTurn == RED) {
+    // TODO: refactor duplication
+    if (currentTurn == RED && vsAi == true) {
         aiMove();
         changeTurn(RED);
     }
@@ -219,7 +237,7 @@ function changeTurn(previousColor) {
     else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
         console.log(`${currentTurn} turn`);
-        if (currentTurn == RED) {
+        if (currentTurn == RED && vsAi == true) {
             aiMove();
             changeTurn(RED);
         }
