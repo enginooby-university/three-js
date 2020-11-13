@@ -58,7 +58,49 @@ export function setupControls() {
     scene.add(transformControls);
 }
 // const clock: THREE.Clock = new THREE.Clock()
+const MOVE_SPEED = 0.05;
 export function render() {
+    points.forEach(point => {
+        const targetX = point.userData.targetPosition.x;
+        const lowBoundX = targetX - MOVE_SPEED;
+        const highBoundX = targetX + MOVE_SPEED;
+        if (point.position.x < lowBoundX) {
+            point.position.x += MOVE_SPEED;
+        }
+        else if (highBoundX < point.position.x) {
+            point.position.x -= MOVE_SPEED;
+        }
+        else {
+            if (point.position.x != targetX)
+                point.position.x = targetX;
+        }
+        const targetY = point.userData.targetPosition.y;
+        const lowBoundY = targetY - MOVE_SPEED;
+        const highBoundY = targetY + MOVE_SPEED;
+        if (point.position.y < lowBoundY) {
+            point.position.y += MOVE_SPEED;
+        }
+        else if (highBoundY < point.position.y) {
+            point.position.y -= MOVE_SPEED;
+        }
+        else {
+            if (point.position.y != targetY)
+                point.position.y = targetY;
+        }
+        const targetZ = point.userData.targetPosition.z;
+        const lowBoundZ = targetZ - MOVE_SPEED;
+        const highBoundZ = targetZ + MOVE_SPEED;
+        if (point.position.z < lowBoundZ) {
+            point.position.z += MOVE_SPEED;
+        }
+        else if (highBoundZ < point.position.z) {
+            point.position.z -= MOVE_SPEED;
+        }
+        else {
+            if (point.position.z != targetZ)
+                point.position.z = targetZ;
+        }
+    });
 }
 function createLights() {
     const light = new THREE.DirectionalLight(0xe0e0e0);
@@ -117,6 +159,7 @@ function createPoints() {
                 point.userData.id = index++;
                 point.userData.claim = UNCLAIMED;
                 points.push(point);
+                point.userData.targetPosition = new THREE.Vector3(x, y, z);
                 point.position.set(x, y, z);
                 scene.add(point);
             });
@@ -129,7 +172,8 @@ function updatePointsPositions() {
     range.forEach(function (x) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                points[index++].position.set(x, y, z);
+                points[index++].userData.targetPosition.set(x, y, z);
+                // points[index++].position.set(x, y, z);
             });
         });
     });

@@ -73,7 +73,46 @@ export function setupControls() {
 }
 
 // const clock: THREE.Clock = new THREE.Clock()
+const MOVE_SPEED = 0.05
 export function render() {
+    points.forEach(point => {
+        const targetX: number = point.userData.targetPosition.x
+        const lowBoundX: number = targetX - MOVE_SPEED
+        const highBoundX: number = targetX + MOVE_SPEED
+        if (point.position.x < lowBoundX) {
+            point.position.x += MOVE_SPEED
+        } else if (highBoundX < point.position.x) {
+            point.position.x -= MOVE_SPEED
+        } else {
+            if (point.position.x != targetX)
+                point.position.x = targetX
+        }
+
+        const targetY: number = point.userData.targetPosition.y
+        const lowBoundY: number = targetY - MOVE_SPEED
+        const highBoundY: number = targetY + MOVE_SPEED
+        if (point.position.y < lowBoundY) {
+            point.position.y += MOVE_SPEED
+        } else if (highBoundY < point.position.y) {
+            point.position.y -= MOVE_SPEED
+        } else {
+            if (point.position.y != targetY)
+                point.position.y = targetY
+        }
+
+        const targetZ: number = point.userData.targetPosition.z
+        const lowBoundZ: number = targetZ - MOVE_SPEED
+        const highBoundZ: number = targetZ + MOVE_SPEED
+        if (point.position.z < lowBoundZ) {
+            point.position.z += MOVE_SPEED
+        } else if (highBoundZ < point.position.z) {
+            point.position.z -= MOVE_SPEED
+        } else {
+            if (point.position.z != targetZ)
+                point.position.z = targetZ
+        }
+    })
+
 }
 
 function createLights() {
@@ -153,6 +192,7 @@ function createPoints() {
                 point.userData.claim = UNCLAIMED;
                 points.push(point);
 
+                point.userData.targetPosition = new THREE.Vector3(x, y, z)
                 point.position.set(x, y, z);
                 scene.add(point);
             })
@@ -166,7 +206,8 @@ function updatePointsPositions() {
     range.forEach(function (x) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                points[index++].position.set(x, y, z);
+                (points[index++].userData.targetPosition as THREE.Vector3).set(x, y, z)
+                // points[index++].position.set(x, y, z);
             })
         })
     });
