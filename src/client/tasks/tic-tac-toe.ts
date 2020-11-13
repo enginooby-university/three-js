@@ -21,7 +21,8 @@ let currentTurn: number = RED
 let vsAi: boolean = true  // RED
 var gameOver: boolean = false;
 
-const pointGeometry = new THREE.SphereGeometry(0.3, 25, 25)
+const POINT_RADIUS: number = 1
+const pointGeometry = new THREE.SphereGeometry(POINT_RADIUS, 25, 25)
 const points: THREE.Mesh[] = [];
 
 const winCombinations: number[][] = [
@@ -94,28 +95,34 @@ function createDatGUI() {
 }
 
 function createCage() {
-    const base = new THREE.Geometry();
-    for (var z = -1; z < 1; z++) {
-        base.vertices.push(
-            new THREE.Vector3(0, 0, z), new THREE.Vector3(3, 0, z),
-            new THREE.Vector3(0, 1, z), new THREE.Vector3(3, 1, z),
-            new THREE.Vector3(1, 2, z), new THREE.Vector3(1, -1, z),
-            new THREE.Vector3(2, 2, z), new THREE.Vector3(2, -1, z)
-        );
-    }
-    for (var x = 1; x < 3; x++) {
-        base.vertices.push(
-            new THREE.Vector3(x, 1, 1), new THREE.Vector3(x, 1, -2),
-            new THREE.Vector3(x, 0, 1), new THREE.Vector3(x, 0, -2)
-        );
-    }
-    var cage = new THREE.LineSegments(base, new THREE.LineBasicMaterial(), THREE.LinePieces);
-    cage.position.set(-1.5, -0.5, 0.5);
+    const bars = new THREE.Geometry();
+    const DISTANCE_FACTOR: number = 1.5 // number of points/2
+
+    bars.vertices.push(
+        // x bars
+        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * -1.5),
+        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * 1.5, POINT_RADIUS * 1.5),
+        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * -1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * -1.5),
+        new THREE.Vector3(4 * POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * 1.5), new THREE.Vector3(4 * -POINT_RADIUS, POINT_RADIUS * -1.5, POINT_RADIUS * 1.5),
+
+        // y bars
+        new THREE.Vector3(POINT_RADIUS * 1.5, 4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * 1.5, -4 * POINT_RADIUS, POINT_RADIUS * 1.5),
+        new THREE.Vector3(POINT_RADIUS * 1.5, 4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * 1.5, -4 * POINT_RADIUS, POINT_RADIUS * -1.5),
+        new THREE.Vector3(POINT_RADIUS * -1.5, 4 * POINT_RADIUS, POINT_RADIUS * 1.5), new THREE.Vector3(POINT_RADIUS * -1.5, -4 * POINT_RADIUS, POINT_RADIUS * 1.5),
+        new THREE.Vector3(POINT_RADIUS * -1.5, 4 * POINT_RADIUS, POINT_RADIUS * -1.5), new THREE.Vector3(POINT_RADIUS * -1.5, -4 * POINT_RADIUS, POINT_RADIUS * -1.5),
+
+        // z bars
+        new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * 1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * 1.5, -4 * POINT_RADIUS),
+        new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * 1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * 1.5, -4 * POINT_RADIUS),
+        new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * -1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * 1.5, POINT_RADIUS * -1.5, -4 * POINT_RADIUS),
+        new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * -1.5, 4 * POINT_RADIUS), new THREE.Vector3(POINT_RADIUS * -1.5, POINT_RADIUS * -1.5, -4 * POINT_RADIUS),
+    );
+    var cage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
     scene.add(cage);
 }
 
 function createPoints() {
-    const range: number[] = [-1, 0, 1];
+    const range: number[] = [-POINT_RADIUS * 3, 0, POINT_RADIUS * 3];
     let index: number = 0;
     range.forEach(function (x) {
         range.forEach(function (y) {
@@ -143,7 +150,7 @@ function resetGame() {
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
 
     // TODO: refactor duplication
-    if (currentTurn == RED && vsAi==true) {
+    if (currentTurn == RED && vsAi == true) {
         aiMove()
         changeTurn(RED)
     }

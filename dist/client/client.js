@@ -271,8 +271,8 @@ function createHelperGUIFolder() {
     //     gridHelper.visible = value
     //     cameraHelper.visible = value
     // })
-    helperFolder.addFolder("Axes").add(axesHelper, "visible", true);
-    helperFolder.addFolder("Grid").add(gridHelper, "visible", true);
+    helperFolder.addFolder("Axes").add(axesHelper, "visible", false);
+    helperFolder.addFolder("Grid").add(gridHelper, "visible", false);
     helperFolder.addFolder("Camera").add(cameraHelper, "visible", false);
     // helperFolder.open()
     return helperFolder;
@@ -322,7 +322,9 @@ function switchScene(scenceIndex) {
     // update source link corresponding to current task (scene)
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[scenceIndex][1];
     currentScene.add(axesHelper);
+    axesHelper.visible = false;
     currentScene.add(gridHelper);
+    gridHelper.visible = false;
     currentScene.add(cameraHelper);
     orbitControls.enabled = orbitControlsEnabled;
     // update skybox controller value
