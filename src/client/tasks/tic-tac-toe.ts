@@ -1,4 +1,4 @@
-import { GUI } from '/jsm/libs/dat.gui.module.js'
+import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
 import { raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
@@ -20,8 +20,8 @@ let sceneData = {
     point: {
         wireframe: false,
         radius: 1,
-        metalness: 1,
-        roughness: 0.73,
+        metalness: 0.4,
+        roughness: 1,
         opacity: 1,
         widthSegments: 1,
         heightSegments: 1,
@@ -272,7 +272,13 @@ function createDatGUI() {
         vsAi = value
     })
 
-    gui.add(sceneData, "boardSize", 3, 20).step(1).name("Board N x N x N").onFinishChange(() => {
+    let winPointController: GUIController
+    gui.add(sceneData, "boardSize", 3, 20).step(1).name("Board N x N x N").onFinishChange((value) => {
+        // update winpoint
+        gameData.winPoint = value
+        sceneData.winPoint = value
+        winPointController.updateDisplay()
+
         generateWinCombinations()
         createPoints()
         createBars()
@@ -281,7 +287,7 @@ function createDatGUI() {
     const gameData = {
         winPoint: sceneData.winPoint
     }
-    const winPointController = gui.add(gameData, "winPoint", 3, 20).step(1).name("Win point").onFinishChange(value => {
+    winPointController = gui.add(gameData, "winPoint", 3, 20).step(1).name("Win point").onFinishChange(value => {
         if (value > sceneData.boardSize) {
             alert("Win point should be less than board size!")
             winPointController.setValue(sceneData.winPoint)
@@ -582,9 +588,10 @@ function changeTurn(previousColor: number) {
 }
 
 /* EVENTS */
-window.addEventListener('click', selectPoint, false);
+const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
+canvas.addEventListener('contextmenu', selectPoint, false);
 function selectPoint(event: MouseEvent) {
-
+    if (event.button != 2) return // right click only
     const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object as THREE.Mesh
