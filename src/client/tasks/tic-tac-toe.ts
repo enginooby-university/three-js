@@ -1,7 +1,7 @@
 import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as DatHelper from '../helpers/dat_helper.js'
 import * as THREE from '/build/three.module.js'
-import { raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
+import { outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -30,7 +30,7 @@ let sceneData = {
         visible: true,
         color: new THREE.Color(0xffffff),
         linewidth: 3,
-        opacity: 1,
+        opacity: 0.6,
     }
 }
 
@@ -45,6 +45,7 @@ let winCombinations: number[][] = []
 let bars: THREE.LineSegments
 let pointGeometry: THREE.SphereGeometry
 let points: THREE.Mesh[] = [];
+let lastSelectedPoint: THREE.Mesh
 
 export function init() {
     isInitialized = true
@@ -516,6 +517,7 @@ function aiMove() {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
                         (points[index].material as any).color.setHex(0xff0000);
+                        updateLastSelectedPoint(points[index])
                     }
                 });
                 moved = true;
@@ -535,6 +537,7 @@ function aiMove() {
             if (points[index].userData.claim == UNCLAIMED) {
                 points[index].userData.claim = RED;
                 (points[index].material as any).color.setHex(0xff0000);
+                updateLastSelectedPoint(points[index])
                 moved = true;
                 throw movedEx;
             }
@@ -545,6 +548,7 @@ function aiMove() {
             if (point.userData.claim == UNCLAIMED) {
                 point.userData.claim = RED;
                 (point.material as any).color.setHex(0xff0000);
+                updateLastSelectedPoint(point)
                 moved = true;
                 throw movedEx;
             }
@@ -589,18 +593,34 @@ function changeTurn(previousColor: number) {
 
 /* EVENTS */
 const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
-canvas.addEventListener('contextmenu', selectPoint, false);
+window.addEventListener('contextmenu', selectPoint, false);
 function selectPoint(event: MouseEvent) {
+    event.preventDefault()
     if (event.button != 2) return // right click only
+
     const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object as THREE.Mesh
         if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
             (selectedPoint.material as any).color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
-            selectedPoint.userData.claim = currentTurn
+            selectedPoint.userData.claim = currentTurn;
+            updateLastSelectedPoint(selectedPoint)
             changeTurn(currentTurn);
         }
     }
+}
+
+function updateLastSelectedPoint(selectedPoint: THREE.Mesh) {
+    // un-highlight previous selected point
+    if (lastSelectedPoint !== undefined ) {
+        // (lastSelectedPoint.material as THREE.Material).depthWrite = true
+    }
+
+    // update and highlight new selected point
+    lastSelectedPoint = selectedPoint;
+    // (lastSelectedPoint.material as THREE.Material).depthWrite = false
+    if (outlinePass !== undefined)
+        outlinePass.selectedObjects = [lastSelectedPoint as THREE.Object3D]
 }
 
 let hoveredPoint: THREE.Mesh | null

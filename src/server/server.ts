@@ -35,6 +35,7 @@ class App {
 
         app.use('/jsm/postprocessing/EffectComposer.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/EffectComposer.js')))
         app.use('/jsm/postprocessing/RenderPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/RenderPass.js')))
+        app.use('/jsm/postprocessing/OutlinePass', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/OutlinePass.js')))
         app.use('/jsm/postprocessing/BloomPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/BloomPass.js')))
         app.use('/jsm/postprocessing/ShaderPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/ShaderPass.js')))
         app.use('/jsm/postprocessing/FilmPass.js', express.static(path.join(__dirname, '../../node_modules/three/examples/jsm/postprocessing/FilmPass.js')))

@@ -10,6 +10,7 @@ import * as DatHelper from './helpers/dat_helper.js';
 import { VRButton } from '/jsm/webxr/VRButton.js';
 import { EffectComposer } from '/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from '/jsm/postprocessing/RenderPass.js';
+import { OutlinePass } from '/jsm/postprocessing/OutlinePass'; // TODO: add .js
 // import { BloomPass } from '/jsm/postprocessing/BloomPass.js'
 import { FilmPass } from '/jsm/postprocessing/FilmPass.js';
 import { SMAAPass } from '/jsm/postprocessing/SMAAPass.js';
@@ -33,6 +34,7 @@ export const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: fal
 let composer;
 // let bloomPass: BloomPass
 let filmPass;
+export let outlinePass;
 const gui = new GUI({
     autoPlace: true,
     width: 232,
@@ -356,9 +358,12 @@ function updateScenePostProcessing() {
     filmPass = new FilmPass(Param.FilmPass.nIntensity, Param.FilmPass.sIntensity, Param.FilmPass.sCount, Param.FilmPass.grayscale);
     filmPass.renderToScreen = true;
     composer.addPass(filmPass);
-    // for antialias since built-in antialiasing doesn’t work with post-processing
+    // for antialiasing since built-in antialiasing doesn’t work with post-processing
     const smaaPass = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
     composer.addPass(smaaPass);
+    outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), currentScene, camera);
+    outlinePass.edgeGlow = 3;
+    composer.addPass(outlinePass);
     createPostProcessingFolder();
 }
 function createStatsGUI() {

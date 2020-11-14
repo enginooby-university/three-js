@@ -21,6 +21,7 @@
             "/jsm/libs/stats.module.js":["../../node_modules/three/examples/jsm/libs/stats.module"],
             "/jsm/webxr/VRButton.js":["../../node_modules/three/examples/jsm/webxr/VRButton"],
 
+            "/jsm/postprocessing/OutlinePass.js":["../../node_modules/three/examples/jsm/postprocessing/OutlinePass"],
             "/jsm/postprocessing/EffectComposer.js":["../../node_modules/three/examples/jsm/postprocessing/EffectComposer"],
             "/jsm/postprocessing/RenderPass.js":["../../node_modules/three/examples/jsm/postprocessing/RenderPass"],
             // "/jsm/postprocessing/BloomPass.js":["../../node_modules/three/examples/jsm/postprocessing/BloomPass"],
