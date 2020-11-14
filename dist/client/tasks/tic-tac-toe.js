@@ -11,7 +11,7 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
-    pointNumber: 6,
+    pointNumber: 5,
     wireframe: false,
     pointRadius: 1,
     metalness: 0.4,
@@ -28,12 +28,12 @@ let vsAi = true; // RED
 var gameOver = false;
 let winCombinations = [];
 let cage;
-const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
-const points = [];
+let pointGeometry;
+let points = [];
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
-    generateWinCombinations(sceneData.pointNumber);
+    generateWinCombinations();
     createLights();
     createCage();
     createPoints();
@@ -55,54 +55,49 @@ export function setupControls() {
     scene.add(transformControls);
 }
 // const clock: THREE.Clock = new THREE.Clock()
-const MOVE_SPEED = 0.05;
+// const MOVE_SPEED = 0.05
 export function render() {
-    points.forEach(point => {
-        const targetX = point.userData.targetPosition.x;
-        const lowBoundX = targetX - MOVE_SPEED;
-        const highBoundX = targetX + MOVE_SPEED;
-        if (point.position.x != targetX) {
-            if (point.position.x < lowBoundX) {
-                point.position.x += MOVE_SPEED;
-            }
-            else if (highBoundX < point.position.x) {
-                point.position.x -= MOVE_SPEED;
-            }
-            else {
-                point.position.x = targetX;
-            }
-        }
-        const targetY = point.userData.targetPosition.y;
-        const lowBoundY = targetY - MOVE_SPEED;
-        const highBoundY = targetY + MOVE_SPEED;
-        if (point.position.y != targetY) {
-            if (point.position.y < lowBoundY) {
-                point.position.y += MOVE_SPEED;
-            }
-            else if (highBoundY < point.position.y) {
-                point.position.y -= MOVE_SPEED;
-            }
-            else {
-                point.position.y = targetY;
-            }
-        }
-        const targetZ = point.userData.targetPosition.z;
-        const lowBoundZ = targetZ - MOVE_SPEED;
-        const highBoundZ = targetZ + MOVE_SPEED;
-        if (point.position.z != targetZ) {
-            if (point.position.z < lowBoundZ) {
-                point.position.z += MOVE_SPEED;
-            }
-            else if (highBoundZ < point.position.z) {
-                point.position.z -= MOVE_SPEED;
-            }
-            else {
-                point.position.z = targetZ;
-            }
-        }
-    });
+    // points.forEach(point => {
+    //     const targetX: number = point.userData.targetPosition.x
+    //     const lowBoundX: number = targetX - MOVE_SPEED
+    //     const highBoundX: number = targetX + MOVE_SPEED
+    //     if (point.position.x != targetX) {
+    //         if (point.position.x < lowBoundX) {
+    //             point.position.x += MOVE_SPEED
+    //         } else if (highBoundX < point.position.x) {
+    //             point.position.x -= MOVE_SPEED
+    //         } else {
+    //             point.position.x = targetX
+    //         }
+    //     }
+    //     const targetY: number = point.userData.targetPosition.y
+    //     const lowBoundY: number = targetY - MOVE_SPEED
+    //     const highBoundY: number = targetY + MOVE_SPEED
+    //     if (point.position.y != targetY) {
+    //         if (point.position.y < lowBoundY) {
+    //             point.position.y += MOVE_SPEED
+    //         } else if (highBoundY < point.position.y) {
+    //             point.position.y -= MOVE_SPEED
+    //         } else {
+    //             point.position.y = targetY
+    //         }
+    //     }
+    //     const targetZ: number = point.userData.targetPosition.z
+    //     const lowBoundZ: number = targetZ - MOVE_SPEED
+    //     const highBoundZ: number = targetZ + MOVE_SPEED
+    //     if (point.position.z != targetZ) {
+    //         if (point.position.z < lowBoundZ) {
+    //             point.position.z += MOVE_SPEED
+    //         } else if (highBoundZ < point.position.z) {
+    //             point.position.z -= MOVE_SPEED
+    //         } else {
+    //             point.position.z = targetZ
+    //         }
+    //     }
+    // })
 }
-function generateWinCombinations(n) {
+function generateWinCombinations() {
+    const n = sceneData.pointNumber;
     // reset combinations
     winCombinations = [];
     // n^2 lines parallel to x axis
@@ -215,21 +210,23 @@ function createDatGUI() {
     gui = new GUI();
     gui.add(selectedGameMode, "vsAi", gameModes).name("Game mode").onChange(value => {
         vsAi = value;
-        console.log(vsAi);
+    });
+    gui.add(sceneData, "pointNumber", 3, 20).step(1).name("A x A x A").onFinishChange(() => {
+        generateWinCombinations();
+        createPoints();
+        createCage();
     });
     const pointsFolder = gui.addFolder("Points");
     pointsFolder.add(sceneData, "wireframe", false).onFinishChange(value => {
         points.forEach(point => point.material.wireframe = value);
     });
-    pointsFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("Radius").onFinishChange(radius => {
+    pointsFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("size").onFinishChange(radius => {
         console.log(sceneData.pointRadius);
         points.forEach(point => {
-            scene.remove(cage);
-            createCage();
             point.scale.x = radius;
             point.scale.y = radius;
             point.scale.z = radius;
-            updatePointsPositions();
+            // updatePointsPositions()
         });
     });
     // const pointsMaterialFolder: GUI = pointsFolder.addFolder("Material")
@@ -257,20 +254,35 @@ function createDatGUI() {
     pointsFolder.open();
 }
 function createCage() {
+    // reset cage
+    if (cage !== undefined) {
+        scene.remove(cage);
+        console.log(cage.children);
+    }
     const bars = new THREE.Geometry();
-    const DISTANCE_FACTOR = 1.5; // number of points/2
-    const R = sceneData.pointRadius;
-    bars.vertices.push(
-    // x bars
-    new THREE.Vector3(R * 4, R * 1.5, R * -1.5), new THREE.Vector3(R * -4, R * 1.5, R * -1.5), new THREE.Vector3(R * 4, R * 1.5, R * 1.5), new THREE.Vector3(R * -4, R * 1.5, R * 1.5), new THREE.Vector3(R * 4, R * -1.5, R * -1.5), new THREE.Vector3(R * -4, R * -1.5, R * -1.5), new THREE.Vector3(R * 4, R * -1.5, R * 1.5), new THREE.Vector3(R * -4, R * -1.5, R * 1.5), 
-    // y bars
-    new THREE.Vector3(R * 1.5, R * 4, R * 1.5), new THREE.Vector3(R * 1.5, -R * 4, R * 1.5), new THREE.Vector3(R * 1.5, R * 4, R * -1.5), new THREE.Vector3(R * 1.5, -R * 4, R * -1.5), new THREE.Vector3(R * -1.5, R * 4, R * 1.5), new THREE.Vector3(R * -1.5, -R * 4, R * 1.5), new THREE.Vector3(R * -1.5, R * 4, R * -1.5), new THREE.Vector3(R * -1.5, -R * 4, R * -1.5), 
-    // z bars
-    new THREE.Vector3(R * 1.5, R * 1.5, R * 4), new THREE.Vector3(R * 1.5, R * 1.5, -R * 4), new THREE.Vector3(R * -1.5, R * 1.5, R * 4), new THREE.Vector3(R * -1.5, R * 1.5, -R * 4), new THREE.Vector3(R * 1.5, R * -1.5, R * 4), new THREE.Vector3(R * 1.5, R * -1.5, -R * 4), new THREE.Vector3(R * -1.5, R * -1.5, R * 4), new THREE.Vector3(R * -1.5, R * -1.5, -R * 4));
-    cage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
+    const R = 1; //sceneData.pointRadius
+    const n = sceneData.pointNumber;
+    const n2 = Math.pow(n, 2);
+    for (let i = 0; i < n - 1; i++) {
+        for (let j = 0; j < n - 1; j++) {
+            // bars parallel to x axis
+            bars.vertices.push(new THREE.Vector3(R * (3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * -(3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)));
+            // bars parallel to y axis
+            bars.vertices.push(new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
+            // bars parallel to z axis
+            bars.vertices.push(new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3))), new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3))));
+        }
+    }
+    const newCage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
+    cage = newCage;
     scene.add(cage);
 }
 function createPoints() {
+    // reset points
+    points.forEach(point => scene.remove(point));
+    points = [];
+    console.log(points);
+    pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
     let range = [];
     for (let i = 0; i < sceneData.pointNumber; i++) {
         range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i);
@@ -298,21 +310,20 @@ function createPoints() {
         });
     });
 }
-function updatePointsPositions() {
-    let range = [];
-    for (let i = 0; i < sceneData.pointNumber; i++) {
-        range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i);
-    }
-    let index = 0;
-    range.forEach(function (x) {
-        range.forEach(function (y) {
-            range.forEach(function (z) {
-                points[index++].userData.targetPosition.set(x, y, z);
-                // points[index++].position.set(x, y, z);
-            });
-        });
-    });
-}
+// function updatePointsPositions() {
+//     let range: number[] = []
+//     for (let i = 0; i < sceneData.pointNumber; i++) {
+//         range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i)
+//     }
+//     let index: number = 0;
+//     range.forEach(function (x) {
+//         range.forEach(function (y) {
+//             range.forEach(function (z) {
+//                 (points[index++].userData.targetPosition as THREE.Vector3).set(x, y, z)
+//             })
+//         })
+//     });
+// }
 function resetGame() {
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
@@ -454,11 +465,6 @@ function changeTurn(previousColor) {
 /* EVENTS */
 window.addEventListener('click', selectPoint, false);
 function selectPoint(event) {
-    console.log("You pressed button: " + event.button);
-    if (event.button == 2) {
-        console.log("right click");
-        return;
-    }
     const intersectObjects = getIntersectObjects(event);
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object;
