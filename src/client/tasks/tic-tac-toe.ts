@@ -37,7 +37,7 @@ let sceneData = {
 const UNCLAIMED: number = 0
 const RED: number = 1
 const GREEN: number = 2
-let currentTurn: number = RED
+let currentTurn: number = GREEN
 let vsAi: boolean = true  // RED
 var gameOver: boolean = false;
 let winCombinations: number[][] = []
@@ -58,15 +58,15 @@ export function init() {
     setupControls()
     createDatGUI()
 
-    transformableObjects.forEach(child => {
-        scene.add(child)
-    })
+    // transformableObjects.forEach(child => {
+    //     scene.add(child)
+    // })
 
     // start game with AI
-    if (currentTurn == RED && vsAi == true) {
-        aiMove()
-        changeTurn(RED)
-    }
+    // if (currentTurn == RED && vsAi == true) {
+    //     aiMove()
+    //     changeTurn(RED)
+    // }
 }
 
 export function setupControls() {
@@ -497,6 +497,7 @@ function aiMove() {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
                         (points[index].material as any).color.setHex(0xff0000);
+                        updateLastSelectedPoint(points[index])
                     }
                 });
                 moved = true;
@@ -531,6 +532,7 @@ function aiMove() {
     if (moved) return;
 
     // random move
+    // TODO: generate array for multi-size
     const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
     try {
         preferredIndexes.forEach(function (index) {

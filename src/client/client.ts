@@ -297,7 +297,7 @@ function createControlFolder() {
     //     TWO: THREE.TOUCH.DOLLY_PAN
     // }
 
-    controlFolder.open()
+    // controlFolder.open()
     return controlFolder
 }
 
@@ -322,6 +322,7 @@ function createHelperGUIFolder() {
     return helperFolder
 }
 
+// TODO: separate from createDatGUI?
 function createPostProcessingFolder() {
     // gui.removeFolder(bloomFolder)
     // const newBloomPassFolder = gui.addFolder('BloomPass');
@@ -342,7 +343,16 @@ function createPostProcessingFolder() {
     // newFilmPassFolder.add((<any>filmPass.uniforms).sIntensity, 'value', 0, 1).name('scanline intensity').onChange((value) => Data.FilmPass.sIntensity = value)
     // newFilmPassFolder.add((<any>filmPass.uniforms).sCount, 'value', 0, 1000).name('scanline count').onChange((value) => Data.FilmPass.sCount = value)
     newFilmPassFolder.open();
-    postProcessingFolder.open()
+
+    const outlinePassFolder = postProcessingFolder.addFolder("OutlinePass")
+    outlinePassFolder.add(outlinePass, 'edgeStrength', 0.01, 10)
+    outlinePassFolder.add(outlinePass, 'edgeGlow', 0.0, 5)
+    outlinePassFolder.add(outlinePass, 'edgeThickness', 1, 4)
+    outlinePassFolder.add(outlinePass, 'pulsePeriod', 0.0, 5)
+    outlinePassFolder.add(outlinePass, 'usePatternTexture', false)
+    outlinePassFolder.open()
+
+    // postProcessingFolder.open()
 }
 
 function switchScene(scenceIndex: number) {
@@ -422,6 +432,8 @@ function updateScenePostProcessing() {
 
     outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), currentScene, camera);
     outlinePass.edgeGlow = 3
+    outlinePass.pulsePeriod = 3
+    outlinePass.edgeStrength = 2
     composer.addPass(outlinePass);
 
     createPostProcessingFolder()
