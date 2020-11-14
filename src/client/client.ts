@@ -350,6 +350,18 @@ function createPostProcessingFolder() {
     outlinePassFolder.add(outlinePass, 'edgeThickness', 1, 4)
     outlinePassFolder.add(outlinePass, 'pulsePeriod', 0.0, 5)
     outlinePassFolder.add(outlinePass, 'usePatternTexture', false)
+
+    const outlineColor = {
+        visibleEdgeColor: '#ffffff',
+        hiddenEdgeColor: '#190a05',
+    }
+    outlinePassFolder.addColor(outlineColor, 'visibleEdgeColor').name("visible edge").onChange(function (value) {
+        outlinePass.visibleEdgeColor.set(value);
+    });
+    outlinePassFolder.addColor(outlineColor, 'hiddenEdgeColor').name("hidden edge").onChange(function (value) {
+        outlinePass.hiddenEdgeColor.set(value);
+    });
+
     outlinePassFolder.open()
 
     // postProcessingFolder.open()

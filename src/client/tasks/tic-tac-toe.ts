@@ -23,7 +23,7 @@ let sceneData = {
         metalness: 0.4,
         roughness: 1,
         opacity: 1,
-        widthSegments: 1,
+        widthSegments: 25,
         heightSegments: 1,
     },
     bar: {
