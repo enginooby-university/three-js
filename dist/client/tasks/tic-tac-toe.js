@@ -11,6 +11,7 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
+    pointNumber: 6,
     wireframe: false,
     pointRadius: 1,
     metalness: 0.4,
@@ -25,24 +26,14 @@ const GREEN = 2;
 let currentTurn = RED;
 let vsAi = true; // RED
 var gameOver = false;
+let winCombinations = [];
 let cage;
 const pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
 const points = [];
-const winCombinations = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14],
-    [15, 16, 17], [18, 19, 20], [21, 22, 23], [24, 25, 26],
-    [6, 15, 24], [7, 16, 25], [8, 17, 26], [3, 12, 21], [4, 13, 22],
-    [5, 14, 23], [0, 9, 18], [1, 10, 19], [2, 11, 20],
-    [18, 21, 24], [19, 22, 25], [20, 23, 26], [9, 12, 25], [10, 13, 16],
-    [11, 14, 17], [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [6, 16, 26], [8, 16, 24], [3, 13, 23], [5, 13, 21], [0, 10, 20], [2, 10, 18],
-    [18, 22, 26], [20, 22, 24], [2, 14, 26], [8, 10, 20], [2, 4, 6], [0, 4, 8],
-    [0, 12, 24], [6, 12, 18], [2, 13, 24], [6, 13, 20], [0, 13, 26], [8, 13, 18],
-    [11, 13, 15], [9, 13, 17], [1, 13, 25], [7, 13, 19]
-];
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
+    generateWinCombinations(sceneData.pointNumber);
     createLights();
     createCage();
     createPoints();
@@ -110,6 +101,102 @@ export function render() {
             }
         }
     });
+}
+function generateWinCombinations(n) {
+    // reset combinations
+    winCombinations = [];
+    // n^2 lines parallel to x axis
+    for (let i = 0; i < Math.pow(n, 2); i++) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + Math.pow(n, 2) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    // n^2 lines parallel to y axis
+    for (let a = n - 3; a <= n - 1; a++) {
+        for (let i = Math.pow(n, 2) * a; i < Math.pow(n, 2) * a + n; i++) {
+            const winCombination = [];
+            for (let j = 0; j < n; j++) {
+                winCombination.push(i + j * n);
+            }
+            winCombinations.push(winCombination);
+        }
+    }
+    // n^2 lines parallel to z axis
+    for (let i = 0; i <= Math.pow(n, 3) - n; i += n) {
+        const winCombination = [];
+        for (let j = i; j < i + n; j++) {
+            winCombination.push(j);
+        }
+        winCombinations.push(winCombination);
+    }
+    // diagonal lines parallel to xy face
+    for (let i = 0; i < n; i++) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + (Math.pow(n, 2) + n) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    for (let i = Math.pow(n, 2) - n; i < Math.pow(n, 2); i++) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + (Math.pow(n, 2) - n) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    // diagonal lines parallel to xz face
+    for (let i = 0; i <= Math.pow(n, 2) - n; i += n) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + (Math.pow(n, 2) + 1) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    for (let i = n - 1; i <= Math.pow(n, 2) - 1; i += n) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + (Math.pow(n, 2) - 1) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    // diagonal lines parallel to yz face
+    for (let i = 0; i <= Math.pow(n, 2) * 2; i += Math.pow(n, 2)) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + (n + 1) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    for (let i = n - 1; i <= Math.pow(n, 2) * 2 + n - 1; i += Math.pow(n, 2)) {
+        const winCombination = [];
+        for (let j = 0; j < n; j++) {
+            winCombination.push(i + (n - 1) * j);
+        }
+        winCombinations.push(winCombination);
+    }
+    // 4 diagonal lines across the origin
+    let winCombination = [];
+    for (let i = 0; i < n; i++) {
+        winCombination.push(i + (Math.pow(n, 2) + n) * i);
+    }
+    winCombinations.push(winCombination);
+    winCombination = [];
+    for (let i = 0; i < n; i++) {
+        winCombination.push(n - 1 + (Math.pow(n, 2) + n - 1) * i);
+    }
+    winCombinations.push(winCombination);
+    winCombination = [];
+    for (let i = 0; i < n; i++) {
+        winCombination.push(Math.pow(n, 2) - n + (Math.pow(n, 2) - n + 1) * i);
+    }
+    winCombinations.push(winCombination);
+    winCombination = [];
+    for (let i = 0; i < n; i++) {
+        winCombination.push(Math.pow(n, 2) - 1 + (Math.pow(n, 2) - n - 1) * i);
+    }
+    winCombinations.push(winCombination);
 }
 function createLights() {
     const light = new THREE.DirectionalLight(0xe0e0e0);
@@ -184,7 +271,10 @@ function createCage() {
     scene.add(cage);
 }
 function createPoints() {
-    const range = [-sceneData.pointRadius * 3, 0, sceneData.pointRadius * 3];
+    let range = [];
+    for (let i = 0; i < sceneData.pointNumber; i++) {
+        range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i);
+    }
     let index = 0;
     range.forEach(function (x) {
         range.forEach(function (y) {
@@ -209,7 +299,10 @@ function createPoints() {
     });
 }
 function updatePointsPositions() {
-    const range = [sceneData.pointRadius * -3, 0, sceneData.pointRadius * 3];
+    let range = [];
+    for (let i = 0; i < sceneData.pointNumber; i++) {
+        range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i);
+    }
     let index = 0;
     range.forEach(function (x) {
         range.forEach(function (y) {
@@ -243,7 +336,7 @@ function checkWin(color) {
                 if (points[index].userData.claim == color)
                     count++;
             });
-            if (count === 3) {
+            if (count === sceneData.pointNumber) {
                 won = true;
                 throw breakEx;
             }
@@ -258,11 +351,11 @@ function checkWin(color) {
 function aiMove() {
     let moved = false;
     var movedEx = {};
-    // offensive move
+    // offensive move (finish game)
     try {
         winCombinations.forEach(function (winCombination) {
             const counts = countClaims(winCombination);
-            if ((counts["red"] === 2) && (counts["green"] === 0)) {
+            if ((counts["red"] === sceneData.pointNumber - 1) && (counts["green"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
@@ -284,7 +377,7 @@ function aiMove() {
         // defensive move
         winCombinations.forEach(function (winCombination) {
             var counts = countClaims(winCombination);
-            if ((countClaims(winCombination)["green"] === 2) && (counts["red"] === 0)) {
+            if ((countClaims(winCombination)["green"] === sceneData.pointNumber - 1) && (counts["red"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
@@ -361,6 +454,11 @@ function changeTurn(previousColor) {
 /* EVENTS */
 window.addEventListener('click', selectPoint, false);
 function selectPoint(event) {
+    console.log("You pressed button: " + event.button);
+    if (event.button == 2) {
+        console.log("right click");
+        return;
+    }
     const intersectObjects = getIntersectObjects(event);
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object;
@@ -386,7 +484,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
-            console.log(`Point id: ${hoveredPoint.userData.id}`);
+            // console.log(`Point id: ${hoveredPoint.userData.id}`)
             if (currentTurn == RED) {
                 hoveredPoint.material.emissive.setHex(0xff0000);
             }
