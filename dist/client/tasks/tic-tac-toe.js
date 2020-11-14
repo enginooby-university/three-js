@@ -11,14 +11,22 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
-    pointNumber: 5,
-    wireframe: false,
-    pointRadius: 1,
-    metalness: 0.4,
-    roughness: 0.19,
-    opacity: 1,
-    widthSegments: 25,
-    heightSegments: 25,
+    boardSize: 5,
+    point: {
+        wireframe: false,
+        radius: 1,
+        metalness: 1,
+        roughness: 0.73,
+        opacity: 1,
+        widthSegments: 1,
+        heightSegments: 1,
+    },
+    bar: {
+        visible: true,
+        color: new THREE.Color(0xffffff),
+        linewidth: 3,
+        opacity: 1,
+    }
 };
 const UNCLAIMED = 0;
 const RED = 1;
@@ -27,7 +35,7 @@ let currentTurn = RED;
 let vsAi = true; // RED
 var gameOver = false;
 let winCombinations = [];
-let cage;
+let bars;
 let pointGeometry;
 let points = [];
 export function init() {
@@ -35,7 +43,7 @@ export function init() {
     scene.background = new THREE.Color(0x333333);
     generateWinCombinations();
     createLights();
-    createCage();
+    createBars();
     createPoints();
     setupControls();
     createDatGUI();
@@ -97,7 +105,7 @@ export function render() {
     // })
 }
 function generateWinCombinations() {
-    const n = sceneData.pointNumber;
+    const n = sceneData.boardSize;
     // reset combinations
     winCombinations = [];
     // n^2 lines parallel to x axis
@@ -211,17 +219,16 @@ function createDatGUI() {
     gui.add(selectedGameMode, "vsAi", gameModes).name("Game mode").onChange(value => {
         vsAi = value;
     });
-    gui.add(sceneData, "pointNumber", 3, 20).step(1).name("A x A x A").onFinishChange(() => {
+    gui.add(sceneData, "boardSize", 3, 20).step(1).name("Board N x N x N").onFinishChange(() => {
         generateWinCombinations();
         createPoints();
-        createCage();
+        createBars();
     });
     const pointsFolder = gui.addFolder("Points");
-    pointsFolder.add(sceneData, "wireframe", false).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "wireframe", false).onFinishChange(value => {
         points.forEach(point => point.material.wireframe = value);
     });
-    pointsFolder.add(sceneData, "pointRadius", 0.5, 1, 0.1).name("size").onFinishChange(radius => {
-        console.log(sceneData.pointRadius);
+    pointsFolder.add(sceneData.point, "radius", 0.5, 1, 0.1).name("size").onFinishChange(radius => {
         points.forEach(point => {
             point.scale.x = radius;
             point.scale.y = radius;
@@ -230,62 +237,90 @@ function createDatGUI() {
         });
     });
     // const pointsMaterialFolder: GUI = pointsFolder.addFolder("Material")
-    pointsFolder.add(sceneData, "roughness", 0, 1).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "roughness", 0, 1).onFinishChange(value => {
         points.forEach(point => point.material.roughness = value);
     });
-    pointsFolder.add(sceneData, "metalness", 0, 1).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "metalness", 0, 1).onFinishChange(value => {
         points.forEach(point => point.material.metalness = value);
     });
-    pointsFolder.add(sceneData, "opacity", 0.5, 1).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "opacity", 0.5, 1).onFinishChange(value => {
         points.forEach(point => point.material.opacity = value);
     });
-    pointsFolder.add(sceneData, "widthSegments", 1, 25).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "widthSegments", 1, 25).onFinishChange(value => {
         points.forEach(point => {
             point.geometry.dispose();
-            point.geometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
+            point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments);
         });
     });
-    pointsFolder.add(sceneData, "heightSegments", 1, 25).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "heightSegments", 1, 25).onFinishChange(value => {
         points.forEach(point => {
             point.geometry.dispose();
-            point.geometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
+            point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.radius, sceneData.point.radius);
         });
     });
     pointsFolder.open();
+    const barsFolder = gui.addFolder("Bars");
+    barsFolder.add(sceneData.bar, "visible", true).name("visible").onChange(value => bars.visible = value);
+    barsFolder.add(sceneData.bar, "opacity", 0, 1).onFinishChange(value => {
+        bars.material.opacity = value;
+    });
+    barsFolder.add(sceneData.bar, "linewidth", 0, 10).name("thicc").onFinishChange(value => {
+        bars.material.linewidth = value;
+    });
+    const data = {
+        color: bars.material.color.getHex(),
+    };
+    barsFolder.addColor(data, 'color').onChange((value) => {
+        sceneData.bar.color = value;
+        bars.material.color.setHex(Number(data.color.toString().replace('#', '0x')));
+    });
+    barsFolder.open();
 }
-function createCage() {
-    // reset cage
-    if (cage !== undefined) {
-        scene.remove(cage);
-        console.log(cage.children);
+function handleColorChange(color) {
+    return function (value) {
+        if (typeof value === 'string') {
+            value = value.replace('#', '0x');
+        }
+        color.setHex(value);
+    };
+}
+function createBars() {
+    // reset bars
+    if (bars !== undefined) {
+        scene.remove(bars);
     }
-    const bars = new THREE.Geometry();
+    const barVectors = new THREE.Geometry();
     const R = 1; //sceneData.pointRadius
-    const n = sceneData.pointNumber;
-    const n2 = Math.pow(n, 2);
+    const n = sceneData.boardSize;
     for (let i = 0; i < n - 1; i++) {
         for (let j = 0; j < n - 1; j++) {
             // bars parallel to x axis
-            bars.vertices.push(new THREE.Vector3(R * (3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * -(3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)));
+            barVectors.vertices.push(new THREE.Vector3(R * (3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * -(3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)));
             // bars parallel to y axis
-            bars.vertices.push(new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
+            barVectors.vertices.push(new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
             // bars parallel to z axis
-            bars.vertices.push(new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3))), new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3))));
+            barVectors.vertices.push(new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3))), new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3))));
         }
     }
-    const newCage = new THREE.LineSegments(bars, new THREE.LineBasicMaterial(), THREE.LinePieces);
-    cage = newCage;
-    scene.add(cage);
+    const barMaterial = new THREE.LineBasicMaterial({
+        color: sceneData.bar.color,
+        linewidth: sceneData.bar.linewidth,
+        transparent: true,
+        opacity: sceneData.bar.opacity,
+    });
+    const newBars = new THREE.LineSegments(barVectors, barMaterial, THREE.LinePieces);
+    bars = newBars;
+    bars.visible = sceneData.bar.visible;
+    scene.add(bars);
 }
 function createPoints() {
     // reset points
     points.forEach(point => scene.remove(point));
     points = [];
-    console.log(points);
-    pointGeometry = new THREE.SphereGeometry(sceneData.pointRadius, sceneData.widthSegments, sceneData.heightSegments);
+    pointGeometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments);
     let range = [];
-    for (let i = 0; i < sceneData.pointNumber; i++) {
-        range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i);
+    for (let i = 0; i < sceneData.boardSize; i++) {
+        range.push((-3 * (sceneData.boardSize - 1)) / 2 + 3 * i);
     }
     let index = 0;
     range.forEach(function (x) {
@@ -293,11 +328,11 @@ function createPoints() {
             range.forEach(function (z) {
                 const pointMaterial = new THREE.MeshPhysicalMaterial({
                     color: 0xffffff,
-                    metalness: sceneData.metalness,
-                    roughness: sceneData.roughness,
+                    metalness: sceneData.point.metalness,
+                    roughness: sceneData.point.roughness,
                     transparent: true,
-                    wireframe: sceneData.wireframe,
-                    opacity: sceneData.opacity,
+                    wireframe: sceneData.point.wireframe,
+                    opacity: sceneData.point.opacity,
                 });
                 const point = new THREE.Mesh(pointGeometry, pointMaterial);
                 point.userData.id = index++;
@@ -347,7 +382,7 @@ function checkWin(color) {
                 if (points[index].userData.claim == color)
                     count++;
             });
-            if (count === sceneData.pointNumber) {
+            if (count === sceneData.boardSize) {
                 won = true;
                 throw breakEx;
             }
@@ -366,7 +401,7 @@ function aiMove() {
     try {
         winCombinations.forEach(function (winCombination) {
             const counts = countClaims(winCombination);
-            if ((counts["red"] === sceneData.pointNumber - 1) && (counts["green"] === 0)) {
+            if ((counts["red"] === sceneData.boardSize - 1) && (counts["green"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
@@ -388,7 +423,7 @@ function aiMove() {
         // defensive move
         winCombinations.forEach(function (winCombination) {
             var counts = countClaims(winCombination);
-            if ((countClaims(winCombination)["green"] === sceneData.pointNumber - 1) && (counts["red"] === 0)) {
+            if ((countClaims(winCombination)["green"] === sceneData.boardSize - 1) && (counts["red"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
