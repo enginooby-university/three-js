@@ -11,7 +11,7 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
-    dimession: 2,
+    dimension: 2,
     boardSize: 4,
     winPoint: 4,
     point: {
@@ -45,11 +45,8 @@ let lastSelectedPoint;
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
-    generateWinCombinations();
-    generateAiMoveIndexes();
+    initGame();
     createLights();
-    createBars();
-    createPoints();
     setupControls();
     createDatGUI();
     // transformableObjects.forEach(child => {
@@ -104,20 +101,26 @@ export function render() {
     //     }
     // })
 }
+function initGame() {
+    generateWinCombinations();
+    generateAiMoveIndexes();
+    createPoints();
+    createBars();
+}
 function generateWinCombinations() {
     const n = sceneData.boardSize;
     // reset combinations
     winCombinations = [];
     let winCombination = [];
     // lines parallel to z axis (common fomular for both 2D and 3D)
-    for (let i = 0; i <= Math.pow(n, sceneData.dimession) - n; i += n) {
+    for (let i = 0; i <= Math.pow(n, sceneData.dimension) - n; i += n) {
         const winCombination = [];
         for (let j = i; j < i + n; j++) {
             winCombination.push(j);
         }
         winCombinations.push(winCombination);
     }
-    if (sceneData.dimession == 2) {
+    if (sceneData.dimension == 2) {
         // lines parallel to y axis
         for (let i = 0; i < n; i++) {
             const winCombination = [];
@@ -259,16 +262,20 @@ function createDatGUI() {
     gui.add(selectedGameMode, "vsAi", gameModes).name("Game mode").onChange(value => {
         vsAi = value;
     });
+    const dimensionOptions = {
+        "2D": 2,
+        "3D": 3
+    };
+    gui.add(sceneData, "dimension", dimensionOptions).name("Dimension").onChange(value => {
+        initGame();
+    });
     let winPointController;
-    gui.add(sceneData, "boardSize", 3, 20).step(1).name("Board N x N x N").onFinishChange((value) => {
+    gui.add(sceneData, "boardSize", 3, 20).step(1).name("Board size").onFinishChange((value) => {
         // update winpoint
         gameData.winPoint = value;
         sceneData.winPoint = value;
         winPointController.updateDisplay();
-        generateWinCombinations();
-        generateAiMoveIndexes();
-        createPoints();
-        createBars();
+        initGame();
     });
     const gameData = {
         winPoint: sceneData.winPoint
@@ -343,7 +350,7 @@ function createBars() {
     const barVectors = new THREE.Geometry();
     const R = 1; //sceneData.pointRadius
     const n = sceneData.boardSize;
-    if (sceneData.dimession == 2) {
+    if (sceneData.dimension == 2) {
         for (let i = 0; i < n - 1; i++) {
             // bars parallel to y axis
             barVectors.vertices.push(new THREE.Vector3(0, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(0, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
@@ -385,7 +392,7 @@ function createPoints() {
         range.push((-3 * (sceneData.boardSize - 1)) / 2 + 3 * i);
     }
     // 2D
-    if (sceneData.dimession == 2) {
+    if (sceneData.dimension == 2) {
         range.forEach(function (y) {
             range.forEach(function (z) {
                 createPoint(0, y, z, index++);
@@ -471,7 +478,7 @@ function checkWin(color) {
 // just randomize for now
 function generateAiMoveIndexes() {
     const legitIndexes = [];
-    for (let i = 0; i < Math.pow(sceneData.boardSize, sceneData.dimession); i++) {
+    for (let i = 0; i < Math.pow(sceneData.boardSize, sceneData.dimension); i++) {
         legitIndexes.push(i);
     }
     aiMoveIndexes = shuffleArray(legitIndexes);
@@ -636,7 +643,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
-            console.log(`Point id: ${hoveredPoint.userData.id}`);
+            // console.log(`Point id: ${hoveredPoint.userData.id}`)
             if (currentTurn == RED) {
                 hoveredPoint.material.emissive.setHex(0xff0000);
             }
