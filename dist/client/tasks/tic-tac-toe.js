@@ -12,6 +12,7 @@ export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
     boardSize: 5,
+    winPoint: 5,
     point: {
         wireframe: false,
         radius: 1,
@@ -200,6 +201,22 @@ function generateWinCombinations() {
         winCombination.push(Math.pow(n, 2) - 1 + (Math.pow(n, 2) - n - 1) * i);
     }
     winCombinations.push(winCombination);
+    updateWinCombinationsOnWinPoint();
+}
+function updateWinCombinationsOnWinPoint() {
+    const n = sceneData.boardSize;
+    const m = sceneData.winPoint;
+    if (m == n)
+        return;
+    const newWinCombinations = [];
+    winCombinations.forEach(winCombination => {
+        for (let i = 0; i <= n - m; i++) {
+            const subWinCombination = winCombination.slice(i, i + m);
+            newWinCombinations.push(subWinCombination);
+        }
+    });
+    // TODO: missing combinations
+    winCombinations = newWinCombinations;
 }
 function createLights() {
     const light = new THREE.DirectionalLight(0xe0e0e0);
@@ -223,6 +240,19 @@ function createDatGUI() {
         generateWinCombinations();
         createPoints();
         createBars();
+    });
+    const gameData = {
+        winPoint: sceneData.winPoint
+    };
+    const winPointController = gui.add(gameData, "winPoint", 3, 20).step(1).name("Win point").onFinishChange(value => {
+        if (value > sceneData.boardSize) {
+            alert("Win point should be less than board size!");
+            winPointController.setValue(sceneData.winPoint);
+        }
+        else {
+            sceneData.winPoint = gameData.winPoint;
+            updateWinCombinationsOnWinPoint();
+        }
     });
     const pointsFolder = gui.addFolder("Points");
     pointsFolder.add(sceneData.point, "wireframe", false).onFinishChange(value => {
@@ -267,12 +297,12 @@ function createDatGUI() {
     barsFolder.add(sceneData.bar, "linewidth", 0, 10).name("thicc").onFinishChange(value => {
         bars.material.linewidth = value;
     });
-    const data = {
+    const barData = {
         color: bars.material.color.getHex(),
     };
-    barsFolder.addColor(data, 'color').onChange((value) => {
+    barsFolder.addColor(barData, 'color').onChange((value) => {
         sceneData.bar.color = value;
-        bars.material.color.setHex(Number(data.color.toString().replace('#', '0x')));
+        bars.material.color.setHex(Number(barData.color.toString().replace('#', '0x')));
     });
     barsFolder.open();
 }
@@ -382,7 +412,7 @@ function checkWin(color) {
                 if (points[index].userData.claim == color)
                     count++;
             });
-            if (count === sceneData.boardSize) {
+            if (count === sceneData.winPoint) {
                 won = true;
                 throw breakEx;
             }
@@ -401,7 +431,7 @@ function aiMove() {
     try {
         winCombinations.forEach(function (winCombination) {
             const counts = countClaims(winCombination);
-            if ((counts["red"] === sceneData.boardSize - 1) && (counts["green"] === 0)) {
+            if ((counts["red"] === sceneData.winPoint - 1) && (counts["green"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
@@ -423,7 +453,7 @@ function aiMove() {
         // defensive move
         winCombinations.forEach(function (winCombination) {
             var counts = countClaims(winCombination);
-            if ((countClaims(winCombination)["green"] === sceneData.boardSize - 1) && (counts["red"] === 0)) {
+            if ((countClaims(winCombination)["green"] === sceneData.winPoint - 1) && (counts["red"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
                         points[index].userData.claim = RED;
