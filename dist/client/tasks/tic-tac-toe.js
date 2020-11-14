@@ -12,8 +12,8 @@ export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
     dimession: 2,
-    boardSize: 3,
-    winPoint: 3,
+    boardSize: 4,
+    winPoint: 4,
     point: {
         wireframe: false,
         radius: 1,
@@ -35,6 +35,7 @@ const RED = 1;
 const GREEN = 2;
 let currentTurn = GREEN;
 let vsAi = true; // RED
+let aiMoveIndexes; // array of point indexes for aiMove()
 var gameOver = false;
 let winCombinations = [];
 let bars;
@@ -45,6 +46,7 @@ export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
     generateWinCombinations();
+    generateAiMoveIndexes();
     createLights();
     createBars();
     createPoints();
@@ -53,11 +55,6 @@ export function init() {
     // transformableObjects.forEach(child => {
     //     scene.add(child)
     // })
-    // start game with AI
-    // if (currentTurn == RED && vsAi == true) {
-    //     aiMove()
-    //     changeTurn(RED)
-    // }
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -269,6 +266,7 @@ function createDatGUI() {
         sceneData.winPoint = value;
         winPointController.updateDisplay();
         generateWinCombinations();
+        generateAiMoveIndexes();
         createPoints();
         createBars();
     });
@@ -345,14 +343,24 @@ function createBars() {
     const barVectors = new THREE.Geometry();
     const R = 1; //sceneData.pointRadius
     const n = sceneData.boardSize;
-    for (let i = 0; i < n - 1; i++) {
-        for (let j = 0; j < n - 1; j++) {
-            // bars parallel to x axis
-            barVectors.vertices.push(new THREE.Vector3(R * (3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * -(3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)));
+    if (sceneData.dimession == 2) {
+        for (let i = 0; i < n - 1; i++) {
             // bars parallel to y axis
-            barVectors.vertices.push(new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
+            barVectors.vertices.push(new THREE.Vector3(0, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(0, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
             // bars parallel to z axis
-            barVectors.vertices.push(new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3))), new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3))));
+            barVectors.vertices.push(new THREE.Vector3(0, R * 1.5 * (n - 2) - 3 * i, R * (3.5 + 1.5 * (n - 3))), new THREE.Vector3(0, R * 1.5 * (n - 2) - 3 * i, R * -(3.5 + 1.5 * (n - 3))));
+        }
+    }
+    else {
+        for (let i = 0; i < n - 1; i++) {
+            for (let j = 0; j < n - 1; j++) {
+                // bars parallel to x axis
+                barVectors.vertices.push(new THREE.Vector3(R * (3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * -(3.5 + 1.5 * (n - 3)), R * 1.5 * (n - 2) - 3 * j, R * -(1.5 * (n - 2) - 3 * i)));
+                // bars parallel to y axis
+                barVectors.vertices.push(new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)), new THREE.Vector3(R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3)), R * -(1.5 * (n - 2) - 3 * i)));
+                // bars parallel to z axis
+                barVectors.vertices.push(new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * (3.5 + 1.5 * (n - 3))), new THREE.Vector3(R * -(1.5 * (n - 2) - 3 * i), R * 1.5 * (n - 2) - 3 * j, R * -(3.5 + 1.5 * (n - 3))));
+            }
         }
     }
     const barMaterial = new THREE.LineBasicMaterial({
@@ -460,6 +468,22 @@ function checkWin(color) {
     }
     return won;
 }
+// just randomize for now
+function generateAiMoveIndexes() {
+    const legitIndexes = [];
+    for (let i = 0; i < Math.pow(sceneData.boardSize, sceneData.dimession); i++) {
+        legitIndexes.push(i);
+    }
+    aiMoveIndexes = shuffleArray(legitIndexes);
+}
+// Randomize array in-place using Durstenfeld shuffle algorithm
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 function aiMove() {
     let moved = false;
     var movedEx = {};
@@ -510,18 +534,18 @@ function aiMove() {
     if (moved)
         return;
     // random move
-    // TODO: generate array for multi-size
+    // TODO: generate preferredIndexes to improve AI
     // const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
     try {
-        // preferredIndexes.forEach(function (index) {
-        //     if (points[index].userData.claim == UNCLAIMED) {
-        //         points[index].userData.claim = RED;
-        //         (points[index].material as any).color.setHex(0xff0000);
-        //         updateLastSelectedPoint(points[index])
-        //         moved = true;
-        //         throw movedEx;
-        //     }
-        // });
+        aiMoveIndexes.forEach(function (index) {
+            if (points[index].userData.claim == UNCLAIMED) {
+                points[index].userData.claim = RED;
+                points[index].material.color.setHex(0xff0000);
+                updateLastSelectedPoint(points[index]);
+                moved = true;
+                throw movedEx;
+            }
+        });
         // all the preferred are taken, just take first unclaimed
         points.forEach(function (point) {
             if (point.userData.claim == UNCLAIMED) {
