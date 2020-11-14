@@ -11,8 +11,9 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
-    boardSize: 5,
-    winPoint: 5,
+    dimession: 2,
+    boardSize: 3,
+    winPoint: 3,
     point: {
         wireframe: false,
         radius: 1,
@@ -110,6 +111,38 @@ function generateWinCombinations() {
     const n = sceneData.boardSize;
     // reset combinations
     winCombinations = [];
+    let winCombination = [];
+    // lines parallel to z axis (common fomular for both 2D and 3D)
+    for (let i = 0; i <= Math.pow(n, sceneData.dimession) - n; i += n) {
+        const winCombination = [];
+        for (let j = i; j < i + n; j++) {
+            winCombination.push(j);
+        }
+        winCombinations.push(winCombination);
+    }
+    if (sceneData.dimession == 2) {
+        // lines parallel to y axis
+        for (let i = 0; i < n; i++) {
+            const winCombination = [];
+            for (let j = 0; j < n; j++) {
+                winCombination.push(i + n * j);
+            }
+            winCombinations.push(winCombination);
+        }
+        // 2 diagonal lines
+        winCombination = [];
+        for (let i = 0; i <= Math.pow(n, 2); i += n + 1) {
+            winCombination.push(i);
+        }
+        winCombinations.push(winCombination);
+        winCombination = [];
+        for (let i = n - 1; i <= Math.pow(n, 2) - n; i += n - 1) {
+            winCombination.push(i);
+        }
+        winCombinations.push(winCombination);
+        updateWinCombinationsOnWinPoint();
+        return;
+    }
     // n^2 lines parallel to x axis
     for (let i = 0; i < Math.pow(n, 2); i++) {
         const winCombination = [];
@@ -125,16 +158,9 @@ function generateWinCombinations() {
             for (let j = 0; j < n; j++) {
                 winCombination.push(i + j * n);
             }
+            // console.log(winCombination)
             winCombinations.push(winCombination);
         }
-    }
-    // n^2 lines parallel to z axis
-    for (let i = 0; i <= Math.pow(n, 3) - n; i += n) {
-        const winCombination = [];
-        for (let j = i; j < i + n; j++) {
-            winCombination.push(j);
-        }
-        winCombinations.push(winCombination);
     }
     // diagonal lines parallel to xy face
     for (let i = 0; i < n; i++) {
@@ -182,7 +208,6 @@ function generateWinCombinations() {
         winCombinations.push(winCombination);
     }
     // 4 diagonal lines across the origin
-    let winCombination = [];
     for (let i = 0; i < n; i++) {
         winCombination.push(i + (Math.pow(n, 2) + n) * i);
     }
@@ -294,7 +319,7 @@ function createDatGUI() {
             point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.radius, sceneData.point.radius);
         });
     });
-    pointsFolder.open();
+    // pointsFolder.open()
     const barsFolder = gui.addFolder("Bars");
     barsFolder.add(sceneData.bar, "visible", true).name("visible").onChange(value => bars.visible = value);
     barsFolder.add(sceneData.bar, "opacity", 0, 1).onFinishChange(value => {
@@ -310,15 +335,7 @@ function createDatGUI() {
         sceneData.bar.color = value;
         bars.material.color.setHex(Number(barData.color.toString().replace('#', '0x')));
     });
-    barsFolder.open();
-}
-function handleColorChange(color) {
-    return function (value) {
-        if (typeof value === 'string') {
-            value = value.replace('#', '0x');
-        }
-        color.setHex(value);
-    };
+    // barsFolder.open();
 }
 function createBars() {
     // reset bars
@@ -354,32 +371,45 @@ function createPoints() {
     points.forEach(point => scene.remove(point));
     points = [];
     pointGeometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments);
+    let index = 0;
     let range = [];
     for (let i = 0; i < sceneData.boardSize; i++) {
         range.push((-3 * (sceneData.boardSize - 1)) / 2 + 3 * i);
     }
-    let index = 0;
-    range.forEach(function (x) {
+    // 2D
+    if (sceneData.dimession == 2) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                const pointMaterial = new THREE.MeshPhysicalMaterial({
-                    color: 0xffffff,
-                    metalness: sceneData.point.metalness,
-                    roughness: sceneData.point.roughness,
-                    transparent: true,
-                    wireframe: sceneData.point.wireframe,
-                    opacity: sceneData.point.opacity,
-                });
-                const point = new THREE.Mesh(pointGeometry, pointMaterial);
-                point.userData.id = index++;
-                point.userData.claim = UNCLAIMED;
-                points.push(point);
-                point.userData.targetPosition = new THREE.Vector3(x, y, z);
-                point.position.set(x, y, z);
-                scene.add(point);
+                createPoint(0, y, z, index++);
             });
         });
+    }
+    else {
+        range.forEach(function (x) {
+            range.forEach(function (y) {
+                range.forEach(function (z) {
+                    createPoint(x, y, z, index++);
+                });
+            });
+        });
+    }
+}
+function createPoint(x, y, z, index) {
+    const pointMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        metalness: sceneData.point.metalness,
+        roughness: sceneData.point.roughness,
+        transparent: true,
+        wireframe: sceneData.point.wireframe,
+        opacity: sceneData.point.opacity,
     });
+    const point = new THREE.Mesh(pointGeometry, pointMaterial);
+    point.userData.id = index;
+    point.userData.claim = UNCLAIMED;
+    points.push(point);
+    // point.userData.targetPosition = new THREE.Vector3(x, y, z)
+    point.position.set(x, y, z);
+    scene.add(point);
 }
 // function updatePointsPositions() {
 //     let range: number[] = []
@@ -481,17 +511,17 @@ function aiMove() {
         return;
     // random move
     // TODO: generate array for multi-size
-    const preferredIndexes = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
+    // const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
     try {
-        preferredIndexes.forEach(function (index) {
-            if (points[index].userData.claim == UNCLAIMED) {
-                points[index].userData.claim = RED;
-                points[index].material.color.setHex(0xff0000);
-                updateLastSelectedPoint(points[index]);
-                moved = true;
-                throw movedEx;
-            }
-        });
+        // preferredIndexes.forEach(function (index) {
+        //     if (points[index].userData.claim == UNCLAIMED) {
+        //         points[index].userData.claim = RED;
+        //         (points[index].material as any).color.setHex(0xff0000);
+        //         updateLastSelectedPoint(points[index])
+        //         moved = true;
+        //         throw movedEx;
+        //     }
+        // });
         // all the preferred are taken, just take first unclaimed
         points.forEach(function (point) {
             if (point.userData.claim == UNCLAIMED) {
@@ -582,7 +612,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`)
+            console.log(`Point id: ${hoveredPoint.userData.id}`);
             if (currentTurn == RED) {
                 hoveredPoint.material.emissive.setHex(0xff0000);
             }

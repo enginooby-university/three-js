@@ -15,8 +15,9 @@ export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
-    boardSize: 5,
-    winPoint: 5,
+    dimession: 2,
+    boardSize: 3,
+    winPoint: 3,
     point: {
         wireframe: false,
         radius: 1,
@@ -127,6 +128,43 @@ function generateWinCombinations() {
     const n = sceneData.boardSize
     // reset combinations
     winCombinations = []
+    let winCombination: number[] = []
+
+    // lines parallel to z axis (common fomular for both 2D and 3D)
+    for (let i = 0; i <= Math.pow(n, sceneData.dimession) - n; i += n) {
+        const winCombination: number[] = []
+        for (let j = i; j < i + n; j++) {
+            winCombination.push(j)
+        }
+        winCombinations.push(winCombination)
+    }
+
+    if (sceneData.dimession == 2) {
+        // lines parallel to y axis
+        for (let i = 0; i < n; i++) {
+            const winCombination: number[] = []
+            for (let j = 0; j < n; j++) {
+                winCombination.push(i + n * j)
+            }
+            winCombinations.push(winCombination)
+        }
+
+        // 2 diagonal lines
+        winCombination = []
+        for (let i = 0; i <= Math.pow(n, 2); i += n + 1) {
+            winCombination.push(i)
+        }
+        winCombinations.push(winCombination)
+
+        winCombination=[]
+        for(let i=n-1;i<=Math.pow(n,2)-n;i+=n-1){
+            winCombination.push(i)
+        }
+        winCombinations.push(winCombination)
+
+        updateWinCombinationsOnWinPoint()
+        return
+    }
 
     // n^2 lines parallel to x axis
     for (let i = 0; i < Math.pow(n, 2); i++) {
@@ -144,17 +182,9 @@ function generateWinCombinations() {
             for (let j = 0; j < n; j++) {
                 winCombination.push(i + j * n)
             }
+            // console.log(winCombination)
             winCombinations.push(winCombination)
         }
-    }
-
-    // n^2 lines parallel to z axis
-    for (let i = 0; i <= Math.pow(n, 3) - n; i += n) {
-        const winCombination: number[] = []
-        for (let j = i; j < i + n; j++) {
-            winCombination.push(j)
-        }
-        winCombinations.push(winCombination)
     }
 
     // diagonal lines parallel to xy face
@@ -206,7 +236,6 @@ function generateWinCombinations() {
     }
 
     // 4 diagonal lines across the origin
-    let winCombination: number[] = []
     for (let i = 0; i < n; i++) {
         winCombination.push(i + (Math.pow(n, 2) + n) * i)
     }
@@ -333,7 +362,7 @@ function createDatGUI() {
             point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.radius, sceneData.point.radius)
         })
     })
-    pointsFolder.open()
+    // pointsFolder.open()
 
     const barsFolder = gui.addFolder("Bars")
     barsFolder.add(sceneData.bar, "visible", true).name("visible").onChange(value => bars.visible = value);
@@ -350,16 +379,7 @@ function createDatGUI() {
         sceneData.bar.color = value;
         ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(barData.color.toString().replace('#', '0x')))
     });
-    barsFolder.open();
-}
-
-function handleColorChange(color: THREE.Color) {
-    return function (value: any) {
-        if (typeof value === 'string') {
-            value = value.replace('#', '0x');
-        }
-        color.setHex(value);
-    };
+    // barsFolder.open();
 }
 
 function createBars() {
@@ -401,34 +421,47 @@ function createPoints() {
     points = []
     pointGeometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments)
 
+    let index: number = 0;
     let range: number[] = []
     for (let i = 0; i < sceneData.boardSize; i++) {
         range.push((-3 * (sceneData.boardSize - 1)) / 2 + 3 * i)
     }
 
-    let index: number = 0;
-    range.forEach(function (x) {
+    // 2D
+    if (sceneData.dimession == 2) {
         range.forEach(function (y) {
             range.forEach(function (z) {
-                const pointMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({
-                    color: 0xffffff,
-                    metalness: sceneData.point.metalness,
-                    roughness: sceneData.point.roughness,
-                    transparent: true,
-                    wireframe: sceneData.point.wireframe,
-                    opacity: sceneData.point.opacity,
-                })
-                const point = new THREE.Mesh(pointGeometry, pointMaterial);
-                point.userData.id = index++
-                point.userData.claim = UNCLAIMED;
-                points.push(point);
-
-                point.userData.targetPosition = new THREE.Vector3(x, y, z)
-                point.position.set(x, y, z);
-                scene.add(point);
+                createPoint(0, y, z, index++)
             })
         })
-    });
+    } else {
+        range.forEach(function (x) {
+            range.forEach(function (y) {
+                range.forEach(function (z) {
+                    createPoint(x, y, z, index++)
+                })
+            })
+        });
+    }
+}
+
+function createPoint(x: number, y: number, z: number, index: number) {
+    const pointMaterial: THREE.MeshPhysicalMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0xffffff,
+        metalness: sceneData.point.metalness,
+        roughness: sceneData.point.roughness,
+        transparent: true,
+        wireframe: sceneData.point.wireframe,
+        opacity: sceneData.point.opacity,
+    })
+    const point = new THREE.Mesh(pointGeometry, pointMaterial);
+    point.userData.id = index
+    point.userData.claim = UNCLAIMED;
+    points.push(point);
+
+    // point.userData.targetPosition = new THREE.Vector3(x, y, z)
+    point.position.set(x, y, z);
+    scene.add(point);
 }
 
 // function updatePointsPositions() {
@@ -508,7 +541,6 @@ function aiMove() {
         if (ex != movedEx) throw ex;
     }
     if (moved) return;
-
     try {
         // defensive move
         winCombinations.forEach(function (winCombination) {
@@ -533,17 +565,17 @@ function aiMove() {
 
     // random move
     // TODO: generate array for multi-size
-    const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
+    // const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
     try {
-        preferredIndexes.forEach(function (index) {
-            if (points[index].userData.claim == UNCLAIMED) {
-                points[index].userData.claim = RED;
-                (points[index].material as any).color.setHex(0xff0000);
-                updateLastSelectedPoint(points[index])
-                moved = true;
-                throw movedEx;
-            }
-        });
+        // preferredIndexes.forEach(function (index) {
+        //     if (points[index].userData.claim == UNCLAIMED) {
+        //         points[index].userData.claim = RED;
+        //         (points[index].material as any).color.setHex(0xff0000);
+        //         updateLastSelectedPoint(points[index])
+        //         moved = true;
+        //         throw movedEx;
+        //     }
+        // });
 
         // all the preferred are taken, just take first unclaimed
         points.forEach(function (point) {
@@ -614,7 +646,7 @@ function selectPoint(event: MouseEvent) {
 
 function updateLastSelectedPoint(selectedPoint: THREE.Mesh) {
     // un-highlight previous selected point
-    if (lastSelectedPoint !== undefined ) {
+    if (lastSelectedPoint !== undefined) {
         // (lastSelectedPoint.material as THREE.Material).depthWrite = true
     }
 
@@ -640,7 +672,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`)
+            console.log(`Point id: ${hoveredPoint.userData.id}`)
 
             if (currentTurn == RED) {
                 (hoveredPoint.material as any).emissive.setHex(0xff0000);
