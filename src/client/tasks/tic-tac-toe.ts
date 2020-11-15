@@ -369,16 +369,25 @@ function createDatGUI() {
             changeTurn(RED)
         }
     })
+    let winPointController: GUIController
+    const gameData = {
+        winPoint: sceneData.winPoint
+    }
 
     const dimensionOptions = {
         "2D": 2,
         "3D": 3
     }
     gui.add(sceneData, "dimension", dimensionOptions).name("Dimension").onChange(value => {
+        if (value == 3) {
+            // update winpoint
+            gameData.winPoint = sceneData.boardSize
+            sceneData.winPoint = sceneData.boardSize
+            winPointController.updateDisplay()
+        }
         initGame()
     })
 
-    let winPointController: GUIController
     gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").onFinishChange((value) => {
         // update winpoint
         gameData.winPoint = value
@@ -388,14 +397,16 @@ function createDatGUI() {
         initGame()
     })
 
-    const gameData = {
-        winPoint: sceneData.winPoint
-    }
-    winPointController = gui.add(gameData, "winPoint", 3, 20).step(1).name("Win point").onFinishChange(value => {
-        if (value > sceneData.boardSize) {
+    winPointController = gui.add(gameData, "winPoint", 3, 30).step(1).name("Win point").onFinishChange(value => {
+        if (sceneData.dimension == 3) {
+            alert("This feature in 3D board is under development.")
+            winPointController.setValue(sceneData.winPoint)
+        }
+        else if (value > sceneData.boardSize) {
             alert("Win point should not be greater than board size!")
             winPointController.setValue(sceneData.winPoint)
-        } else {
+        }
+        else {
             sceneData.winPoint = gameData.winPoint
             updateWinCombinationsOnWinPoint()
         }
@@ -782,7 +793,7 @@ function updateLastSelectedPoint(selectedPoint: THREE.Mesh) {
 
     // update and highlight new selected point
     lastSelectedPoint = selectedPoint;
-    console.log{`Selected index: ${lastSelectedPoint.userData.id}`}
+    // console.log(`Selected index: ${lastSelectedPoint.userData.id}`)
     // (lastSelectedPoint.material as THREE.Material).depthWrite = false
     if (outlinePass !== undefined)
         outlinePass.selectedObjects = [lastSelectedPoint as THREE.Object3D]
