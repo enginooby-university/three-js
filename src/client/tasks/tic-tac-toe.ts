@@ -16,12 +16,12 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
     dimension: 2,
-    boardSize: 4,
-    winPoint: 4,
+    boardSize: 3,
+    winPoint: 3,
     point: {
         wireframe: false,
         radius: 1,
-        metalness: 0.4,
+        metalness:   0.4,
         roughness: 1,
         opacity: 1,
         widthSegments: 25,
@@ -34,6 +34,8 @@ let sceneData = {
         opacity: 0.6,
     }
 }
+
+const textElement = document.querySelector("#top-text")!
 
 const UNCLAIMED: number = 0
 const RED: number = 1
@@ -52,7 +54,9 @@ let lastSelectedPoint: THREE.Mesh
 export function init() {
     isInitialized = true
     scene.background = new THREE.Color(0x333333)
+    textElement.innerHTML = "Right click to select"
 
+    addEvents()
     initGame()
     createLights()
     setupControls()
@@ -122,6 +126,7 @@ function initGame() {
     createPoints()
     createBars()
 }
+
 
 function generateWinCombinations() {
     const n = sceneData.boardSize
@@ -266,18 +271,28 @@ function updateWinCombinationsOnWinPoint() {
     const m = sceneData.winPoint
     if (m == n) return
 
-    const newWinCombinations: number[][] = []
-    winCombinations.forEach(winCombination => {
+    winCombinations = extractSubCombinations(winCombinations, n, m)
+
+    // TODO: missing combinations
+
+}
+
+/*
+@param n: number of elements in each element combination of original combination
+@param m: number of elements in each element combination of new combination
+*/
+// get all the subsets of m-adjacent elements
+function extractSubCombinations(originalCombinations: number[][], n: number, m: number): number[][] {
+    const newCombinations: number[][] = []
+    originalCombinations.forEach(winCombination => {
         for (let i = 0; i <= n - m; i++) {
-            const subWinCombination = winCombination.slice(i, i + m)
-            newWinCombinations.push(subWinCombination)
+            const subCombination = winCombination.slice(i, i + m)
+            newCombinations.push(subCombination)
         }
     }
     )
 
-    // TODO: missing combinations
-
-    winCombinations = newWinCombinations
+    return newCombinations
 }
 
 function createLights() {
@@ -324,7 +339,7 @@ function createDatGUI() {
     }
     winPointController = gui.add(gameData, "winPoint", 3, 20).step(1).name("Win point").onFinishChange(value => {
         if (value > sceneData.boardSize) {
-            alert("Win point should be less than board size!")
+            alert("Win point should not be greater than board size!")
             winPointController.setValue(sceneData.winPoint)
         } else {
             sceneData.winPoint = gameData.winPoint
@@ -501,10 +516,13 @@ function resetGame() {
         (point.material as any).color.setHex(0xffffff);
     });
 
+    outlinePass.selectedObjects = []
+    addEvents()
+    lastSelectedPoint.visible=true
+
     // loser in previous game goes first in new game
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
 
-    // TODO: refactor duplication
     if (currentTurn == RED && vsAi == true) {
         aiMove()
         changeTurn(RED)
@@ -516,13 +534,17 @@ function checkWin(color: number) {
     var breakEx = {};
     try {
         winCombinations.forEach(function (winCombination: number[]) {
-            var count = 0;
+            let count = 0;
             winCombination.forEach(function (index) {
                 if (points[index].userData.claim == color)
                     count++;
             })
             if (count === sceneData.winPoint) {
                 won = true;
+
+                winCombination.forEach(function (index) {
+                    outlinePass.selectedObjects.push(points[index])
+                })
                 throw breakEx;
             }
         })
@@ -646,11 +668,13 @@ function countClaims(winCombination: number[]) {
 function changeTurn(previousColor: number) {
     if (checkWin(previousColor)) {
         // gameOver = true;
-        console.log(`${previousColor} won`)
-        resetGame()
+        // console.log(`${previousColor} won`)
+        // remove hover effect
+        (lastSelectedPoint.material as any).emissive.setHex(0x000000);
+        removeEvents()
+        setTimeout(resetGame, 1500)
     } else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
-        console.log(`${currentTurn} turn`)
         if (currentTurn == RED && vsAi == true) {
             aiMove()
             changeTurn(RED)
@@ -659,8 +683,17 @@ function changeTurn(previousColor: number) {
 }
 
 /* EVENTS */
-const canvas: HTMLCanvasElement = document.getElementById("threejs-canvas") as HTMLCanvasElement
-window.addEventListener('contextmenu', selectPoint, false);
+// TODO: setup for all tasks
+export function addEvents(){
+    window.addEventListener('mousemove', hoverPoint, false)
+    window.addEventListener('contextmenu', selectPoint, false);
+}
+
+export function removeEvents(){
+    window.removeEventListener('mousemove', hoverPoint, false)
+    window.removeEventListener('contextmenu', selectPoint, false);
+}
+
 function selectPoint(event: MouseEvent) {
     event.preventDefault()
     if (event.button != 2) return // right click only
@@ -691,7 +724,6 @@ function updateLastSelectedPoint(selectedPoint: THREE.Mesh) {
 }
 
 let hoveredPoint: THREE.Mesh | null
-window.addEventListener('mousemove', hoverPoint, false)
 function hoverPoint(event: MouseEvent) {
     const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
 

@@ -12,8 +12,8 @@ export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
     dimension: 2,
-    boardSize: 4,
-    winPoint: 4,
+    boardSize: 3,
+    winPoint: 3,
     point: {
         wireframe: false,
         radius: 1,
@@ -30,6 +30,7 @@ let sceneData = {
         opacity: 0.6,
     }
 };
+const textElement = document.querySelector("#top-text");
 const UNCLAIMED = 0;
 const RED = 1;
 const GREEN = 2;
@@ -45,6 +46,8 @@ let lastSelectedPoint;
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
+    textElement.innerHTML = "Right click to select";
+    addEvents();
     initGame();
     createLights();
     setupControls();
@@ -234,15 +237,23 @@ function updateWinCombinationsOnWinPoint() {
     const m = sceneData.winPoint;
     if (m == n)
         return;
-    const newWinCombinations = [];
-    winCombinations.forEach(winCombination => {
+    winCombinations = extractSubCombinations(winCombinations, n, m);
+    // TODO: missing combinations
+}
+/*
+@param n: number of elements in each element combination of original combination
+@param m: number of elements in each element combination of new combination
+*/
+// get all the subsets of m-adjacent elements
+function extractSubCombinations(originalCombinations, n, m) {
+    const newCombinations = [];
+    originalCombinations.forEach(winCombination => {
         for (let i = 0; i <= n - m; i++) {
-            const subWinCombination = winCombination.slice(i, i + m);
-            newWinCombinations.push(subWinCombination);
+            const subCombination = winCombination.slice(i, i + m);
+            newCombinations.push(subCombination);
         }
     });
-    // TODO: missing combinations
-    winCombinations = newWinCombinations;
+    return newCombinations;
 }
 function createLights() {
     const light = new THREE.DirectionalLight(0xe0e0e0);
@@ -282,7 +293,7 @@ function createDatGUI() {
     };
     winPointController = gui.add(gameData, "winPoint", 3, 20).step(1).name("Win point").onFinishChange(value => {
         if (value > sceneData.boardSize) {
-            alert("Win point should be less than board size!");
+            alert("Win point should not be greater than board size!");
             winPointController.setValue(sceneData.winPoint);
         }
         else {
@@ -445,9 +456,11 @@ function resetGame() {
         point.userData.claim = UNCLAIMED;
         point.material.color.setHex(0xffffff);
     });
+    outlinePass.selectedObjects = [];
+    addEvents();
+    lastSelectedPoint.visible = true;
     // loser in previous game goes first in new game
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    // TODO: refactor duplication
     if (currentTurn == RED && vsAi == true) {
         aiMove();
         changeTurn(RED);
@@ -458,13 +471,16 @@ function checkWin(color) {
     var breakEx = {};
     try {
         winCombinations.forEach(function (winCombination) {
-            var count = 0;
+            let count = 0;
             winCombination.forEach(function (index) {
                 if (points[index].userData.claim == color)
                     count++;
             });
             if (count === sceneData.winPoint) {
                 won = true;
+                winCombination.forEach(function (index) {
+                    outlinePass.selectedObjects.push(points[index]);
+                });
                 throw breakEx;
             }
         });
@@ -587,12 +603,14 @@ function countClaims(winCombination) {
 function changeTurn(previousColor) {
     if (checkWin(previousColor)) {
         // gameOver = true;
-        console.log(`${previousColor} won`);
-        resetGame();
+        // console.log(`${previousColor} won`)
+        // remove hover effect
+        lastSelectedPoint.material.emissive.setHex(0x000000);
+        removeEvents();
+        setTimeout(resetGame, 1500);
     }
     else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
-        console.log(`${currentTurn} turn`);
         if (currentTurn == RED && vsAi == true) {
             aiMove();
             changeTurn(RED);
@@ -600,8 +618,15 @@ function changeTurn(previousColor) {
     }
 }
 /* EVENTS */
-const canvas = document.getElementById("threejs-canvas");
-window.addEventListener('contextmenu', selectPoint, false);
+// TODO: setup for all tasks
+export function addEvents() {
+    window.addEventListener('mousemove', hoverPoint, false);
+    window.addEventListener('contextmenu', selectPoint, false);
+}
+export function removeEvents() {
+    window.removeEventListener('mousemove', hoverPoint, false);
+    window.removeEventListener('contextmenu', selectPoint, false);
+}
 function selectPoint(event) {
     event.preventDefault();
     if (event.button != 2)
@@ -629,7 +654,6 @@ function updateLastSelectedPoint(selectedPoint) {
         outlinePass.selectedObjects = [lastSelectedPoint];
 }
 let hoveredPoint;
-window.addEventListener('mousemove', hoverPoint, false);
 function hoverPoint(event) {
     const intersectObjects = getIntersectObjects(event);
     if (intersectObjects.length) {

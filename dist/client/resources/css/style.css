@@ -156,17 +156,27 @@ body {
     padding: 16px;
 }
 
-#info {
+.text-layer {
     color: white;
     text-shadow: 2px 2px 6px black;
-    font-weight: 600;
-    font-size: 25px;
     position: absolute;
-    bottom: 50px;
     width: 100%;
     text-align: center;
-    z-index: 100;
+    z-index: 0;
     display: block;
+}
+
+#top-text {
+    font-weight: 50;
+    font-size: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    top: 30px;
+}
+
+#info {
+    font-weight: 600;
+    font-size: 25px;
+    bottom: 50px;
 }
 
 /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
