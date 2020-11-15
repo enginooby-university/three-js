@@ -2,7 +2,6 @@
 TODO: 
     - *Fix AI not working after changing from multi-player mode
     - *Generate all win combinations for 3D when win point < board size
-    - *Auto restart game when all points are claimed
     - *Implement remote multi-player mode 
     - *Fix size point not update when change size board
     - Customize point geometry (cube...)
@@ -64,6 +63,7 @@ let aiMoveIndexes: number[] // array of point indexes for aiMove()
 var gameOver: boolean = false;
 let winCombinations: number[][] = []
 let testCombination: number[] = []
+let movedCount: number = 0 // keep track when all point are claimed
 
 let bars: THREE.LineSegments
 let pointGeometry: THREE.SphereGeometry
@@ -137,6 +137,7 @@ export function render() {
 
 function initGame() {
     // testCombination = []
+    movedCount = 0
     createPoints()
     createBars()
     generateWinCombinations()
@@ -607,6 +608,7 @@ function yScaleAnimation(downDuration: number, upDuration: number) {
 
 function resetGame() {
     // gameOver = false
+    movedCount = 0
     yScaleAnimation(600, 300)
 
     points.forEach(function (point) {
@@ -773,15 +775,15 @@ function countClaims(winCombination: number[]) {
 
 // @param color: just finished its turn
 function changeTurn(previousColor: number) {
-    if (checkWin(previousColor)) {
+    if (checkWin(previousColor) || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension)) {
         // gameOver = true;
         (lastSelectedPoint.material as any).emissive.setHex(0x000000);
         removeEvents()
         setTimeout(resetGame, 800)
     } else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
-        console.log(`current turn: ${currentTurn}`)
-        console.log(`vsAi: ${vsAi}`)
+        // console.log(`current turn: ${currentTurn}`)
+        // console.log(`vsAi: ${vsAi}`)
         if ((currentTurn == RED && vsAi == true)) {
             aiMove()
             changeTurn(RED)
@@ -847,7 +849,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            console.log(`Point id: ${hoveredPoint.userData.id}`)
+            // console.log(`Point id: ${hoveredPoint.userData.id}`)
 
             if (currentTurn == RED) {
                 (hoveredPoint.material as any).emissive.setHex(0xff0000);
