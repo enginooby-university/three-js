@@ -1,3 +1,14 @@
+/*
+TODO:
+    - *Fix-AI not working after changing from multi-player mode
+    - *Generate all win combinations for 2D and 3D when win point < board size
+    - *Auto restart game when all points are claimed
+    - *Implement remote multi-player mode
+    - Customize colors
+    - Customize AI
+    - Cool effect/animation for game over
+    - Implement n-multi-player (n>=3)
+*/
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
 import { outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls } from '../client.js';
@@ -267,11 +278,16 @@ function createDatGUI() {
         "Local multi-player": false,
     };
     const selectedGameMode = {
-        vsAi: true
+        ai: true
     };
     gui = new GUI();
-    gui.add(selectedGameMode, "vsAi", gameModes).name("Game mode").onChange(value => {
+    gui.add(selectedGameMode, "ai", gameModes).name("Game mode").onChange(value => {
         vsAi = value;
+        if (currentTurn == RED && value) {
+            console.log("why not move??");
+            aiMove();
+            changeTurn(RED);
+        }
     });
     const dimensionOptions = {
         "2D": 2,
@@ -611,7 +627,9 @@ function changeTurn(previousColor) {
     }
     else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
-        if (currentTurn == RED && vsAi == true) {
+        console.log(`current turn: ${currentTurn}`);
+        console.log(`vsAi: ${vsAi}`);
+        if ((currentTurn == RED && vsAi == true)) {
             aiMove();
             changeTurn(RED);
         }
