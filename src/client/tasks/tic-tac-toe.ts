@@ -18,7 +18,7 @@ TODO:
 
 import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
-import { outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
+import { socket, outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -54,11 +54,13 @@ let sceneData = {
 
 const textElement = document.querySelector("#top-text")!
 
+enum GameMode { AI, LOCAL_MULTIPLAYER, REMOTE_MULTIPLAYER }
+let gameMode: GameMode = GameMode.AI
+
 const UNCLAIMED: number = 0
 const RED: number = 1
 const GREEN: number = 2
 let currentTurn: number = GREEN
-let vsAi: boolean = true  // RED
 let aiMoveIndexes: number[] // array of point indexes for aiMove()
 var gameOver: boolean = false;
 let winCombinations: number[][] = []
@@ -75,6 +77,7 @@ export function init() {
     scene.background = new THREE.Color(0x333333)
     textElement.innerHTML = "Right click to select"
 
+    setupSocket()
     addEvents()
     initGame()
     createLights()
@@ -355,20 +358,21 @@ function createLights() {
 
 function createDatGUI() {
     const gameModes = {
-        "Play with AI": true,
-        "Local multi-player": false,
+        "Play with AI": GameMode.AI,
+        "Local multiplayer": GameMode.LOCAL_MULTIPLAYER,
+        "Remote multiplayer": GameMode.REMOTE_MULTIPLAYER,
     }
     const selectedGameMode = {
-        ai: true
+        name: GameMode.AI,
     }
     gui = new GUI()
-    gui.add(selectedGameMode, "ai", gameModes).name("Game mode").onChange(value => {
-        vsAi = value
-        if (currentTurn == RED && value) {
-            console.log("why not move??")
-            aiMove()
-            changeTurn(RED)
-        }
+    gui.add(selectedGameMode, "name", gameModes).name("Game mode").onChange(value => {
+        gameMode = value
+        // if (currentTurn == RED && value) {
+        //     console.log("why not move??")
+        //     aiMove()
+        //     changeTurn(RED)
+        // }
     })
     let winPointController: GUIController
     const gameData = {
@@ -623,7 +627,7 @@ function resetGame() {
     // loser in previous game goes first in new game
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
 
-    if (currentTurn == RED && vsAi == true) {
+    if (currentTurn == RED && gameMode == GameMode.AI) {
         aiMove()
         changeTurn(RED)
     }
@@ -784,7 +788,7 @@ function changeTurn(previousColor: number) {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
         // console.log(`current turn: ${currentTurn}`)
         // console.log(`vsAi: ${vsAi}`)
-        if ((currentTurn == RED && vsAi == true)) {
+        if ((currentTurn == RED && gameMode == GameMode.AI)) {
             aiMove()
             changeTurn(RED)
         }
@@ -813,12 +817,27 @@ function selectPoint(event: MouseEvent) {
         if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
             (selectedPoint.material as any).color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
             selectedPoint.userData.claim = currentTurn;
+
+            if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
+                socket.emit('tictactoe_changeTurn', { id: selectedPoint.userData.id, color: currentTurn });
+            }
+
             // remove hover effect right after seleting
             (selectedPoint.material as any).emissive.setHex(0x000000);
+
             updateLastSelectedPoint(selectedPoint)
             changeTurn(currentTurn);
         }
     }
+}
+
+function setupSocket() {
+    socket.on("updateTurn", (data: any) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
+        (points[data.id].material as any).color.setHex((data.color == RED) ? 0xff0000 : 0x00ff00);
+        updateLastSelectedPoint(points[data.id])
+        changeTurn(currentTurn);
+    })
 }
 
 function updateLastSelectedPoint(selectedPoint: THREE.Mesh) {

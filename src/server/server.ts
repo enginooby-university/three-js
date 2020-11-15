@@ -76,6 +76,12 @@ class App {
                 // emit to all sockets
                 // this.io.sockets.emit("updateSceneData", data)
             })
+
+            /* TIC TAC TOE */
+            socket.on("tictactoe_changeTurn", (data: any) => {
+                socket.broadcast.emit("updateTurn", data)
+            })
+
             socket.on("disconnect", () => {
                 console.log(`User disconnected: ${socket.id}`)
             })

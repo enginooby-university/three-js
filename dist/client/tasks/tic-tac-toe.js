@@ -17,7 +17,7 @@ TODO:
 */
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
-import { outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls } from '../client.js';
+import { socket, outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls } from '../client.js';
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
@@ -48,11 +48,17 @@ let sceneData = {
     }
 };
 const textElement = document.querySelector("#top-text");
+var GameMode;
+(function (GameMode) {
+    GameMode[GameMode["AI"] = 0] = "AI";
+    GameMode[GameMode["LOCAL_MULTIPLAYER"] = 1] = "LOCAL_MULTIPLAYER";
+    GameMode[GameMode["REMOTE_MULTIPLAYER"] = 2] = "REMOTE_MULTIPLAYER";
+})(GameMode || (GameMode = {}));
+let gameMode = GameMode.AI;
 const UNCLAIMED = 0;
 const RED = 1;
 const GREEN = 2;
 let currentTurn = GREEN;
-let vsAi = true; // RED
 let aiMoveIndexes; // array of point indexes for aiMove()
 var gameOver = false;
 let winCombinations = [];
@@ -66,6 +72,7 @@ export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
     textElement.innerHTML = "Right click to select";
+    setupSocket();
     addEvents();
     initGame();
     createLights();
@@ -313,20 +320,21 @@ function createLights() {
 }
 function createDatGUI() {
     const gameModes = {
-        "Play with AI": true,
-        "Local multi-player": false,
+        "Play with AI": GameMode.AI,
+        "Local multiplayer": GameMode.LOCAL_MULTIPLAYER,
+        "Remote multiplayer": GameMode.REMOTE_MULTIPLAYER,
     };
     const selectedGameMode = {
-        ai: true
+        name: GameMode.AI,
     };
     gui = new GUI();
-    gui.add(selectedGameMode, "ai", gameModes).name("Game mode").onChange(value => {
-        vsAi = value;
-        if (currentTurn == RED && value) {
-            console.log("why not move??");
-            aiMove();
-            changeTurn(RED);
-        }
+    gui.add(selectedGameMode, "name", gameModes).name("Game mode").onChange(value => {
+        gameMode = value;
+        // if (currentTurn == RED && value) {
+        //     console.log("why not move??")
+        //     aiMove()
+        //     changeTurn(RED)
+        // }
     });
     let winPointController;
     const gameData = {
@@ -556,7 +564,7 @@ function resetGame() {
     lastSelectedPoint.visible = true;
     // loser in previous game goes first in new game
     currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    if (currentTurn == RED && vsAi == true) {
+    if (currentTurn == RED && gameMode == GameMode.AI) {
         aiMove();
         changeTurn(RED);
     }
@@ -713,7 +721,7 @@ function changeTurn(previousColor) {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
         // console.log(`current turn: ${currentTurn}`)
         // console.log(`vsAi: ${vsAi}`)
-        if ((currentTurn == RED && vsAi == true)) {
+        if ((currentTurn == RED && gameMode == GameMode.AI)) {
             aiMove();
             changeTurn(RED);
         }
@@ -739,12 +747,24 @@ function selectPoint(event) {
         if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
             selectedPoint.material.color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
             selectedPoint.userData.claim = currentTurn;
+            if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
+                socket.emit('tictactoe_changeTurn', { id: selectedPoint.userData.id, color: currentTurn });
+            }
             // remove hover effect right after seleting
             selectedPoint.material.emissive.setHex(0x000000);
             updateLastSelectedPoint(selectedPoint);
             changeTurn(currentTurn);
         }
     }
+}
+function setupSocket() {
+    socket.on("updateTurn", (data) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER)
+            return;
+        points[data.id].material.color.setHex((data.color == RED) ? 0xff0000 : 0x00ff00);
+        updateLastSelectedPoint(points[data.id]);
+        changeTurn(currentTurn);
+    });
 }
 function updateLastSelectedPoint(selectedPoint) {
     // un-highlight previous selected point
