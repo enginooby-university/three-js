@@ -8,7 +8,7 @@ TODO:
     - Customize point geometry (cube...)
     - Customize colors
     - Customize AI (color, intelligent)
-    - Cool effect/animation for game over
+    - More cool effects/animations for game scenes (start, reset)
     - Implement n-multi-player mode (n>=3)
     - Implement blind mode (no color)
     - Implement countdown mode
@@ -29,8 +29,8 @@ export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
     dimension: 3,
-    boardSize: 5,
-    winPoint: 5,
+    boardSize: 3,
+    winPoint: 3,
     point: {
         wireframe: false,
         radius: 1,
@@ -52,7 +52,7 @@ const UNCLAIMED = 0;
 const RED = 1;
 const GREEN = 2;
 let currentTurn = GREEN;
-let vsAi = true; // RED
+let vsAi = false; // RED
 let aiMoveIndexes; // array of point indexes for aiMove()
 var gameOver = false;
 let winCombinations = [];
@@ -514,7 +514,36 @@ function createPoint(x, y, z, index) {
 //         })
 //     });
 // }
+/* ANIMATIONS */
+function yScaleDownAnimation(duration) {
+    const loop = setInterval(function () {
+        console.log("shrinking...");
+        points.forEach(point => {
+            point.scale.y -= 1 / 20;
+            if (point.scale.y <= 0) {
+                clearInterval(loop);
+            }
+        });
+    }, duration / 20);
+}
+function yScaleUpAnimation(duration) {
+    const loop = setInterval(function () {
+        console.log("expanding...");
+        points.forEach(point => {
+            point.scale.y += 1 / 20;
+            if (point.scale.y >= 1) {
+                clearInterval(loop);
+            }
+        });
+    }, duration / 20);
+}
+function yScaleAnimation(downDuration, upDuration) {
+    yScaleDownAnimation(downDuration);
+    setTimeout(() => yScaleUpAnimation(upDuration), downDuration + 200); // error
+}
 function resetGame() {
+    // gameOver = false
+    yScaleAnimation(600, 300);
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
         point.material.color.setHex(0xffffff);
@@ -673,11 +702,9 @@ function countClaims(winCombination) {
 function changeTurn(previousColor) {
     if (checkWin(previousColor)) {
         // gameOver = true;
-        // console.log(`${previousColor} won`)
-        // remove hover effect
         lastSelectedPoint.material.emissive.setHex(0x000000);
         removeEvents();
-        setTimeout(resetGame, 1500);
+        setTimeout(resetGame, 800);
     }
     else {
         currentTurn = ((currentTurn == RED) ? GREEN : RED);
