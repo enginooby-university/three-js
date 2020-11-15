@@ -1,13 +1,18 @@
 /* 
 TODO: 
-    - *Fix-AI not working after changing from multi-player mode
-    - *Generate all win combinations for 2D and 3D when win point < board size
+    - *Fix AI not working after changing from multi-player mode
+    - *Generate all win combinations for 3D when win point < board size
     - *Auto restart game when all points are claimed
     - *Implement remote multi-player mode 
+    - Customize point geometry (cube...)
     - Customize colors
-    - Customize AI
+    - Customize AI (color, intelligent)
     - Cool effect/animation for game over
-    - Implement n-multi-player (n>=3)
+    - Implement n-multi-player mode (n>=3)
+    - Implement blind mode (no color)
+    - Implement countdown mode
+    - Enhance bars
+    - Lock winpoint when start game (prevent cheating)
 */
 
 import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
@@ -27,7 +32,7 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
     dimension: 2,
-    boardSize: 3,
+    boardSize: 6,
     winPoint: 3,
     point: {
         wireframe: false,
@@ -278,27 +283,60 @@ function generateWinCombinations() {
 }
 
 function updateWinCombinationsOnWinPoint() {
+    // console.log(winCombinations)
+
     const n = sceneData.boardSize
     const m = sceneData.winPoint
     if (m == n) return
 
-    winCombinations = extractSubCombinations(winCombinations, n, m)
+    // TODO: missing combinations (diagonal lines)
+    let winCombination: number[] = []
+    // 1-4 2-3
+    if (sceneData.dimension == 2) {
+        for (let dif = 1; dif <= n - m; dif++) {
+            winCombination = []
+            for (let i = 0; i < n - dif; i++) {
+                winCombination.push(dif + i * (n + 1))
+            }
+            winCombinations.push(winCombination)
 
-    // TODO: missing combinations
+            winCombination = []
+            for (let i = 0; i < n - dif; i++) {
+                winCombination.push(dif * n + i * (n + 1))
+            }
+            winCombinations.push(winCombination)
 
+            winCombination = []
+            for (let i = 0; i < n - dif; i++) {
+                winCombination.push((n - 1) - dif + i * (n - 1))
+            }
+            winCombinations.push(winCombination)
+
+            winCombination = []
+            for (let i = 0; i < n - dif; i++) {
+                winCombination.push(dif * n + (n - 1) + i * (n - 1))
+            }
+            winCombinations.push(winCombination)
+        }
+    }
+
+    winCombinations = extractSubCombinations(winCombinations, m)
+    console.log(winCombinations)
 }
 
-/*
-@param n: number of elements in each element combination of original combination
-@param m: number of elements in each element combination of new combination
-*/
 // get all the subsets of m-adjacent elements
-function extractSubCombinations(originalCombinations: number[][], n: number, m: number): number[][] {
+// original combinations could have different array size  >= m
+function extractSubCombinations(originalCombinations: number[][], m: number): number[][] {
     const newCombinations: number[][] = []
     originalCombinations.forEach(winCombination => {
-        for (let i = 0; i <= n - m; i++) {
-            const subCombination = winCombination.slice(i, i + m)
-            newCombinations.push(subCombination)
+        const n = winCombination.length
+        if (m < n) {
+            for (let i = 0; i <= n - m; i++) {
+                const subCombination = winCombination.slice(i, i + m)
+                newCombinations.push(subCombination)
+            }
+        } else {
+            newCombinations.push(winCombination)
         }
     }
     )
@@ -341,7 +379,7 @@ function createDatGUI() {
     })
 
     let winPointController: GUIController
-    gui.add(sceneData, "boardSize", 3, 20).step(1).name("Board size").onFinishChange((value) => {
+    gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").onFinishChange((value) => {
         // update winpoint
         gameData.winPoint = value
         sceneData.winPoint = value
@@ -614,18 +652,26 @@ function aiMove() {
     if (moved) return;
     try {
         // defensive move
+        // TODO: detect higher threat case (thread is blocked one side<thread is not blocked)
         winCombinations.forEach(function (winCombination) {
             var counts = countClaims(winCombination);
-            if ((countClaims(winCombination)["green"] === sceneData.winPoint - 1) && (counts["red"] === 0)) {
+            if ((countClaims(winCombination)["green"] === sceneData.winPoint - 2) && (counts["red"] === 0)) {
+                // the seleted point index among possible points
+                let indexToMove: number = 99999
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
-                        points[index].userData.claim = RED;
-                        (points[index].material as any).color.setHex(0xff0000);
-                        updateLastSelectedPoint(points[index])
+                        // selet the closest point
+                        if (Math.abs(index - lastSelectedPoint.userData.id) < indexToMove) {
+                            indexToMove = index
+                        }
                     }
                 });
+                points[indexToMove].userData.claim = RED;
+                (points[indexToMove].material as any).color.setHex(0xff0000);
+                updateLastSelectedPoint(points[indexToMove])
                 moved = true;
                 throw movedEx;
+
             }
         });
     } catch (ex) {
@@ -736,6 +782,7 @@ function updateLastSelectedPoint(selectedPoint: THREE.Mesh) {
 
     // update and highlight new selected point
     lastSelectedPoint = selectedPoint;
+    console.log{`Selected index: ${lastSelectedPoint.userData.id}`}
     // (lastSelectedPoint.material as THREE.Material).depthWrite = false
     if (outlinePass !== undefined)
         outlinePass.selectedObjects = [lastSelectedPoint as THREE.Object3D]
@@ -755,7 +802,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.setHex((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`)
+            console.log(`Point id: ${hoveredPoint.userData.id}`)
 
             if (currentTurn == RED) {
                 (hoveredPoint.material as any).emissive.setHex(0xff0000);
