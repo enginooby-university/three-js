@@ -4,6 +4,7 @@ TODO:
     - *Generate all win combinations for 3D when win point < board size
     - *Auto restart game when all points are claimed
     - *Implement remote multi-player mode 
+    - *Fix size point not update when change size board
     - Customize point geometry (cube...)
     - Customize colors
     - Customize AI (color, intelligent)
@@ -22,7 +23,7 @@ import { outlinePass, raycaster, mouse, camera, transformControls, attachToDragC
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
-export let skybox: string = 'dust'
+export let skybox: string = 'arid'
 export const setSkybox = (name: string) => skybox = name
 
 // group of objects affected by DragControls & TransformControls
@@ -31,9 +32,9 @@ export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
-    dimension: 2,
-    boardSize: 6,
-    winPoint: 3,
+    dimension: 3,
+    boardSize: 5,
+    winPoint: 5,
     point: {
         wireframe: false,
         radius: 1,
@@ -47,7 +48,7 @@ let sceneData = {
         visible: true,
         color: new THREE.Color(0xffffff),
         linewidth: 3,
-        opacity: 0.6,
+        opacity: 0.5,
     }
 }
 
@@ -61,6 +62,7 @@ let vsAi: boolean = true  // RED
 let aiMoveIndexes: number[] // array of point indexes for aiMove()
 var gameOver: boolean = false;
 let winCombinations: number[][] = []
+let testCombination: number[] = []
 
 let bars: THREE.LineSegments
 let pointGeometry: THREE.SphereGeometry
@@ -77,10 +79,6 @@ export function init() {
     createLights()
     setupControls()
     createDatGUI()
-
-    // transformableObjects.forEach(child => {
-    //     scene.add(child)
-    // })
 }
 
 export function setupControls() {
@@ -137,12 +135,13 @@ export function render() {
 }
 
 function initGame() {
-    generateWinCombinations()
-    generateAiMoveIndexes()
+    // testCombination = []
     createPoints()
     createBars()
+    generateWinCombinations()
+    generateAiMoveIndexes()
+    // testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
 }
-
 
 function generateWinCombinations() {
     const n = sceneData.boardSize
@@ -196,7 +195,7 @@ function generateWinCombinations() {
     }
 
     // n^2 lines parallel to y axis
-    for (let a = n - 3; a <= n - 1; a++) {
+    for (let a = 0; a <= n - 1; a++) {
         for (let i = Math.pow(n, 2) * a; i < Math.pow(n, 2) * a + n; i++) {
             const winCombination: number[] = []
             for (let j = 0; j < n; j++) {
@@ -240,14 +239,14 @@ function generateWinCombinations() {
     }
 
     // diagonal lines parallel to yz face
-    for (let i = 0; i <= Math.pow(n, 2) * 2; i += Math.pow(n, 2)) {
+    for (let i = 0; i <= Math.pow(n, 2) * (n - 1); i += Math.pow(n, 2)) {
         const winCombination: number[] = []
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (n + 1) * j)
         }
         winCombinations.push(winCombination)
     }
-    for (let i = n - 1; i <= Math.pow(n, 2) * 2 + n - 1; i += Math.pow(n, 2)) {
+    for (let i = n - 1; i <= Math.pow(n, 2) * (n - 1) + n - 1; i += Math.pow(n, 2)) {
         const winCombination: number[] = []
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (n - 1) * j)
@@ -321,7 +320,7 @@ function updateWinCombinationsOnWinPoint() {
     }
 
     winCombinations = extractSubCombinations(winCombinations, m)
-    console.log(winCombinations)
+    // console.log(winCombinations)
 }
 
 // get all the subsets of m-adjacent elements
@@ -779,6 +778,8 @@ function selectPoint(event: MouseEvent) {
         if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
             (selectedPoint.material as any).color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
             selectedPoint.userData.claim = currentTurn;
+            // remove hover effect right after seleting
+            (selectedPoint.material as any).emissive.setHex(0x000000);
             updateLastSelectedPoint(selectedPoint)
             changeTurn(currentTurn);
         }

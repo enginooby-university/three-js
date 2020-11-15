@@ -4,6 +4,7 @@ TODO:
     - *Generate all win combinations for 3D when win point < board size
     - *Auto restart game when all points are claimed
     - *Implement remote multi-player mode
+    - *Fix size point not update when change size board
     - Customize point geometry (cube...)
     - Customize colors
     - Customize AI (color, intelligent)
@@ -20,16 +21,16 @@ import { outlinePass, raycaster, mouse, camera, transformControls, attachToDragC
 export const scene = new THREE.Scene();
 export let isInitialized = false;
 export let gui;
-export let skybox = 'dust';
+export let skybox = 'arid';
 export const setSkybox = (name) => skybox = name;
 // group of objects affected by DragControls & TransformControls
 export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
-    dimension: 2,
-    boardSize: 6,
-    winPoint: 3,
+    dimension: 3,
+    boardSize: 5,
+    winPoint: 5,
     point: {
         wireframe: false,
         radius: 1,
@@ -43,7 +44,7 @@ let sceneData = {
         visible: true,
         color: new THREE.Color(0xffffff),
         linewidth: 3,
-        opacity: 0.6,
+        opacity: 0.5,
     }
 };
 const textElement = document.querySelector("#top-text");
@@ -55,6 +56,7 @@ let vsAi = true; // RED
 let aiMoveIndexes; // array of point indexes for aiMove()
 var gameOver = false;
 let winCombinations = [];
+let testCombination = [];
 let bars;
 let pointGeometry;
 let points = [];
@@ -68,9 +70,6 @@ export function init() {
     createLights();
     setupControls();
     createDatGUI();
-    // transformableObjects.forEach(child => {
-    //     scene.add(child)
-    // })
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -121,10 +120,12 @@ export function render() {
     // })
 }
 function initGame() {
-    generateWinCombinations();
-    generateAiMoveIndexes();
+    // testCombination = []
     createPoints();
     createBars();
+    generateWinCombinations();
+    generateAiMoveIndexes();
+    // testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
 }
 function generateWinCombinations() {
     const n = sceneData.boardSize;
@@ -171,7 +172,7 @@ function generateWinCombinations() {
         winCombinations.push(winCombination);
     }
     // n^2 lines parallel to y axis
-    for (let a = n - 3; a <= n - 1; a++) {
+    for (let a = 0; a <= n - 1; a++) {
         for (let i = Math.pow(n, 2) * a; i < Math.pow(n, 2) * a + n; i++) {
             const winCombination = [];
             for (let j = 0; j < n; j++) {
@@ -212,14 +213,14 @@ function generateWinCombinations() {
         winCombinations.push(winCombination);
     }
     // diagonal lines parallel to yz face
-    for (let i = 0; i <= Math.pow(n, 2) * 2; i += Math.pow(n, 2)) {
+    for (let i = 0; i <= Math.pow(n, 2) * (n - 1); i += Math.pow(n, 2)) {
         const winCombination = [];
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (n + 1) * j);
         }
         winCombinations.push(winCombination);
     }
-    for (let i = n - 1; i <= Math.pow(n, 2) * 2 + n - 1; i += Math.pow(n, 2)) {
+    for (let i = n - 1; i <= Math.pow(n, 2) * (n - 1) + n - 1; i += Math.pow(n, 2)) {
         const winCombination = [];
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (n - 1) * j);
@@ -282,7 +283,7 @@ function updateWinCombinationsOnWinPoint() {
         }
     }
     winCombinations = extractSubCombinations(winCombinations, m);
-    console.log(winCombinations);
+    // console.log(winCombinations)
 }
 // get all the subsets of m-adjacent elements
 // original combinations could have different array size  >= m
@@ -708,6 +709,8 @@ function selectPoint(event) {
         if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
             selectedPoint.material.color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
             selectedPoint.userData.claim = currentTurn;
+            // remove hover effect right after seleting
+            selectedPoint.material.emissive.setHex(0x000000);
             updateLastSelectedPoint(selectedPoint);
             changeTurn(currentTurn);
         }

@@ -51,20 +51,28 @@ class App {
         this.io = new SocketIO.Server(this.server)
     }
 
+    private userNumber: number = 0
+
     public Start() {
         this.server.listen(process.env.PORT || this.port, () => {
             console.log(`Server listening on port ${this.port}.`)
         })
 
         this.io.on("connection", (socket: SocketIO.Socket) => {
+            this.userNumber++
             console.log(`User connected: ${socket.id}`)
+            // emit to only the new connected socket (socket emitting 'connection' event)
             socket.emit("message", `Welcome ${socket.id}`);
+            // emit to all sockets except the new connected socket
             socket.broadcast.emit("message", "Everybody, say hello to " + socket.id);
 
-            socket.on("changeSceneData", (data: any) => {
-                // emit to all sockets except the socket making change
-                socket.broadcast.emit("updateSceneData", data)
+            socket.send(`Current users: ${this.userNumber}`)
 
+
+            socket.on("changeSceneData", (data: any) => {
+                this.userNumber--
+                // emit to all sockets except the socket making change (socket emitting 'changeSceneData' event)
+                socket.broadcast.emit("updateSceneData", data)
                 // emit to all sockets
                 // this.io.sockets.emit("updateSceneData", data)
             })
