@@ -12,6 +12,7 @@ TODO:
     - Implement n-multi-player mode (n>=3)
     - Implement blind mode (no color)
     - Implement countdown mode
+    - VR support
     - Enhance bars
     - Lock winpoint when start game (prevent cheating)
 */
@@ -33,8 +34,8 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
     dimension: 3,
-    boardSize: 3,
-    winPoint: 3,
+    boardSize: 5,
+    winPoint: 5,
     point: {
         wireframe: false,
         radius: 1,
@@ -58,7 +59,7 @@ const UNCLAIMED: number = 0
 const RED: number = 1
 const GREEN: number = 2
 let currentTurn: number = GREEN
-let vsAi: boolean = false  // RED
+let vsAi: boolean = true  // RED
 let aiMoveIndexes: number[] // array of point indexes for aiMove()
 var gameOver: boolean = false;
 let winCombinations: number[][] = []

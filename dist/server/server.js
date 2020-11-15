@@ -10,6 +10,7 @@ const socket_io_1 = __importDefault(require("socket.io"));
 const port = 3000;
 class App {
     constructor(port) {
+        this.userNumber = 0;
         this.port = port;
         const app = express_1.default();
         app.use(express_1.default.static(path_1.default.join(__dirname, '../client')));
@@ -49,11 +50,16 @@ class App {
             console.log(`Server listening on port ${this.port}.`);
         });
         this.io.on("connection", (socket) => {
+            this.userNumber++;
             console.log(`User connected: ${socket.id}`);
+            // emit to only the new connected socket (socket emitting 'connection' event)
             socket.emit("message", `Welcome ${socket.id}`);
+            // emit to all sockets except the new connected socket
             socket.broadcast.emit("message", "Everybody, say hello to " + socket.id);
+            socket.send(`Current users: ${this.userNumber}`);
             socket.on("changeSceneData", (data) => {
-                // emit to all sockets except the socket making change
+                this.userNumber--;
+                // emit to all sockets except the socket making change (socket emitting 'changeSceneData' event)
                 socket.broadcast.emit("updateSceneData", data);
                 // emit to all sockets
                 // this.io.sockets.emit("updateSceneData", data)
