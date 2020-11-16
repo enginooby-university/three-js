@@ -1,18 +1,22 @@
 /* 
 TODO: 
-    - *Fix AI not working after changing from multi-player mode
     - *Generate all win combinations for 3D when win point < board size
     - *Implement remote multi-player mode 
+    - *Implement different win shapes (instead of normal line)
     - *Fix size point not update when change size board
     - Customize point geometry (cube...)
     - Customize colors
     - Customize AI (color, intelligent)
     - More cool effects/animations for game scenes (start, reset)
+    - Fix game reseting animation (y scaling)
     - Implement n-multi-player mode (n>=3)
+    - Implement n-dimentional board (n>=4)
     - Implement blind mode (no color)
     - Implement countdown mode
+    - Implement different tic tac toe variants
     - VR support
-    - Enhance bars
+    - Mobile responsive
+    - Enhance bars (with MeshLine...)
     - Lock winpoint when start game (prevent cheating)
 */
 
@@ -283,6 +287,8 @@ function generateWinCombinations() {
     }
     winCombinations.push(winCombination)
 
+    // console.log(winCombinations)
+
     updateWinCombinationsOnWinPoint()
 }
 
@@ -295,7 +301,6 @@ function updateWinCombinationsOnWinPoint() {
 
     // TODO: missing combinations (diagonal lines)
     let winCombination: number[] = []
-    // 1-4 2-3
     if (sceneData.dimension == 2) {
         for (let dif = 1; dif <= n - m; dif++) {
             winCombination = []
@@ -357,36 +362,34 @@ function createLights() {
 }
 
 function createDatGUI() {
-    const gameModes = {
-        "Play with AI": GameMode.AI,
-        "Local multiplayer": GameMode.LOCAL_MULTIPLAYER,
-        "Remote multiplayer": GameMode.REMOTE_MULTIPLAYER,
+    const options = {
+        winPoint: sceneData.winPoint,
+        dimension: {
+            "2D": 2,
+            "3D": 3
+        },
+        mode: {
+            "Play with AI": GameMode.AI,
+            "Local multi-player": GameMode.LOCAL_MULTIPLAYER,
+            "Remote multi-player": GameMode.REMOTE_MULTIPLAYER,
+        }
     }
+
     const selectedGameMode = {
         name: GameMode.AI,
     }
-    gui = new GUI()
-    gui.add(selectedGameMode, "name", gameModes).name("Game mode").onChange(value => {
-        gameMode = value
-        // if (currentTurn == RED && value) {
-        //     console.log("why not move??")
-        //     aiMove()
-        //     changeTurn(RED)
-        // }
-    })
+    
     let winPointController: GUIController
-    const gameData = {
-        winPoint: sceneData.winPoint
-    }
 
-    const dimensionOptions = {
-        "2D": 2,
-        "3D": 3
-    }
-    gui.add(sceneData, "dimension", dimensionOptions).name("Dimension").onChange(value => {
+    gui = new GUI()
+    gui.add(selectedGameMode, "name", options.mode).name("Game mode").onChange(value => {
+        gameMode = value
+    })
+
+    gui.add(sceneData, "dimension", options.dimension).name("Dimension").onChange(value => {
         if (value == 3) {
             // update winpoint
-            gameData.winPoint = sceneData.boardSize
+            options.winPoint = sceneData.boardSize
             sceneData.winPoint = sceneData.boardSize
             winPointController.updateDisplay()
         }
@@ -395,14 +398,14 @@ function createDatGUI() {
 
     gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").onFinishChange((value) => {
         // update winpoint
-        gameData.winPoint = value
+        options.winPoint = value
         sceneData.winPoint = value
         winPointController.updateDisplay()
 
         initGame()
     })
 
-    winPointController = gui.add(gameData, "winPoint", 3, 30).step(1).name("Win point").onFinishChange(value => {
+    winPointController = gui.add(options, "winPoint", 3, 30).step(1).name("Win point").onFinishChange(value => {
         if (sceneData.dimension == 3) {
             alert("This feature in 3D board is under development.")
             winPointController.setValue(sceneData.winPoint)
@@ -412,7 +415,7 @@ function createDatGUI() {
             winPointController.setValue(sceneData.winPoint)
         }
         else {
-            sceneData.winPoint = gameData.winPoint
+            sceneData.winPoint = options.winPoint
             updateWinCombinationsOnWinPoint()
         }
     })
@@ -430,7 +433,6 @@ function createDatGUI() {
         })
     })
 
-    // const pointsMaterialFolder: GUI = pointsFolder.addFolder("Material")
     pointsFolder.add(sceneData.point, "roughness", 0, 1).onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).roughness = value)
     })
