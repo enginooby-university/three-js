@@ -36,6 +36,7 @@ export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 let sceneData = {
+    playerNumber: 2,
     dimension: 3,
     boardSize: 5,
     winPoint: 5,
@@ -57,6 +58,13 @@ let sceneData = {
 }
 
 const textElement = document.querySelector("#top-text")!
+
+type Player = {
+    id: number,
+    isAi: boolean,
+    color: THREE.Color
+}
+let players: Player[] = []
 
 enum GameMode { AI, LOCAL_MULTIPLAYER, REMOTE_MULTIPLAYER }
 let gameMode: GameMode = GameMode.AI
@@ -87,6 +95,9 @@ export function init() {
     createLights()
     setupControls()
     createDatGUI()
+
+    // sample setup for n-multi-player
+    updatePlayerNumber(sceneData.playerNumber)
 }
 
 export function setupControls() {
@@ -361,6 +372,9 @@ function createLights() {
     scene.add(new THREE.AmbientLight(0x101010));
 }
 
+let playerFolders: GUI[] = []
+let playersFolder: GUI
+let playerNumberController: GUIController
 function createDatGUI() {
     const options = {
         winPoint: sceneData.winPoint,
@@ -378,13 +392,19 @@ function createDatGUI() {
     const selectedGameMode = {
         name: GameMode.AI,
     }
-    
+
     let winPointController: GUIController
 
     gui = new GUI()
     gui.add(selectedGameMode, "name", options.mode).name("Game mode").onChange(value => {
         gameMode = value
     })
+
+    playerNumberController = gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").onFinishChange(value => {
+        updatePlayerNumber(value)
+    })
+    playersFolder = gui.addFolder("Players")
+    playersFolder.open()
 
     gui.add(sceneData, "dimension", options.dimension).name("Dimension").onChange(value => {
         if (value == 3) {
@@ -472,6 +492,37 @@ function createDatGUI() {
         ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(barData.color.toString().replace('#', '0x')))
     });
     // barsFolder.open();
+}
+
+function updatePlayerNumber(value: number){
+    // reset playersFolder
+    playerFolders.forEach(folder => playersFolder.removeFolder(folder))
+    playerFolders = []
+
+    for (let i = 0; i < value; i++) {
+        const randomColor = new THREE.Color(0xffffff);
+        randomColor.setHex(Math.random() * 0xffffff);
+
+        players = []
+        const newPlayer: Player = { id: i, isAi: false, color: randomColor }
+        const data = {
+            colorHex: newPlayer.color.getHex()
+        }
+        players.push(newPlayer)
+
+        const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`)
+        playerFolders.push(newPlayerFolder)
+        newPlayerFolder.add(newPlayer, "isAi", false).name("AI")
+        newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
+            newPlayer.color.setHex(Number(value.toString().replace('#', '0x')))
+        });
+
+        newPlayerFolder.open()
+
+        playersFolder.open()
+        // auto close player folders after a certain time
+        setTimeout(() => playersFolder.close(), 5000)
+    }
 }
 
 function createBars() {

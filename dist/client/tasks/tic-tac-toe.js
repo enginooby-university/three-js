@@ -32,6 +32,7 @@ export let transformableObjects = [];
 export let selectedObjectId = -1;
 export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
+    playerNumber: 2,
     dimension: 3,
     boardSize: 5,
     winPoint: 5,
@@ -52,6 +53,7 @@ let sceneData = {
     }
 };
 const textElement = document.querySelector("#top-text");
+let players = [];
 var GameMode;
 (function (GameMode) {
     GameMode[GameMode["AI"] = 0] = "AI";
@@ -82,6 +84,8 @@ export function init() {
     createLights();
     setupControls();
     createDatGUI();
+    // sample setup for n-multi-player
+    updatePlayerNumber(sceneData.playerNumber);
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -322,6 +326,9 @@ function createLights() {
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x101010));
 }
+let playerFolders = [];
+let playersFolder;
+let playerNumberController;
 function createDatGUI() {
     const options = {
         winPoint: sceneData.winPoint,
@@ -343,6 +350,11 @@ function createDatGUI() {
     gui.add(selectedGameMode, "name", options.mode).name("Game mode").onChange(value => {
         gameMode = value;
     });
+    playerNumberController = gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").onFinishChange(value => {
+        updatePlayerNumber(value);
+    });
+    playersFolder = gui.addFolder("Players");
+    playersFolder.open();
     gui.add(sceneData, "dimension", options.dimension).name("Dimension").onChange(value => {
         if (value == 3) {
             // update winpoint
@@ -423,6 +435,31 @@ function createDatGUI() {
         bars.material.color.setHex(Number(barData.color.toString().replace('#', '0x')));
     });
     // barsFolder.open();
+}
+function updatePlayerNumber(value) {
+    // reset playersFolder
+    playerFolders.forEach(folder => playersFolder.removeFolder(folder));
+    playerFolders = [];
+    for (let i = 0; i < value; i++) {
+        const randomColor = new THREE.Color(0xffffff);
+        randomColor.setHex(Math.random() * 0xffffff);
+        players = [];
+        const newPlayer = { id: i, isAi: false, color: randomColor };
+        const data = {
+            colorHex: newPlayer.color.getHex()
+        };
+        players.push(newPlayer);
+        const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`);
+        playerFolders.push(newPlayerFolder);
+        newPlayerFolder.add(newPlayer, "isAi", false).name("AI");
+        newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
+            newPlayer.color.setHex(Number(value.toString().replace('#', '0x')));
+        });
+        newPlayerFolder.open();
+        playersFolder.open();
+        // auto close player folders after a certain time
+        setTimeout(() => playersFolder.close(), 5000);
+    }
 }
 function createBars() {
     // reset bars
