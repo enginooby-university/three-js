@@ -61,10 +61,10 @@ var GameMode;
     GameMode[GameMode["REMOTE_MULTIPLAYER"] = 2] = "REMOTE_MULTIPLAYER";
 })(GameMode || (GameMode = {}));
 let gameMode = GameMode.AI;
-const UNCLAIMED = 0;
-const RED = 1;
-const GREEN = 2;
-let currentTurn = GREEN;
+const UNCLAIMED = -1;
+// const RED: number = 1
+// const GREEN: number = 2
+let currentTurn = 0;
 let aiMoveIndexes; // array of point indexes for aiMove()
 var gameOver = false;
 let winCombinations = [];
@@ -86,6 +86,8 @@ export function init() {
     createDatGUI();
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber);
+    players[0].isAi = false;
+    // players[1].isAi = true
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -440,10 +442,10 @@ function updatePlayerNumber(value) {
     // reset playersFolder
     playerFolders.forEach(folder => playersFolder.removeFolder(folder));
     playerFolders = [];
+    players = [];
     for (let i = 0; i < value; i++) {
         const randomColor = new THREE.Color(0xffffff);
         randomColor.setHex(Math.random() * 0xffffff);
-        players = [];
         const newPlayer = { id: i, isAi: false, color: randomColor };
         const data = {
             colorHex: newPlayer.color.getHex()
@@ -451,8 +453,9 @@ function updatePlayerNumber(value) {
         players.push(newPlayer);
         const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`);
         playerFolders.push(newPlayerFolder);
-        newPlayerFolder.add(newPlayer, "isAi", false).name("AI");
+        newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen();
         newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
+            // TODO: update seleted point to new color
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')));
         });
         newPlayerFolder.open();
@@ -460,6 +463,7 @@ function updatePlayerNumber(value) {
         // auto close player folders after a certain time
         setTimeout(() => playersFolder.close(), 5000);
     }
+    console.log(players);
 }
 function createBars() {
     // reset bars
@@ -598,20 +602,25 @@ function resetGame() {
     addEvents();
     lastSelectedPoint.visible = true;
     // loser in previous game goes first in new game
-    currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    if (currentTurn == RED && gameMode == GameMode.AI) {
+    // currentTurn = ((currentTurn == RED) ? GREEN : RED);
+    // if (currentTurn == RED && gameMode == GameMode.AI) {
+    //     aiMove()
+    //     changeTurn(RED)
+    // }
+    if (players[currentTurn].isAi) {
         aiMove();
-        changeTurn(RED);
+        // changeTurn(currentTurn)
     }
 }
-function checkWin(color) {
+// check if the last move finishes the game
+function checkWin() {
     let won = false;
     var breakEx = {};
     try {
         winCombinations.forEach(function (winCombination) {
             let count = 0;
             winCombination.forEach(function (index) {
-                if (points[index].userData.claim == color)
+                if (points[index].userData.claim == currentTurn)
                     count++;
             });
             if (count === sceneData.winPoint) {
@@ -655,8 +664,8 @@ function aiMove() {
             if ((counts["red"] === sceneData.winPoint - 1) && (counts["green"] === 0)) {
                 winCombination.forEach(function (index) {
                     if (points[index].userData.claim == UNCLAIMED) {
-                        points[index].userData.claim = RED;
-                        points[index].material.color.setHex(0xff0000);
+                        points[index].userData.claim = players[currentTurn].id;
+                        points[index].material.color.setHex(players[currentTurn].color);
                         updateLastSelectedPoint(points[index]);
                     }
                 });
@@ -687,8 +696,8 @@ function aiMove() {
                         }
                     }
                 });
-                points[indexToMove].userData.claim = RED;
-                points[indexToMove].material.color.setHex(0xff0000);
+                points[indexToMove].userData.claim = players[currentTurn].id;
+                points[indexToMove].material.color.setHex(players[currentTurn].color);
                 updateLastSelectedPoint(points[indexToMove]);
                 moved = true;
                 throw movedEx;
@@ -707,8 +716,8 @@ function aiMove() {
     try {
         aiMoveIndexes.forEach(function (index) {
             if (points[index].userData.claim == UNCLAIMED) {
-                points[index].userData.claim = RED;
-                points[index].material.color.setHex(0xff0000);
+                points[index].userData.claim = players[currentTurn].id;
+                points[index].material.color.setHex(players[currentTurn].color);
                 updateLastSelectedPoint(points[index]);
                 moved = true;
                 throw movedEx;
@@ -717,8 +726,8 @@ function aiMove() {
         // all the preferred are taken, just take first unclaimed
         points.forEach(function (point) {
             if (point.userData.claim == UNCLAIMED) {
-                point.userData.claim = RED;
-                point.material.color.setHex(0xff0000);
+                point.userData.claim = players[currentTurn].id;
+                point.material.color.setHex(players[currentTurn].color);
                 updateLastSelectedPoint(point);
                 moved = true;
                 throw movedEx;
@@ -735,30 +744,35 @@ function countClaims(winCombination) {
     let redCount = 0;
     let greenCount = 0;
     winCombination.forEach(function (index) {
-        if (points[index].userData.claim == RED) {
-            redCount++;
-        }
-        if (points[index].userData.claim == GREEN) {
-            greenCount++;
-        }
+        // if (points[index].userData.claim == RED) {
+        //     redCount++;
+        // }
+        // if (points[index].userData.claim == GREEN) {
+        //     greenCount++;
+        // }
     });
     return { "red": redCount, "green": greenCount };
 }
 // @param color: just finished its turn
-function changeTurn(previousColor) {
-    if (checkWin(previousColor) || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension)) {
+function nextTurn() {
+    console.log(`Current turn: ${players[currentTurn].id}`);
+    // game over
+    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension)) {
         // gameOver = true;
         lastSelectedPoint.material.emissive.setHex(0x000000);
         removeEvents();
         setTimeout(resetGame, 800);
     }
     else {
-        currentTurn = ((currentTurn == RED) ? GREEN : RED);
-        // console.log(`current turn: ${currentTurn}`)
-        // console.log(`vsAi: ${vsAi}`)
-        if ((currentTurn == RED && gameMode == GameMode.AI)) {
+        // currentTurn = ((currentTurn == RED) ? GREEN : RED);
+        if (currentTurn == players.length - 1) {
+            currentTurn = 0; // loop
+        }
+        else {
+            currentTurn++;
+        }
+        if (players[currentTurn].isAi) {
             aiMove();
-            changeTurn(RED);
         }
     }
 }
@@ -779,8 +793,8 @@ function selectPoint(event) {
     const intersectObjects = getIntersectObjects(event);
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object;
-        if (selectedPoint.userData.claim != RED && selectedPoint.userData.claim != GREEN) {
-            selectedPoint.material.color.setHex((currentTurn == RED) ? 0xff0000 : 0x00ff00);
+        if (selectedPoint.userData.claim == UNCLAIMED) {
+            selectedPoint.material.color.set(players[currentTurn].color);
             selectedPoint.userData.claim = currentTurn;
             if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
                 socket.emit('tictactoe_changeTurn', { id: selectedPoint.userData.id, color: currentTurn });
@@ -788,7 +802,7 @@ function selectPoint(event) {
             // remove hover effect right after seleting
             selectedPoint.material.emissive.setHex(0x000000);
             updateLastSelectedPoint(selectedPoint);
-            changeTurn(currentTurn);
+            nextTurn();
         }
     }
 }
@@ -796,9 +810,9 @@ function setupSocket() {
     socket.on("updateTurn", (data) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER)
             return;
-        points[data.id].material.color.setHex((data.color == RED) ? 0xff0000 : 0x00ff00);
+        points[data.id].material.color.set(players[currentTurn].color);
         updateLastSelectedPoint(points[data.id]);
-        changeTurn(currentTurn);
+        nextTurn();
     });
 }
 function updateLastSelectedPoint(selectedPoint) {
@@ -819,21 +833,16 @@ function hoverPoint(event) {
     if (intersectObjects.length) {
         const currentHoveredPoint = intersectObjects[0].object;
         // no affect on claimed points
-        if (currentHoveredPoint.userData.claim == RED || currentHoveredPoint.userData.claim == GREEN)
+        if (currentHoveredPoint.userData.claim != UNCLAIMED)
             return;
         // if move to new unclaimed point
         if (hoveredPoint != currentHoveredPoint) {
             if (hoveredPoint)
-                hoveredPoint.material.emissive.setHex(hoveredPoint.currentHex);
+                hoveredPoint.material.emissive.set(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
             // console.log(`Point id: ${hoveredPoint.userData.id}`)
-            if (currentTurn == RED) {
-                hoveredPoint.material.emissive.setHex(0xff0000);
-            }
-            else if (currentTurn == GREEN) {
-                hoveredPoint.material.emissive.setHex(0x00ff00);
-            }
+            hoveredPoint.material.emissive.set(players[currentTurn].color);
         }
     }
     else {
