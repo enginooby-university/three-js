@@ -5,11 +5,10 @@ TODO:
     - *Implement different win shapes (instead of normal line)
     - *Fix size point not update when change size board
     - Customize point geometry (cube...)
-    - Customize colors
-    - Customize AI (color, intelligent)
+    - Customize AI (intelligent)
     - More cool effects/animations for game scenes (start, reset)
     - Fix game reseting animation (y scaling)
-    - Implement n-multi-player mode (n>=3)
+    - Implement n-multi-win (n>=2)
     - Implement n-dimentional board (n>=4)
     - Implement blind mode (no color)
     - Implement countdown mode
@@ -34,8 +33,8 @@ export const setSelectedObjectId = (index) => selectedObjectId = index;
 let sceneData = {
     playerNumber: 2,
     dimension: 3,
-    boardSize: 5,
-    winPoint: 5,
+    boardSize: 3,
+    winPoint: 3,
     point: {
         wireframe: false,
         radius: 1,
@@ -56,16 +55,15 @@ const textElement = document.querySelector("#top-text");
 let players = [];
 var GameMode;
 (function (GameMode) {
-    GameMode[GameMode["AI"] = 0] = "AI";
-    GameMode[GameMode["LOCAL_MULTIPLAYER"] = 1] = "LOCAL_MULTIPLAYER";
-    GameMode[GameMode["REMOTE_MULTIPLAYER"] = 2] = "REMOTE_MULTIPLAYER";
+    GameMode[GameMode["LOCAL_MULTIPLAYER"] = 0] = "LOCAL_MULTIPLAYER";
+    GameMode[GameMode["REMOTE_MULTIPLAYER"] = 1] = "REMOTE_MULTIPLAYER";
 })(GameMode || (GameMode = {}));
-let gameMode = GameMode.AI;
+let gameMode = GameMode.LOCAL_MULTIPLAYER;
 const UNCLAIMED = -1;
 // const RED: number = 1
 // const GREEN: number = 2
 let currentTurn = 0;
-let aiMoveIndexes; // array of point indexes for aiMove()
+let aiPreferredMoves; // array of point indexes for aiMove()
 var gameOver = false;
 let winCombinations = [];
 let testCombination = [];
@@ -87,7 +85,7 @@ export function init() {
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber);
     players[0].isAi = false;
-    // players[1].isAi = true
+    players[1].isAi = true;
 }
 export function setupControls() {
     attachToDragControls(transformableObjects);
@@ -143,7 +141,7 @@ function initGame() {
     createPoints();
     createBars();
     generateWinCombinations();
-    generateAiMoveIndexes();
+    generateAiPreferredMoves();
     // testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
 }
 function generateWinCombinations() {
@@ -270,7 +268,7 @@ function generateWinCombinations() {
     updateWinCombinationsOnWinPoint();
 }
 function updateWinCombinationsOnWinPoint() {
-    // console.log(winCombinations)
+    console.log(winCombinations);
     const n = sceneData.boardSize;
     const m = sceneData.winPoint;
     if (m == n)
@@ -339,13 +337,12 @@ function createDatGUI() {
             "3D": 3
         },
         mode: {
-            "Play with AI": GameMode.AI,
             "Local multi-player": GameMode.LOCAL_MULTIPLAYER,
             "Remote multi-player": GameMode.REMOTE_MULTIPLAYER,
         }
     };
     const selectedGameMode = {
-        name: GameMode.AI,
+        name: GameMode.LOCAL_MULTIPLAYER,
     };
     let winPointController;
     gui = new GUI();
@@ -444,6 +441,7 @@ function updatePlayerNumber(value) {
     playerFolders = [];
     players = [];
     for (let i = 0; i < value; i++) {
+        // TODO: ensure color is unique
         const randomColor = new THREE.Color(0xffffff);
         randomColor.setHex(Math.random() * 0xffffff);
         const newPlayer = { id: i, isAi: false, color: randomColor };
@@ -590,6 +588,8 @@ function yScaleAnimation(downDuration, upDuration) {
     yScaleDownAnimation(downDuration);
     setTimeout(() => yScaleUpAnimation(upDuration), downDuration + 200); // error
 }
+/* END ANIMATIONS */
+/* GAME PLAY */
 function resetGame() {
     // gameOver = false
     movedCount = 0;
@@ -603,13 +603,32 @@ function resetGame() {
     lastSelectedPoint.visible = true;
     // loser in previous game goes first in new game
     // currentTurn = ((currentTurn == RED) ? GREEN : RED);
-    // if (currentTurn == RED && gameMode == GameMode.AI) {
-    //     aiMove()
-    //     changeTurn(RED)
-    // }
     if (players[currentTurn].isAi) {
         aiMove();
-        // changeTurn(currentTurn)
+        nextTurn();
+    }
+}
+function nextTurn() {
+    // game over
+    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension)) {
+        // gameOver = true;
+        lastSelectedPoint.material.emissive.setHex(0x000000);
+        // prevent selecting/hovering points when reseting game
+        removeEvents();
+        setTimeout(resetGame, 800);
+    }
+    else {
+        if (currentTurn == players.length - 1) {
+            currentTurn = 0; // loop
+        }
+        else {
+            currentTurn++;
+        }
+        console.log(`Current turn: ${currentTurn}`);
+        if (players[currentTurn].isAi) {
+            aiMove();
+            nextTurn();
+        }
     }
 }
 // check if the last move finishes the game
@@ -638,13 +657,90 @@ function checkWin() {
     }
     return won;
 }
+/* END GAME PLAY */
+/* AI */
+function aiMove() {
+    // attacking move (finish game)
+    for (let winCombination of winCombinations) {
+        countClaims(winCombination);
+        if (ClaimCounter.currentPlayerCount == sceneData.winPoint - 1) {
+            console.log("AI: attacking move");
+            for (let index of winCombination) {
+                if (points[index].userData.claim == UNCLAIMED) {
+                    updateSelectedPoint(points[index]);
+                    return;
+                }
+            }
+            ;
+        }
+    }
+    // defensing move (higher threat case)
+    // TODO: detect higher threat case (thread is blocked one side<thread is not blocked)
+    for (let winCombination of winCombinations) {
+        countClaims(winCombination);
+        // if in this combination previous player claimed more than (win point - 1) points
+        // while current player has no claimed point
+        if (ClaimCounter.previousPlayerCount == sceneData.winPoint - 1 && ClaimCounter.currentPlayerCount == 0) {
+            console.log("AI: defensing move [1]");
+            for (let id of winCombination) {
+                if (points[id].userData.claim == UNCLAIMED) {
+                    updateSelectedPoint(points[id]);
+                    return;
+                }
+            }
+            ;
+        }
+    }
+    ;
+    // defensing move
+    for (let winCombination of winCombinations) {
+        countClaims(winCombination);
+        if (ClaimCounter.previousPlayerCount == sceneData.winPoint - 2 && ClaimCounter.currentPlayerCount == 0) {
+            console.log("AI: defensing move [2]");
+            // the seleted point index among possible points
+            let idToMove = 99999;
+            winCombination.forEach(function (id) {
+                if (points[id].userData.claim == UNCLAIMED) {
+                    // selet the closest point
+                    if (Math.abs(id - lastSelectedPoint.userData.id) < idToMove) {
+                        idToMove = id;
+                    }
+                }
+            });
+            // console.log(`idToMove: ${idToMove}`)
+            updateSelectedPoint(points[idToMove]);
+            return;
+        }
+    }
+    ;
+    // random move
+    // TODO: generate preferredIndexes to improve AI
+    // const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
+    for (let index of aiPreferredMoves) {
+        if (points[index].userData.claim == UNCLAIMED) {
+            console.log("AI: preferred move");
+            updateSelectedPoint(points[index]);
+            return;
+        }
+    }
+    ;
+    // all the preferred are taken, just take first unclaimed
+    for (let point of points) {
+        if (point.userData.claim == UNCLAIMED) {
+            console.log("AI: random move");
+            updateSelectedPoint(point);
+            return;
+        }
+    }
+    ;
+}
 // just randomize for now
-function generateAiMoveIndexes() {
+function generateAiPreferredMoves() {
     const legitIndexes = [];
     for (let i = 0; i < Math.pow(sceneData.boardSize, sceneData.dimension); i++) {
         legitIndexes.push(i);
     }
-    aiMoveIndexes = shuffleArray(legitIndexes);
+    aiPreferredMoves = shuffleArray(legitIndexes);
 }
 // Randomize array in-place using Durstenfeld shuffle algorithm
 function shuffleArray(array) {
@@ -654,128 +750,33 @@ function shuffleArray(array) {
     }
     return array;
 }
-function aiMove() {
-    let moved = false;
-    var movedEx = {};
-    // offensive move (finish game)
-    try {
-        winCombinations.forEach(function (winCombination) {
-            const counts = countClaims(winCombination);
-            if ((counts["red"] === sceneData.winPoint - 1) && (counts["green"] === 0)) {
-                winCombination.forEach(function (index) {
-                    if (points[index].userData.claim == UNCLAIMED) {
-                        points[index].userData.claim = players[currentTurn].id;
-                        points[index].material.color.setHex(players[currentTurn].color);
-                        updateLastSelectedPoint(points[index]);
-                    }
-                });
-                moved = true;
-                throw movedEx;
-            }
-        });
-    }
-    catch (ex) {
-        if (ex != movedEx)
-            throw ex;
-    }
-    if (moved)
-        return;
-    try {
-        // defensive move
-        // TODO: detect higher threat case (thread is blocked one side<thread is not blocked)
-        winCombinations.forEach(function (winCombination) {
-            var counts = countClaims(winCombination);
-            if ((countClaims(winCombination)["green"] === sceneData.winPoint - 2) && (counts["red"] === 0)) {
-                // the seleted point index among possible points
-                let indexToMove = 99999;
-                winCombination.forEach(function (index) {
-                    if (points[index].userData.claim == UNCLAIMED) {
-                        // selet the closest point
-                        if (Math.abs(index - lastSelectedPoint.userData.id) < indexToMove) {
-                            indexToMove = index;
-                        }
-                    }
-                });
-                points[indexToMove].userData.claim = players[currentTurn].id;
-                points[indexToMove].material.color.setHex(players[currentTurn].color);
-                updateLastSelectedPoint(points[indexToMove]);
-                moved = true;
-                throw movedEx;
-            }
-        });
-    }
-    catch (ex) {
-        if (ex != movedEx)
-            throw ex;
-    }
-    if (moved)
-        return;
-    // random move
-    // TODO: generate preferredIndexes to improve AI
-    // const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
-    try {
-        aiMoveIndexes.forEach(function (index) {
-            if (points[index].userData.claim == UNCLAIMED) {
-                points[index].userData.claim = players[currentTurn].id;
-                points[index].material.color.setHex(players[currentTurn].color);
-                updateLastSelectedPoint(points[index]);
-                moved = true;
-                throw movedEx;
-            }
-        });
-        // all the preferred are taken, just take first unclaimed
-        points.forEach(function (point) {
-            if (point.userData.claim == UNCLAIMED) {
-                point.userData.claim = players[currentTurn].id;
-                point.material.color.setHex(players[currentTurn].color);
-                updateLastSelectedPoint(point);
-                moved = true;
-                throw movedEx;
-            }
-        });
-    }
-    catch (ex) {
-        if (ex != movedEx)
-            throw ex;
-    }
-}
-// count number of claimed points in a win combination for each color
+// to indentify how many points claimed in each winCombination for previous and current players
+// TODO: indentify counts for all players and choose the largest
+const ClaimCounter = {
+    previousPlayerCount: 0,
+    currentPlayerCount: 0
+};
 function countClaims(winCombination) {
-    let redCount = 0;
-    let greenCount = 0;
-    winCombination.forEach(function (index) {
-        // if (points[index].userData.claim == RED) {
-        //     redCount++;
-        // }
-        // if (points[index].userData.claim == GREEN) {
-        //     greenCount++;
-        // }
-    });
-    return { "red": redCount, "green": greenCount };
-}
-// @param color: just finished its turn
-function nextTurn() {
-    console.log(`Current turn: ${players[currentTurn].id}`);
-    // game over
-    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension)) {
-        // gameOver = true;
-        lastSelectedPoint.material.emissive.setHex(0x000000);
-        removeEvents();
-        setTimeout(resetGame, 800);
+    let previousTurn;
+    if (currentTurn == 0) {
+        previousTurn = players.length - 1; // loop
     }
     else {
-        // currentTurn = ((currentTurn == RED) ? GREEN : RED);
-        if (currentTurn == players.length - 1) {
-            currentTurn = 0; // loop
-        }
-        else {
-            currentTurn++;
-        }
-        if (players[currentTurn].isAi) {
-            aiMove();
-        }
+        previousTurn = currentTurn - 1;
     }
+    ClaimCounter.currentPlayerCount = 0;
+    ClaimCounter.previousPlayerCount = 0;
+    winCombination.forEach(function (index) {
+        if (points[index].userData.claim == previousTurn) {
+            ClaimCounter.previousPlayerCount++;
+        }
+        if (points[index].userData.claim == currentTurn) {
+            ClaimCounter.currentPlayerCount++;
+        }
+    });
+    // console.log(`${ClaimCounter.previousPlayerCount} ${ClaimCounter.currentPlayerCount}`)
 }
+/* END AI */
 /* EVENTS */
 // TODO: setup for all tasks
 export function addEvents() {
@@ -794,14 +795,12 @@ function selectPoint(event) {
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object;
         if (selectedPoint.userData.claim == UNCLAIMED) {
-            selectedPoint.material.color.set(players[currentTurn].color);
-            selectedPoint.userData.claim = currentTurn;
+            updateSelectedPoint(selectedPoint);
             if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
                 socket.emit('tictactoe_changeTurn', { id: selectedPoint.userData.id, color: currentTurn });
             }
             // remove hover effect right after seleting
             selectedPoint.material.emissive.setHex(0x000000);
-            updateLastSelectedPoint(selectedPoint);
             nextTurn();
         }
     }
@@ -810,12 +809,14 @@ function setupSocket() {
     socket.on("updateTurn", (data) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER)
             return;
-        points[data.id].material.color.set(players[currentTurn].color);
-        updateLastSelectedPoint(points[data.id]);
+        // (points[data.id].material as any).color.set(players[currentTurn].color);
+        updateSelectedPoint(points[data.id]);
         nextTurn();
     });
 }
-function updateLastSelectedPoint(selectedPoint) {
+function updateSelectedPoint(selectedPoint) {
+    selectedPoint.material.color.set(players[currentTurn].color);
+    selectedPoint.userData.claim = currentTurn;
     // un-highlight previous selected point
     if (lastSelectedPoint !== undefined) {
         // (lastSelectedPoint.material as THREE.Material).depthWrite = true
@@ -841,7 +842,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.set(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`)
+            // console.log(`Point id: ${hoveredPoint.userData.id}`);
             hoveredPoint.material.emissive.set(players[currentTurn].color);
         }
     }
