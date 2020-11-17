@@ -98,8 +98,15 @@ export function init() {
 
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber)
-    players[0].isAi = false
+    players[0].isAi = true
     players[1].isAi = true
+
+    if (players[0].isAi) {
+        setTimeout(() => {
+            aiMove()
+            nextTurn()
+        }, sceneData.ai.delay)
+    }
 }
 
 export function setupControls() {
@@ -674,6 +681,17 @@ function yScaleAnimation(downDuration: number, upDuration: number) {
 /* END ANIMATIONS */
 
 /* GAME PLAY */
+function getNextTurn(currentTurn: number): number {
+    let nextTurn: number
+    if (currentTurn == players.length - 1) {
+        nextTurn = 0 // loop
+    } else {
+        nextTurn = currentTurn + 1
+    }
+
+    return nextTurn
+}
+
 function resetGame() {
     // gameOver = false
     movedCount = 0
@@ -688,8 +706,8 @@ function resetGame() {
     addEvents()
     lastSelectedPoint.visible = true
 
-    // loser in previous game goes first in new game
-    // currentTurn = ((currentTurn == RED) ? GREEN : RED);
+    // winner in previous game goes last in new game
+    currentTurn = getNextTurn(currentTurn)
 
     if (players[currentTurn].isAi) {
         setTimeout(() => {
@@ -708,11 +726,7 @@ function nextTurn() {
         removeEvents()
         setTimeout(resetGame, 800)
     } else {
-        if (currentTurn == players.length - 1) {
-            currentTurn = 0 // loop
-        } else {
-            currentTurn++
-        }
+        currentTurn = getNextTurn(currentTurn)
 
         console.log(`Current turn: ${currentTurn}`)
 
