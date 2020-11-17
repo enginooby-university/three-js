@@ -21,7 +21,7 @@ TODO:
 
 import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
-import { socket, outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
+import { socket, socketEnabled, outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -34,7 +34,38 @@ export let transformableObjects: THREE.Mesh[] = []
 export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
-let sceneData = {
+type SceneData = {
+    discriminator: string, // to distinguish SceneData among different tasks
+    playerNumber: number,
+    dimension: number,
+    boardSize: number,
+    winPoint: number,
+    ai: {
+        delay: number,
+    },
+    point: {
+        wireframe: boolean,
+        radius: number,
+        metalness: number,
+        roughness: number,
+        opacity: number,
+        widthSegments: number,
+        heightSegments: number,
+    },
+    bar: {
+        visible: boolean,
+        color: THREE.Color,
+        linewidth: number,
+        opacity: number,
+    }
+}
+
+function instanceOfSceneData(data: any): boolean {
+    return data.discriminator === 'tic-tac-toe';
+}
+
+let sceneData: SceneData = {
+    discriminator: "tic-tac-toe",
     playerNumber: 2,
     dimension: 3,
     boardSize: 3,
@@ -313,7 +344,7 @@ function generateWinCombinations() {
 }
 
 function updateWinCombinationsOnWinPoint() {
-    console.log(winCombinations)
+    // console.log(winCombinations)
 
     const n = sceneData.boardSize
     const m = sceneData.winPoint
@@ -377,19 +408,22 @@ function extractSubCombinations(originalCombinations: number[][], m: number): nu
 let playerFolders: GUI[] = []
 let playersFolder: GUI
 let playerNumberController: GUIController
-function createDatGUI() {
-    const options = {
-        winPoint: sceneData.winPoint,
-        dimension: {
-            "2D": 2,
-            "3D": 3
-        },
-        mode: {
-            "Local multi-player": GameMode.LOCAL_MULTIPLAYER,
-            "Remote multi-player": GameMode.REMOTE_MULTIPLAYER,
-        }
+let barColorController: GUIController
+const datOptions = {
+    // don't change winPoint directly but through a medium varible
+    // since we need to validate its value before changing
+    winPoint: sceneData.winPoint,
+    dimension: {
+        "2D": 2,
+        "3D": 3
+    },
+    mode: {
+        "Local multi-player": GameMode.LOCAL_MULTIPLAYER,
+        "Remote multi-player": GameMode.REMOTE_MULTIPLAYER,
     }
+}
 
+function createDatGUI() {
     const selectedGameMode = {
         name: GameMode.LOCAL_MULTIPLAYER,
     }
@@ -397,36 +431,46 @@ function createDatGUI() {
     let winPointController: GUIController
 
     gui = new GUI()
-    gui.add(selectedGameMode, "name", options.mode).name("Game mode").onChange(value => {
+    gui.add(selectedGameMode, "name", datOptions.mode).name("Game mode").onChange(value => {
         gameMode = value
     })
 
-    playerNumberController = gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").onFinishChange(value => {
+    playerNumberController = gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
         updatePlayerNumber(value)
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
     playersFolder = gui.addFolder("Players")
     playersFolder.open()
 
-    gui.add(sceneData, "dimension", options.dimension).name("Dimension").onChange(value => {
+    gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
         if (value == 3) {
             // update winpoint
-            options.winPoint = sceneData.boardSize
+            datOptions.winPoint = sceneData.boardSize // to update controller display
             sceneData.winPoint = sceneData.boardSize
-            winPointController.updateDisplay()
         }
         initGame()
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
 
-    gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").onFinishChange((value) => {
+    gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").listen().onFinishChange((value) => {
         // update winpoint
-        options.winPoint = value
+        datOptions.winPoint = value
         sceneData.winPoint = value
-        winPointController.updateDisplay()
 
         initGame()
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
 
-    winPointController = gui.add(options, "winPoint", 3, 30).step(1).name("Win point").onFinishChange(value => {
+    winPointController = gui.add(datOptions, "winPoint", 3, 30).step(1).name("Win point").listen().onFinishChange(value => {
         if (sceneData.dimension == 3) {
             alert("This feature in 3D board is under development.")
             winPointController.setValue(sceneData.winPoint)
@@ -436,8 +480,12 @@ function createDatGUI() {
             winPointController.setValue(sceneData.winPoint)
         }
         else {
-            sceneData.winPoint = options.winPoint
+            sceneData.winPoint = datOptions.winPoint
             updateWinCombinationsOnWinPoint()
+
+            if (socketEnabled) {
+                socket.emit('changeSceneData', sceneData)
+            }
         }
     })
 
@@ -445,58 +493,221 @@ function createDatGUI() {
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
 
     const pointsFolder: GUI = gui.addFolder("Points")
-    pointsFolder.add(sceneData.point, "wireframe", false).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = value)
+
+        // TODO: refactor duplication, using controllers array?
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
-    pointsFolder.add(sceneData.point, "radius", 0.5, 1, 0.1).name("size").onFinishChange(radius => {
+    pointsFolder.add(sceneData.point, "radius", 0.5, 1, 0.1).name("size").listen().onFinishChange(radius => {
         points.forEach(point => {
             point.scale.x = radius
             point.scale.y = radius
             point.scale.z = radius
             // updatePointsPositions()
         })
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
 
-    pointsFolder.add(sceneData.point, "roughness", 0, 1).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "roughness", 0, 1).listen().onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).roughness = value)
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
-    pointsFolder.add(sceneData.point, "metalness", 0, 1).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "metalness", 0, 1).listen().onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).metalness = value)
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
-    pointsFolder.add(sceneData.point, "opacity", 0.5, 1).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "opacity", 0.5, 1).listen().onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).opacity = value)
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
-    pointsFolder.add(sceneData.point, "widthSegments", 1, 25).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "widthSegments", 1, 25).listen().onFinishChange(value => {
         points.forEach(point => {
             point.geometry.dispose()
             point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments)
         })
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
-    pointsFolder.add(sceneData.point, "heightSegments", 1, 25).onFinishChange(value => {
+    pointsFolder.add(sceneData.point, "heightSegments", 1, 25).listen().onFinishChange(value => {
         points.forEach(point => {
             point.geometry.dispose()
             point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.radius, sceneData.point.radius)
         })
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
     // pointsFolder.open()
 
     const barsFolder = gui.addFolder("Bars")
-    barsFolder.add(sceneData.bar, "visible", true).name("visible").onChange(value => bars.visible = value);
-    barsFolder.add(sceneData.bar, "opacity", 0, 1).onFinishChange(value => {
+    barsFolder.add(sceneData.bar, "visible", true).name("visible").listen().onChange(value => {
+        bars.visible = value
+    });
+    barsFolder.add(sceneData.bar, "opacity", 0, 1).listen().onFinishChange(value => {
         (bars.material as THREE.LineBasicMaterial).opacity = value
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
-    barsFolder.add(sceneData.bar, "linewidth", 0, 10).name("thicc").onFinishChange(value => {
+    barsFolder.add(sceneData.bar, "linewidth", 0, 10).name("thicc").listen().onFinishChange(value => {
         (bars.material as THREE.LineBasicMaterial).linewidth = value
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     })
     const barData = {
         color: ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).getHex(),
     };
-    barsFolder.addColor(barData, 'color').onChange((value) => {
+    barColorController = barsFolder.addColor(barData, 'color').listen().onChange((value) => {
         sceneData.bar.color = value;
         ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(barData.color.toString().replace('#', '0x')))
+
+        if (socketEnabled) {
+            socket.emit('changeSceneData', sceneData)
+        }
     });
     // barsFolder.open();
+
+    // when receive update from other sockets
+    socket.on("updateSceneData", (newSceneData: SceneData) => {
+        // only process SceneData of this task
+        if (!instanceOfSceneData(newSceneData)) { return } else { newSceneData = newSceneData as SceneData }
+        if (!socketEnabled) return
+
+        // changes requiring doing stuffs
+        if (sceneData.playerNumber != newSceneData.playerNumber) {
+            sceneData.playerNumber = newSceneData.playerNumber
+            updatePlayerNumber(sceneData.playerNumber)
+        }
+
+        if (sceneData.dimension != newSceneData.dimension) {
+            sceneData.dimension = newSceneData.dimension
+            console.log(sceneData.dimension)
+            if (sceneData.dimension == 3) {
+                // update winpoint
+                datOptions.winPoint = sceneData.boardSize // to update controller display
+                sceneData.winPoint = sceneData.boardSize
+            }
+            initGame()
+        }
+
+        if (sceneData.winPoint != newSceneData.winPoint) {
+            datOptions.winPoint = newSceneData.winPoint
+            sceneData.winPoint = datOptions.winPoint
+            updateWinCombinationsOnWinPoint()
+        }
+
+        if (sceneData.boardSize != newSceneData.boardSize) {
+            sceneData.boardSize = newSceneData.boardSize
+            sceneData.winPoint = newSceneData.boardSize
+            datOptions.winPoint = newSceneData.boardSize
+            initGame()
+            return // update 1 change per time? 
+        }
+
+        // TODO: refactor - combine multiple updates, performance?
+        if (sceneData.point.wireframe != newSceneData.point.wireframe) {
+            sceneData.point.wireframe = newSceneData.point.wireframe
+            points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = sceneData.point.wireframe)
+            return
+        }
+
+        if (sceneData.point.radius != newSceneData.point.radius) {
+            sceneData.point.radius = newSceneData.point.radius
+            points.forEach(point => {
+                point.scale.x = sceneData.point.radius
+                point.scale.y = sceneData.point.radius
+                point.scale.z = sceneData.point.radius
+                // updatePointsPositions()
+            })
+            return
+        }
+
+        if (sceneData.point.roughness != newSceneData.point.roughness) {
+            sceneData.point.roughness = newSceneData.point.roughness
+            points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).roughness = sceneData.point.roughness)
+            return
+        }
+
+        if (sceneData.point.metalness != newSceneData.point.metalness) {
+            sceneData.point.metalness = newSceneData.point.metalness
+            points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).metalness = sceneData.point.metalness)
+            return
+        }
+
+        if (sceneData.point.opacity != newSceneData.point.opacity) {
+            sceneData.point.opacity = newSceneData.point.opacity
+            points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).opacity = sceneData.point.opacity)
+            return
+        }
+
+        if (sceneData.point.widthSegments != newSceneData.point.widthSegments) {
+            sceneData.point.widthSegments = newSceneData.point.widthSegments
+            points.forEach(point => {
+                point.geometry.dispose()
+                point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments)
+            })
+            return
+        }
+
+        if (sceneData.point.heightSegments != newSceneData.point.heightSegments) {
+            sceneData.point.heightSegments = newSceneData.point.heightSegments
+            points.forEach(point => {
+                point.geometry.dispose()
+                point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments)
+            })
+            return
+        }
+
+        if (sceneData.bar.opacity != newSceneData.bar.opacity) {
+            sceneData.bar.opacity = newSceneData.bar.opacity;
+            (bars.material as THREE.LineBasicMaterial).opacity = sceneData.bar.opacity
+            return
+        }
+
+        // if (sceneData.bar.visible != newSceneData.bar.visible) {
+        //     sceneData.bar.visible = newSceneData.bar.visible
+        //     bars.visible = sceneData.bar.visible
+        //     console.log(sceneData.bar.visible)
+        //     return
+        // }
+
+        // if (sceneData.bar.color != newSceneData.bar.color) {
+        //     barColorController.setValue(sceneData.bar.color)
+        //     sceneData.bar.color = newSceneData.bar.color
+        //     return
+        // }
+        // changes not requiring doing stuffs
+
+        // update Dat controllers (prefer: use listen())
+        // controllers.forEach((controller: GUIController) => {
+        //     controller.updateDisplay()
+        // })
+
+        console.log(`User ${socket.id} made a change`)
+    })
 }
+
 
 function updatePlayerNumber(value: number) {
     // reset playersFolder
@@ -729,13 +940,14 @@ function resetGame() {
 
 function nextTurn() {
     // game over
-    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension)) {
+    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension) - 1) {
         // gameOver = true;
         (lastSelectedPoint.material as any).emissive.setHex(0x000000);
         // prevent selecting/hovering points when reseting game
         removeEvents()
         setTimeout(resetGame, 800)
     } else {
+        movedCount++
         currentTurn = getNextTurn(currentTurn)
 
         console.log(`Current turn: ${currentTurn}`)
