@@ -22,7 +22,6 @@ TODO:
 import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
 import * as THREE from '/build/three.module.js'
 import { socket, outlinePass, raycaster, mouse, camera, transformControls, attachToDragControls, muted, hideLoadingScreen, showLoadingScreen } from '../client.js'
-import { count } from 'console'
 
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
@@ -40,6 +39,9 @@ let sceneData = {
     dimension: 3,
     boardSize: 3,
     winPoint: 3,
+    ai: {
+        delay: 500,
+    },
     point: {
         wireframe: false,
         radius: 1,
@@ -70,8 +72,6 @@ enum GameMode { LOCAL_MULTIPLAYER, REMOTE_MULTIPLAYER }
 let gameMode: GameMode = GameMode.LOCAL_MULTIPLAYER
 
 const UNCLAIMED: number = -1
-// const RED: number = 1
-// const GREEN: number = 2
 let currentTurn: number = 0
 let aiPreferredMoves: number[] // array of point indexes for aiMove()
 var gameOver: boolean = false;
@@ -441,6 +441,9 @@ function createDatGUI() {
         }
     })
 
+    const aisFolder: GUI = gui.addFolder("AIs")
+    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
+
     const pointsFolder: GUI = gui.addFolder("Points")
     pointsFolder.add(sceneData.point, "wireframe", false).onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = value)
@@ -514,6 +517,7 @@ function updatePlayerNumber(value: number) {
 
         const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`)
         playerFolders.push(newPlayerFolder)
+        // TODO: kick off current player to move when being changed to AI
         newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen()
         newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
             // TODO: update seleted point to new color
@@ -688,8 +692,10 @@ function resetGame() {
     // currentTurn = ((currentTurn == RED) ? GREEN : RED);
 
     if (players[currentTurn].isAi) {
-        aiMove()
-        nextTurn()
+        setTimeout(() => {
+            aiMove()
+            nextTurn()
+        }, sceneData.ai.delay)
     }
 }
 
@@ -711,12 +717,13 @@ function nextTurn() {
         console.log(`Current turn: ${currentTurn}`)
 
         if (players[currentTurn].isAi) {
-            aiMove()
-            nextTurn()
+            setTimeout(() => {
+                aiMove()
+                nextTurn()
+            }, sceneData.ai.delay)
         }
     }
 }
-
 
 // check if the last move finishes the game
 function checkWin() {

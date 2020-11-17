@@ -35,6 +35,9 @@ let sceneData = {
     dimension: 3,
     boardSize: 3,
     winPoint: 3,
+    ai: {
+        delay: 500,
+    },
     point: {
         wireframe: false,
         radius: 1,
@@ -60,8 +63,6 @@ var GameMode;
 })(GameMode || (GameMode = {}));
 let gameMode = GameMode.LOCAL_MULTIPLAYER;
 const UNCLAIMED = -1;
-// const RED: number = 1
-// const GREEN: number = 2
 let currentTurn = 0;
 let aiPreferredMoves; // array of point indexes for aiMove()
 var gameOver = false;
@@ -384,6 +385,8 @@ function createDatGUI() {
             updateWinCombinationsOnWinPoint();
         }
     });
+    const aisFolder = gui.addFolder("AIs");
+    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
     const pointsFolder = gui.addFolder("Points");
     pointsFolder.add(sceneData.point, "wireframe", false).onFinishChange(value => {
         points.forEach(point => point.material.wireframe = value);
@@ -451,6 +454,7 @@ function updatePlayerNumber(value) {
         players.push(newPlayer);
         const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`);
         playerFolders.push(newPlayerFolder);
+        // TODO: kick off current player to move when being changed to AI
         newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen();
         newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
             // TODO: update seleted point to new color
@@ -604,8 +608,10 @@ function resetGame() {
     // loser in previous game goes first in new game
     // currentTurn = ((currentTurn == RED) ? GREEN : RED);
     if (players[currentTurn].isAi) {
-        aiMove();
-        nextTurn();
+        setTimeout(() => {
+            aiMove();
+            nextTurn();
+        }, sceneData.ai.delay);
     }
 }
 function nextTurn() {
@@ -626,8 +632,10 @@ function nextTurn() {
         }
         console.log(`Current turn: ${currentTurn}`);
         if (players[currentTurn].isAi) {
-            aiMove();
-            nextTurn();
+            setTimeout(() => {
+                aiMove();
+                nextTurn();
+            }, sceneData.ai.delay);
         }
     }
 }
