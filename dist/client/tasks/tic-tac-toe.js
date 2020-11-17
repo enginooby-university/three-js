@@ -328,12 +328,6 @@ function extractSubCombinations(originalCombinations, m) {
     });
     return newCombinations;
 }
-function createLights() {
-    const light = new THREE.DirectionalLight(0xe0e0e0);
-    light.position.set(5, 2, 5).normalize();
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x101010));
-}
 /* DAT GUI */
 let playerFolders = [];
 let playersFolder;
@@ -481,6 +475,13 @@ function updatePlayerNumber(value) {
     console.log(players);
 }
 /* END DAT GUI */
+/* CREATING */
+function createLights() {
+    const light = new THREE.DirectionalLight(0xe0e0e0);
+    light.position.set(5, 2, 5).normalize();
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x101010));
+}
 function createBars() {
     // reset bars
     if (bars !== undefined) {
@@ -565,20 +566,7 @@ function createPoint(x, y, z, index) {
     point.position.set(x, y, z);
     scene.add(point);
 }
-// function updatePointsPositions() {
-//     let range: number[] = []
-//     for (let i = 0; i < sceneData.pointNumber; i++) {
-//         range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i)
-//     }
-//     let index: number = 0;
-//     range.forEach(function (x) {
-//         range.forEach(function (y) {
-//             range.forEach(function (z) {
-//                 (points[index++].userData.targetPosition as THREE.Vector3).set(x, y, z)
-//             })
-//         })
-//     });
-// }
+/* END CREATING */
 /* ANIMATIONS */
 function yScaleDownAnimation(duration) {
     const loop = setInterval(function () {
@@ -606,6 +594,20 @@ function yScaleAnimation(downDuration, upDuration) {
     yScaleDownAnimation(downDuration);
     setTimeout(() => yScaleUpAnimation(upDuration), downDuration + 200); // error
 }
+// function updatePointsPositions() {
+//     let range: number[] = []
+//     for (let i = 0; i < sceneData.pointNumber; i++) {
+//         range.push((-3 * (sceneData.pointNumber - 1)) / 2 + 3 * i)
+//     }
+//     let index: number = 0;
+//     range.forEach(function (x) {
+//         range.forEach(function (y) {
+//             range.forEach(function (z) {
+//                 (points[index++].userData.targetPosition as THREE.Vector3).set(x, y, z)
+//             })
+//         })
+//     });
+// }
 /* END ANIMATIONS */
 /* GAME PLAY */
 function getNextTurn(currentTurn) {
