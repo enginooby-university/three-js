@@ -98,9 +98,9 @@ export function init() {
 
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber)
-    players[0].isAi = true
+    players[0].isAi = false
     players[1].isAi = true
-
+    // kick off first player if AI
     if (players[0].isAi) {
         setTimeout(() => {
             aiMove()
@@ -381,6 +381,7 @@ function createLights() {
     scene.add(new THREE.AmbientLight(0x101010));
 }
 
+/* DAT GUI */
 let playerFolders: GUI[] = []
 let playersFolder: GUI
 let playerNumberController: GUIController
@@ -527,8 +528,14 @@ function updatePlayerNumber(value: number) {
         // TODO: kick off current player to move when being changed to AI
         newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen()
         newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
-            // TODO: update seleted point to new color
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')))
+
+            // update seleted point to new color
+            points.forEach(point => {
+                if (point.userData.claim == newPlayer.id) {
+                    (point as any).material.color.set(value);
+                }
+            })
         });
 
         newPlayerFolder.open()
@@ -540,6 +547,7 @@ function updatePlayerNumber(value: number) {
 
     console.log(players)
 }
+/* END DAT GUI */
 
 function createBars() {
     // reset bars
