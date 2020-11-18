@@ -401,7 +401,7 @@ function switchScene(scenceIndex: number) {
     // update source link corresponding to current task (scene)
     sourceLink = SOURCE_LINK_BASE + Array.from(Tasks)[scenceIndex][1]
     currentScene.add(axesHelper)
-    // axesHelper.visible = false
+    axesHelper.visible = false
     currentScene.add(gridHelper)
     gridHelper.visible = false
     currentScene.add(cameraHelper)

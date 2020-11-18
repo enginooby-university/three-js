@@ -33,6 +33,7 @@ export const setSelectedObjectId = (index) => selectedObjectId = index;
 var Event;
 (function (Event) {
     Event["CHANGE_SCENE_DATA"] = "tictactoe-changeSceneData";
+    Event["SYNC_AI"] = "tictactoe-syncAi";
     Event["PLAYER_MOVE"] = "tictactoe-playerMove";
 })(Event || (Event = {}));
 function instanceOfSceneData(data) {
@@ -42,7 +43,7 @@ let sceneData = {
     eventName: Event.CHANGE_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
-    boardSize: 4,
+    boardSize: 10,
     winPoint: 3,
     ai: {
         delay: 500,
@@ -57,7 +58,7 @@ let sceneData = {
         heightSegments: 1,
     },
     bar: {
-        visible: false,
+        visible: true,
         color: new THREE.Color(0xffffff),
         linewidth: 3,
         opacity: 0.5,
@@ -394,7 +395,7 @@ function generateWinCombinations() {
                     winCombination3.push((n - 1 - dif) * Math.pow(n, 2) + dface - (Math.pow(n, 2) - n + 1) * i);
                     winCombination4.push(dif * n + (n - 1) * Math.pow(n, 2) + dface - (Math.pow(n, 2) - n + 1) * i);
                 }
-                console.log(testCombination);
+                // console.log(testCombination)
                 winCombinations.push(winCombination1);
                 winCombinations.push(winCombination2);
                 winCombinations.push(winCombination3);
@@ -493,6 +494,13 @@ function setupSocket() {
         // (points[data.id].material as any).color.set(players[currentTurn].color);
         updateSelectedPoint(points[data.id]);
         nextTurn();
+    });
+    socket.on(Event.SYNC_AI, (data) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER)
+            return;
+        aiPreferredMoves = data.aiPreferredMoves;
+        console.log(`Sync AI:`);
+        console.log(data.aiPreferredMoves);
     });
     // when receive update from other sockets
     socket.on(Event.CHANGE_SCENE_DATA, (newSceneData) => {
@@ -618,7 +626,7 @@ function createDatGUI() {
         gameMode = value;
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
             // TODO: sync ai moves accross multi-player
-            socket.emit('tictactoe-joinGame', { aiPreferredMoves: aiPreferredMoves });
+            socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
         }
     });
     gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
@@ -856,7 +864,7 @@ function yScaleDownAnimation(duration) {
     const loop = setInterval(function () {
         console.log("shrinking...");
         points.forEach(point => {
-            point.scale.y -= 1 / 20;
+            point.scale.y -= (1 / 20 + 5); // increase speed for error time
             if (point.scale.y <= 0) {
                 clearInterval(loop);
             }
@@ -867,7 +875,7 @@ function yScaleUpAnimation(duration) {
     const loop = setInterval(function () {
         console.log("expanding...");
         points.forEach(point => {
-            point.scale.y += 1 / 20;
+            point.scale.y += (1 / 20 + 5);
             if (point.scale.y >= 1) {
                 clearInterval(loop);
             }
@@ -876,7 +884,7 @@ function yScaleUpAnimation(duration) {
 }
 function yScaleAnimation(downDuration, upDuration) {
     yScaleDownAnimation(downDuration);
-    setTimeout(() => yScaleUpAnimation(upDuration), downDuration + 200); // error
+    setTimeout(() => yScaleUpAnimation(upDuration), downDuration);
 }
 // function updatePointsPositions() {
 //     let range: number[] = []
@@ -907,7 +915,7 @@ function getNextTurn(currentTurn) {
 function resetGame() {
     // gameOver = false
     movedCount = 0;
-    yScaleAnimation(600, 300);
+    // yScaleAnimation(600, 300)
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
         point.material.color.setHex(0xffffff);
@@ -1055,6 +1063,9 @@ function generateAiPreferredMoves() {
         legitIndexes.push(i);
     }
     aiPreferredMoves = shuffleArray(legitIndexes);
+    if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
+        socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
+    }
 }
 // Randomize array in-place using Durstenfeld shuffle algorithm
 function shuffleArray(array) {

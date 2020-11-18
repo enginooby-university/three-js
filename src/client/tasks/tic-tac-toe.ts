@@ -36,7 +36,8 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 enum Event {
     CHANGE_SCENE_DATA = "tictactoe-changeSceneData",
-    PLAYER_MOVE = "tictactoe-playerMove"
+    SYNC_AI = "tictactoe-syncAi",
+    PLAYER_MOVE = "tictactoe-playerMove",
 }
 
 type SceneData = {
@@ -73,7 +74,7 @@ let sceneData: SceneData = {
     eventName: Event.CHANGE_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
-    boardSize: 4,
+    boardSize: 10,
     winPoint: 3,
     ai: {
         delay: 500,
@@ -88,7 +89,7 @@ let sceneData: SceneData = {
         heightSegments: 1,
     },
     bar: {
-        visible: false,
+        visible: true,
         color: new THREE.Color(0xffffff),
         linewidth: 3,
         opacity: 0.5,
@@ -470,7 +471,7 @@ function generateWinCombinations() {
                     winCombination4.push(dif * n + (n - 1) * Math.pow(n, 2) + dface - (Math.pow(n, 2) - n + 1) * i)
                 }
 
-                console.log(testCombination)
+                // console.log(testCombination)
                 winCombinations.push(winCombination1)
                 winCombinations.push(winCombination2)
                 winCombinations.push(winCombination3)
@@ -578,6 +579,13 @@ function setupSocket() {
         // (points[data.id].material as any).color.set(players[currentTurn].color);
         updateSelectedPoint(points[data.id])
         nextTurn();
+    })
+
+    socket.on(Event.SYNC_AI, (data: any) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
+        aiPreferredMoves = data.aiPreferredMoves
+        console.log(`Sync AI:`)
+        console.log(data.aiPreferredMoves)
     })
 
     // when receive update from other sockets
@@ -719,7 +727,7 @@ function createDatGUI() {
 
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
             // TODO: sync ai moves accross multi-player
-            socket.emit('tictactoe-joinGame', { aiPreferredMoves: aiPreferredMoves })
+            socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves })
         }
     })
 
@@ -986,7 +994,7 @@ function yScaleDownAnimation(duration: number) {
     const loop = setInterval(function () {
         console.log("shrinking...")
         points.forEach(point => {
-            point.scale.y -= 1 / 20
+            point.scale.y -= (1 / 20 + 5) // increase speed for error time
             if (point.scale.y <= 0) {
                 clearInterval(loop);
             }
@@ -998,7 +1006,7 @@ function yScaleUpAnimation(duration: number) {
     const loop = setInterval(function () {
         console.log("expanding...")
         points.forEach(point => {
-            point.scale.y += 1 / 20
+            point.scale.y += (1 / 20 + 5)
             if (point.scale.y >= 1) {
                 clearInterval(loop);
             }
@@ -1008,7 +1016,7 @@ function yScaleUpAnimation(duration: number) {
 
 function yScaleAnimation(downDuration: number, upDuration: number) {
     yScaleDownAnimation(downDuration)
-    setTimeout(() => yScaleUpAnimation(upDuration), downDuration + 200) // error
+    setTimeout(() => yScaleUpAnimation(upDuration), downDuration)
 }
 
 // function updatePointsPositions() {
@@ -1043,7 +1051,7 @@ function getNextTurn(currentTurn: number): number {
 function resetGame() {
     // gameOver = false
     movedCount = 0
-    yScaleAnimation(600, 300)
+    // yScaleAnimation(600, 300)
 
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
@@ -1197,6 +1205,10 @@ function generateAiPreferredMoves() {
         legitIndexes.push(i)
     }
     aiPreferredMoves = shuffleArray(legitIndexes)
+
+    if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
+        socket.emit("broadcast", {eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves})
+    }
 }
 
 // Randomize array in-place using Durstenfeld shuffle algorithm
