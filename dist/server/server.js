@@ -57,18 +57,16 @@ class App {
             // emit to all sockets except the new connected socket
             socket.broadcast.emit("message", "Everybody, say hello to " + socket.id);
             socket.send(`Current users: ${this.userNumber}`);
-            socket.on("changeSceneData", (data) => {
-                this.userNumber--;
-                // emit to all sockets except the socket making change (socket emitting 'changeSceneData' event)
-                socket.broadcast.emit("updateSceneData", data);
-                // emit to all sockets
-                // this.io.sockets.emit("updateSceneData", data)
+            socket.on("broadcast", (data) => {
+                // emit to all sockets except the socket making change (socket emitting eventName event)
+                socket.broadcast.emit(data.eventName, data);
             });
-            /* TIC TAC TOE */
-            socket.on("tictactoe_changeTurn", (data) => {
-                socket.broadcast.emit("updateTurn", data);
+            socket.on("all", (data) => {
+                // emit to all sockets
+                // this.io.sockets.emit(data.eventName, data)
             });
             socket.on("disconnect", () => {
+                this.userNumber--;
                 console.log(`User disconnected: ${socket.id}`);
             });
         });

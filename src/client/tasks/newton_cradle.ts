@@ -10,8 +10,13 @@ export let gui: GUI
 export let skybox: string = 'arid'
 export const setSkybox = (name: string) => skybox = name
 
+enum Event {
+    CHANGE_SCENE_DATA = "cradle-changeSceneData",
+}
+
 // data being synced across sockets
 type SceneData = {
+    eventName: string, // to distinguish SceneData among different tasks
     verBallAmount: number,
     verBallSpeed: number,
     verBallMaxAngle: number,
@@ -20,6 +25,7 @@ type SceneData = {
     horBallMaxAngle: number,
 }
 let sceneData: SceneData = {
+    eventName: Event.CHANGE_SCENE_DATA,
     verBallAmount: 5,
     verBallSpeed: 0.03,
     verBallMaxAngle: Helper.toRadian(40),
@@ -27,7 +33,14 @@ let sceneData: SceneData = {
     horBallSpeed: 0.05,
     horBallMaxAngle: Helper.toRadian(60),
 }
+
+function instanceOfSceneData(data: any): boolean {
+    return data.eventName === Event.CHANGE_SCENE_DATA;
+}
+
 function copySceneData(currentSceneData: SceneData, newSceneData: SceneData) {
+    // TODO: find a way to copy all properties from an object (newSceneData) 
+    // to an existing object (currentSceneData), no references holding (no shallow)
     currentSceneData.verBallAmount = newSceneData.verBallAmount
     currentSceneData.verBallMaxAngle = newSceneData.verBallMaxAngle
     currentSceneData.verBallSpeed = newSceneData.verBallSpeed
@@ -105,6 +118,7 @@ export function init() {
     // scene.add(audioListener)
 
     setupControls()
+    setupSocket()
     transformableObjects.forEach(child => scene.add(child))
     createDatGUI()
 }
@@ -118,69 +132,67 @@ export function setupControls() {
     scene.add(transformControls)
 }
 
+function setupSocket(){
+     // when receive update from other sockets
+     socket.on(Event.CHANGE_SCENE_DATA, (newSceneData: SceneData) => {
+        // only process SceneData of this task
+        if (!instanceOfSceneData(newSceneData)) { return } else { newSceneData = newSceneData as SceneData }
+        if (!socketEnabled) return
+
+        // updates requiring doing other stuffs
+        if (newSceneData.verBallAmount != sceneData.verBallAmount || newSceneData.horBallAmount != sceneData.horBallAmount) {
+            // sceneData = Object.assign({}, newSceneData)      // no shallow but sceneData is newly created
+            // sceneData = newSceneData     // shallow cloning
+            // sceneData = { ...newSceneData }   // shallow cloning
+
+            copySceneData(sceneData, newSceneData)
+            updateBallNumber()
+        } else {    // updates not requiring doing other stuffs, just cloning
+            // sceneData = Object.assign({}, newSceneData)
+            // sceneData = newSceneData
+            // sceneData = { ...newSceneData }
+
+            copySceneData(sceneData, newSceneData)
+        }
+    })
+}
+
+function broadcast(data: any) {
+    if (socketEnabled) {
+        socket.emit("broadcast", data)
+    }
+}
+
 function createDatGUI() {
     gui = new GUI()
     gui.width = 232
 
-    const controllers: GUIController[] = []
-
     const verticalGroupFolder = gui.addFolder('Vertical group')
-    controllers.push(verticalGroupFolder.add(sceneData, 'verBallAmount', 3, 9, 1).name('Ball number').onFinishChange((value) => {
+    verticalGroupFolder.add(sceneData, 'verBallAmount', 3, 9, 1).name('Ball number').listen().onFinishChange((value) => {
         updateBallNumber()
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    }))
+        broadcast(sceneData)
+    })
 
-    controllers.push(verticalGroupFolder.add(sceneData, 'verBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').onFinishChange(value => {
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    }))
-    controllers.push(verticalGroupFolder.add(sceneData, 'verBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').onFinishChange(value => {
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    }))
+    verticalGroupFolder.add(sceneData, 'verBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').listen().onFinishChange(value => {
+        broadcast(sceneData)
+    })
+    verticalGroupFolder.add(sceneData, 'verBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).listen().name('Max angle').onFinishChange(value => {
+        broadcast(sceneData)
+    })
     verticalGroupFolder.open()
 
     const horizontalGroupFolder = gui.addFolder('Horizontal group')
-    controllers.push(horizontalGroupFolder.add(sceneData, 'horBallAmount', 3, 9, 1).name('Ball number').onFinishChange(() => {
+    horizontalGroupFolder.add(sceneData, 'horBallAmount', 3, 9, 1).name('Ball number').listen().onFinishChange(() => {
         updateBallNumber()
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    }))
-    controllers.push(horizontalGroupFolder.add(sceneData, 'horBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').onFinishChange(value => {
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    }))
-    controllers.push(horizontalGroupFolder.add(sceneData, 'horBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').onFinishChange(value => {
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    }))
-    horizontalGroupFolder.open()
-
-    // when receive update from other sockets
-    socket.on("updateSceneData", (newSceneData: SceneData) => {
-        if (!socketEnabled) return
-        // update ball number in different sockets only when change ball number, of course :)
-        if (newSceneData.verBallAmount != sceneData.verBallAmount || newSceneData.horBallAmount != sceneData.horBallAmount) {
-            copySceneData(sceneData, newSceneData)
-            updateBallNumber()
-        } else {
-            copySceneData(sceneData, newSceneData)
-        }
-
-        // update Dat controllers
-        controllers.forEach((controller: GUIController) => {
-            controller.updateDisplay()
-        })
-        console.log(`User ${socket.id} made a change`)
+        broadcast(sceneData)
     })
-
+    horizontalGroupFolder.add(sceneData, 'horBallSpeed', 0.01, 0.1, 0.01).name('Ball speed').listen().onFinishChange(value => {
+        broadcast(sceneData)
+    })
+    horizontalGroupFolder.add(sceneData, 'horBallMaxAngle', Helper.toRadian(10), Helper.toRadian(70), 0.01).name('Max angle').listen().onFinishChange(value => {
+        broadcast(sceneData)
+    })
+    horizontalGroupFolder.open()
 
     DatHelper.createDirectionalLightFolder(gui, directionalLight)
     const ballFolder: GUI = gui.addFolder("Balls")
@@ -192,7 +204,6 @@ function createDatGUI() {
     const floorFolder = DatHelper.createObjectFolder(gui, plane, 'Floor')
     DatHelper.createMaterialFolder(floorFolder, planeMaterial).open()
 }
-
 
 export function render() {
     lightShadowHelper.update()

@@ -34,8 +34,13 @@ export let transformableObjects: THREE.Mesh[] = []
 export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
+enum Event {
+    CHANGE_SCENE_DATA = "tictactoe-changeSceneData",
+    PLAYER_MOVE = "tictactoe-playerMove"
+}
+
 type SceneData = {
-    discriminator: string, // to distinguish SceneData among different tasks
+    eventName: string, // to distinguish SceneData among different tasks
     playerNumber: number,
     dimension: number,
     boardSize: number,
@@ -61,14 +66,14 @@ type SceneData = {
 }
 
 function instanceOfSceneData(data: any): boolean {
-    return data.discriminator === 'tic-tac-toe';
+    return data.eventName === Event.CHANGE_SCENE_DATA;
 }
 
 let sceneData: SceneData = {
-    discriminator: "tic-tac-toe",
+    eventName: Event.CHANGE_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
-    boardSize: 3,
+    boardSize: 4,
     winPoint: 3,
     ai: {
         delay: 500,
@@ -194,13 +199,13 @@ export function render() {
 }
 
 function initGame() {
-    // testCombination = []
+    testCombination = []
     movedCount = 0
     createPoints()
     createBars()
     generateWinCombinations()
     generateAiPreferredMoves()
-    // testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
+    testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
 }
 
 function generateWinCombinations() {
@@ -378,10 +383,19 @@ function updateWinCombinationsOnWinPoint() {
             }
             winCombinations.push(winCombination)
         }
+    } else if (sceneData.dimension == 3) {
+        winCombination = []
+        for (let dif = 1; dif <= n - m; dif++) {
+            for (let i = 0; i < n - dif; i++) {
+                testCombination.push(dif + i * (n + 1))
+
+            }
+            winCombinations.push(winCombination)
+        }
     }
 
     winCombinations = extractSubCombinations(winCombinations, m)
-    // console.log(winCombinations)
+    console.log(winCombinations)
 }
 
 // get all the subsets of m-adjacent elements
@@ -404,10 +418,9 @@ function extractSubCombinations(originalCombinations: number[][], m: number): nu
     return newCombinations
 }
 
-/* DAT GUI */
+/* DAT GUI & SOCKET */
 let playerFolders: GUI[] = []
 let playersFolder: GUI
-let playerNumberController: GUIController
 let barColorController: GUIController
 const datOptions = {
     // don't change winPoint directly but through a medium varible
@@ -423,173 +436,17 @@ const datOptions = {
     }
 }
 
-function createDatGUI() {
-    const selectedGameMode = {
-        name: GameMode.LOCAL_MULTIPLAYER,
-    }
-
-    let winPointController: GUIController
-
-    gui = new GUI()
-    gui.add(selectedGameMode, "name", datOptions.mode).name("Game mode").onChange(value => {
-        gameMode = value
+function setupSocket() {
+    // TODO: create type for this data
+    socket.on(Event.PLAYER_MOVE, (data: any) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
+        // (points[data.id].material as any).color.set(players[currentTurn].color);
+        updateSelectedPoint(points[data.id])
+        nextTurn();
     })
-
-    playerNumberController = gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
-        updatePlayerNumber(value)
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    playersFolder = gui.addFolder("Players")
-    playersFolder.open()
-
-    gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
-        if (value == 3) {
-            // update winpoint
-            datOptions.winPoint = sceneData.boardSize // to update controller display
-            sceneData.winPoint = sceneData.boardSize
-        }
-        initGame()
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-
-    gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").listen().onFinishChange((value) => {
-        // update winpoint
-        datOptions.winPoint = value
-        sceneData.winPoint = value
-
-        initGame()
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-
-    winPointController = gui.add(datOptions, "winPoint", 3, 30).step(1).name("Win point").listen().onFinishChange(value => {
-        if (sceneData.dimension == 3) {
-            alert("This feature in 3D board is under development.")
-            winPointController.setValue(sceneData.winPoint)
-        }
-        else if (value > sceneData.boardSize) {
-            alert("Win point should not be greater than board size!")
-            winPointController.setValue(sceneData.winPoint)
-        }
-        else {
-            sceneData.winPoint = datOptions.winPoint
-            updateWinCombinationsOnWinPoint()
-
-            if (socketEnabled) {
-                socket.emit('changeSceneData', sceneData)
-            }
-        }
-    })
-
-    const aisFolder: GUI = gui.addFolder("AIs")
-    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
-
-    const pointsFolder: GUI = gui.addFolder("Points")
-    pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
-        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = value)
-
-        // TODO: refactor duplication, using controllers array?
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    pointsFolder.add(sceneData.point, "radius", 0.5, 1, 0.1).name("size").listen().onFinishChange(radius => {
-        points.forEach(point => {
-            point.scale.x = radius
-            point.scale.y = radius
-            point.scale.z = radius
-            // updatePointsPositions()
-        })
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-
-    pointsFolder.add(sceneData.point, "roughness", 0, 1).listen().onFinishChange(value => {
-        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).roughness = value)
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    pointsFolder.add(sceneData.point, "metalness", 0, 1).listen().onFinishChange(value => {
-        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).metalness = value)
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    pointsFolder.add(sceneData.point, "opacity", 0.5, 1).listen().onFinishChange(value => {
-        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).opacity = value)
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    pointsFolder.add(sceneData.point, "widthSegments", 1, 25).listen().onFinishChange(value => {
-        points.forEach(point => {
-            point.geometry.dispose()
-            point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments)
-        })
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    pointsFolder.add(sceneData.point, "heightSegments", 1, 25).listen().onFinishChange(value => {
-        points.forEach(point => {
-            point.geometry.dispose()
-            point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.radius, sceneData.point.radius)
-        })
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    // pointsFolder.open()
-
-    const barsFolder = gui.addFolder("Bars")
-    barsFolder.add(sceneData.bar, "visible", true).name("visible").listen().onChange(value => {
-        bars.visible = value
-    });
-    barsFolder.add(sceneData.bar, "opacity", 0, 1).listen().onFinishChange(value => {
-        (bars.material as THREE.LineBasicMaterial).opacity = value
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    barsFolder.add(sceneData.bar, "linewidth", 0, 10).name("thicc").listen().onFinishChange(value => {
-        (bars.material as THREE.LineBasicMaterial).linewidth = value
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    })
-    const barData = {
-        color: ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).getHex(),
-    };
-    barColorController = barsFolder.addColor(barData, 'color').listen().onChange((value) => {
-        sceneData.bar.color = value;
-        ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(barData.color.toString().replace('#', '0x')))
-
-        if (socketEnabled) {
-            socket.emit('changeSceneData', sceneData)
-        }
-    });
-    // barsFolder.open();
 
     // when receive update from other sockets
-    socket.on("updateSceneData", (newSceneData: SceneData) => {
+    socket.on(Event.CHANGE_SCENE_DATA, (newSceneData: SceneData) => {
         // only process SceneData of this task
         if (!instanceOfSceneData(newSceneData)) { return } else { newSceneData = newSceneData as SceneData }
         if (!socketEnabled) return
@@ -708,6 +565,140 @@ function createDatGUI() {
     })
 }
 
+function broadcast(data: any){
+    if(socketEnabled){
+        socket.emit("broadcast", data)
+    }
+}
+
+function createDatGUI() {
+    const selectedGameMode = {
+        name: GameMode.LOCAL_MULTIPLAYER,
+    }
+
+    let winPointController: GUIController
+
+    gui = new GUI()
+    gui.add(selectedGameMode, "name", datOptions.mode).name("Game mode").onChange(value => {
+        gameMode = value
+
+        if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
+            // sync ai moves accross multi-player
+            socket.emit('tictactoe-joinGame', { aiPreferredMoves: aiPreferredMoves })
+        }
+    })
+
+    gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
+        updatePlayerNumber(value)
+        broadcast(sceneData)
+    })
+
+    playersFolder = gui.addFolder("Players")
+    playersFolder.open()
+
+    gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
+        if (value == 3) {
+            // update winpoint
+            datOptions.winPoint = sceneData.boardSize // to update controller display
+            sceneData.winPoint = sceneData.boardSize
+        }
+        initGame()
+        broadcast(sceneData)
+    })
+
+    gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").listen().onFinishChange((value) => {
+        // update winpoint
+        datOptions.winPoint = value
+        sceneData.winPoint = value
+
+        initGame()
+        broadcast(sceneData)
+    })
+
+    winPointController = gui.add(datOptions, "winPoint", 3, 30).step(1).name("Win point").listen().onFinishChange(value => {
+        if (sceneData.dimension == 4) {
+            // alert("This feature in 3D board is under development.")
+            winPointController.setValue(sceneData.winPoint)
+        }
+        else if (value > sceneData.boardSize) {
+            alert("Win point should not be greater than board size!")
+            winPointController.setValue(sceneData.winPoint)
+        }
+        else {
+            sceneData.winPoint = datOptions.winPoint
+            updateWinCombinationsOnWinPoint()
+            broadcast(sceneData)
+        }
+    })
+
+    const aisFolder: GUI = gui.addFolder("AIs")
+    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
+
+    const pointsFolder: GUI = gui.addFolder("Points")
+    pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = value)
+        broadcast(sceneData)
+    })
+    pointsFolder.add(sceneData.point, "radius", 0.5, 1, 0.1).name("size").listen().onFinishChange(radius => {
+        points.forEach(point => {
+            point.scale.x = radius
+            point.scale.y = radius
+            point.scale.z = radius
+            // updatePointsPositions()
+        })
+        broadcast(sceneData)
+    })
+
+    pointsFolder.add(sceneData.point, "roughness", 0, 1).listen().onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).roughness = value)
+        broadcast(sceneData)
+    })
+    pointsFolder.add(sceneData.point, "metalness", 0, 1).listen().onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).metalness = value)
+        broadcast(sceneData)
+    })
+    pointsFolder.add(sceneData.point, "opacity", 0.5, 1).listen().onFinishChange(value => {
+        points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).opacity = value)
+        broadcast(sceneData)
+    })
+    pointsFolder.add(sceneData.point, "widthSegments", 1, 25).listen().onFinishChange(value => {
+        points.forEach(point => {
+            point.geometry.dispose()
+            point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.widthSegments, sceneData.point.heightSegments)
+        })
+        broadcast(sceneData)
+    })
+    pointsFolder.add(sceneData.point, "heightSegments", 1, 25).listen().onFinishChange(value => {
+        points.forEach(point => {
+            point.geometry.dispose()
+            point.geometry = new THREE.SphereGeometry(sceneData.point.radius, sceneData.point.radius, sceneData.point.radius)
+        })
+        broadcast(sceneData)
+    })
+    // pointsFolder.open()
+
+    const barsFolder = gui.addFolder("Bars")
+    barsFolder.add(sceneData.bar, "visible", true).name("visible").listen().onChange(value => {
+        bars.visible = value
+    });
+    barsFolder.add(sceneData.bar, "opacity", 0, 1).listen().onFinishChange(value => {
+        (bars.material as THREE.LineBasicMaterial).opacity = value
+        broadcast(sceneData)
+    })
+    barsFolder.add(sceneData.bar, "linewidth", 0, 10).name("thicc").listen().onFinishChange(value => {
+        (bars.material as THREE.LineBasicMaterial).linewidth = value
+        broadcast(sceneData)
+    })
+    const barData = {
+        color: ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).getHex(),
+    };
+    barColorController = barsFolder.addColor(barData, 'color').listen().onChange((value) => {
+        sceneData.bar.color = value;
+        ((bars.material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(barData.color.toString().replace('#', '0x')))
+        broadcast(sceneData)
+    });
+    // barsFolder.open();
+}
 
 function updatePlayerNumber(value: number) {
     // reset playersFolder
@@ -1133,7 +1124,7 @@ function selectPoint(event: MouseEvent) {
             updateSelectedPoint(selectedPoint)
 
             if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
-                socket.emit('tictactoe_changeTurn', { id: selectedPoint.userData.id, color: currentTurn });
+                socket.emit('broadcast', { eventName: Event.PLAYER_MOVE, id: selectedPoint.userData.id, color: currentTurn });
             }
 
             // remove hover effect right after seleting
@@ -1142,15 +1133,6 @@ function selectPoint(event: MouseEvent) {
             nextTurn();
         }
     }
-}
-
-function setupSocket() {
-    socket.on("updateTurn", (data: any) => {
-        if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
-        // (points[data.id].material as any).color.set(players[currentTurn].color);
-        updateSelectedPoint(points[data.id])
-        nextTurn();
-    })
 }
 
 function updateSelectedPoint(selectedPoint: THREE.Mesh) {
@@ -1184,7 +1166,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.set((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`);
+            console.log(`Point id: ${hoveredPoint.userData.id}`);
 
             (hoveredPoint.material as any).emissive.set(players[currentTurn].color);
 
