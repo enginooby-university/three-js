@@ -1,6 +1,5 @@
 /*
 TODO:
-    - *Generate all win combinations for 3D when win point < board size
     - *Implement remote multi-player mode
     - *Implement different win shapes (instead of normal line)
     - *Fix size point not update when change size board
@@ -342,6 +341,26 @@ function generateWinCombinations() {
                 winCombinations.push(winCombination3);
                 winCombinations.push(winCombination4);
             }
+            // dif:dface 1:2 2:3
+            // diagonal lines parallel to diagonal yz face 
+            for (let dface = 0; dface < dif + 1; dface++) {
+                winCombination1 = [];
+                winCombination2 = [];
+                winCombination3 = [];
+                winCombination4 = [];
+                for (let i = 0; i < n - dif; i++) {
+                    // (y=+z)
+                    winCombination1.push(dif + Math.pow(n, 2) * dface + i * (n + 1 + Math.pow(n, 2)));
+                    winCombination2.push(dif * n + Math.pow(n, 2) * dface + i * (n + 1 + Math.pow(n, 2)));
+                    // (y=-z)
+                    winCombination3.push((n - 1) - dif + Math.pow(n, 2) * dface + i * (n - 1 + Math.pow(n, 2)));
+                    winCombination4.push(dif * n + (n - 1) + Math.pow(n, 2) * dface + i * (n - 1 + Math.pow(n, 2)));
+                }
+                winCombinations.push(winCombination1);
+                winCombinations.push(winCombination2);
+                winCombinations.push(winCombination3);
+                winCombinations.push(winCombination4);
+            }
             // diagonal lines parallel to xy face 
             for (let face = 0; face < n; face++) {
                 winCombination1 = [];
@@ -356,6 +375,26 @@ function generateWinCombinations() {
                     winCombination3.push((n - 1 - dif) * Math.pow(n, 2) + face - (Math.pow(n, 2) - n) * i);
                     winCombination4.push(dif * n + (n - 1) * Math.pow(n, 2) + face - (Math.pow(n, 2) - n) * i);
                 }
+                winCombinations.push(winCombination1);
+                winCombinations.push(winCombination2);
+                winCombinations.push(winCombination3);
+                winCombinations.push(winCombination4);
+            }
+            // diagonal lines parallel to diagonal xy face 
+            for (let dface = 0; dface < dif + 1; dface++) {
+                winCombination1 = [];
+                winCombination2 = [];
+                winCombination3 = [];
+                winCombination4 = [];
+                for (let i = 0; i < n - dif; i++) {
+                    // (x=+y)
+                    winCombination1.push(dif * Math.pow(n, 2) + dface + (Math.pow(n, 2) + n + 1) * i);
+                    winCombination2.push(dif * n + dface + (Math.pow(n, 2) + n + 1) * i);
+                    // (x=-y)
+                    winCombination3.push((n - 1 - dif) * Math.pow(n, 2) + dface - (Math.pow(n, 2) - n + 1) * i);
+                    winCombination4.push(dif * n + (n - 1) * Math.pow(n, 2) + dface - (Math.pow(n, 2) - n + 1) * i);
+                }
+                console.log(testCombination);
                 winCombinations.push(winCombination1);
                 winCombinations.push(winCombination2);
                 winCombinations.push(winCombination3);
@@ -380,13 +419,32 @@ function generateWinCombinations() {
                 winCombinations.push(winCombination3);
                 winCombinations.push(winCombination4);
             }
+            // diagonal lines parallel to diagonal xz face 
+            for (let dface = 0; dface < dif + 1; dface++) {
+                winCombination1 = [];
+                winCombination2 = [];
+                winCombination3 = [];
+                winCombination4 = [];
+                for (let i = 0; i < n - dif; i++) {
+                    // (x=+z)
+                    winCombination1.push(dif + dface * n + (Math.pow(n, 2) + 1 + n) * i);
+                    winCombination2.push(dif * Math.pow(n, 2) + dface * n + (Math.pow(n, 2) + 1 + n) * i);
+                    // (x=-z)
+                    winCombination3.push((n - 1 - dif) + dface * n + (Math.pow(n, 2) - 1 + n) * i);
+                    winCombination4.push(dif * Math.pow(n, 2) + (n - 1) + dface * n + (Math.pow(n, 2) - 1 + n) * i);
+                }
+                winCombinations.push(winCombination1);
+                winCombinations.push(winCombination2);
+                winCombinations.push(winCombination3);
+                winCombinations.push(winCombination4);
+            }
         }
     }
     winCombinations = extractSubCombinations(winCombinations, m);
     // debugging
     console.log("Win combinations:");
     console.log(winCombinations);
-    testCombination.forEach(index => points[index].material.emissive.setHex(0xff0000));
+    // testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
     // winCombinations.forEach(winCombination => {
     //     winCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
     // })
