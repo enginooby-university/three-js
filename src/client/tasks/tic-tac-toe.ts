@@ -11,6 +11,7 @@ TODO:
     - Implement n-multi-win (n>=2)
     - Implement n-dimentional board (n>=4)
     - Implement blind mode (no color)
+    - Implement dead point
     - Implement countdown mode
     - Implement different tic tac toe variants
     - VR support
@@ -88,7 +89,7 @@ let sceneData: SceneData = {
         heightSegments: 1,
     },
     bar: {
-        visible: true,
+        visible: false,
         color: new THREE.Color(0xffffff),
         linewidth: 3,
         opacity: 0.5,
@@ -111,9 +112,16 @@ const UNCLAIMED: number = -1
 let currentTurn: number = 0
 let aiPreferredMoves: number[] // array of point indexes for aiMove()
 var gameOver: boolean = false;
+let movedCount: number = 0 // keep track when all point are claimed
+
+/* 
+    Conbinations when win point = board size
+    This set already includes all lines parallel to x/y/z axis, xy/xz/yz face and 4 diagonal lines
+    When update win point < board size, just need to generate the rest (diagonal) lines 
+*/
+let fullWinCombinations: number[][] = []
 let winCombinations: number[][] = []
 let testCombination: number[] = []
-let movedCount: number = 0 // keep track when all point are claimed
 
 let bars: THREE.LineSegments
 let pointGeometry: THREE.SphereGeometry
@@ -199,19 +207,18 @@ export function render() {
 }
 
 function initGame() {
-    testCombination = []
     movedCount = 0
     createPoints()
     createBars()
-    generateWinCombinations()
+    generateFullWinCombinations() // invoke when update board size
+    generateWinCombinations() // invoke when update board size or win point
     generateAiPreferredMoves()
-    testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
 }
 
-function generateWinCombinations() {
+function generateFullWinCombinations() {
     const n = sceneData.boardSize
     // reset combinations
-    winCombinations = []
+    fullWinCombinations = []
     let winCombination: number[] = []
 
     // lines parallel to z axis (common fomular for both 2D and 3D)
@@ -220,7 +227,7 @@ function generateWinCombinations() {
         for (let j = i; j < i + n; j++) {
             winCombination.push(j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
 
     if (sceneData.dimension == 2) {
@@ -230,7 +237,7 @@ function generateWinCombinations() {
             for (let j = 0; j < n; j++) {
                 winCombination.push(i + n * j)
             }
-            winCombinations.push(winCombination)
+            fullWinCombinations.push(winCombination)
         }
 
         // 2 diagonal lines
@@ -238,15 +245,14 @@ function generateWinCombinations() {
         for (let i = 0; i <= Math.pow(n, 2); i += n + 1) {
             winCombination.push(i)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
 
         winCombination = []
         for (let i = n - 1; i <= Math.pow(n, 2) - n; i += n - 1) {
             winCombination.push(i)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
 
-        updateWinCombinationsOnWinPoint()
         return
     }
 
@@ -256,7 +262,7 @@ function generateWinCombinations() {
         for (let j = 0; j < n; j++) {
             winCombination.push(i + Math.pow(n, 2) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
 
     // n^2 lines parallel to y axis
@@ -267,7 +273,7 @@ function generateWinCombinations() {
                 winCombination.push(i + j * n)
             }
             // console.log(winCombination)
-            winCombinations.push(winCombination)
+            fullWinCombinations.push(winCombination)
         }
     }
 
@@ -277,14 +283,14 @@ function generateWinCombinations() {
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (Math.pow(n, 2) + n) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
     for (let i = Math.pow(n, 2) - n; i < Math.pow(n, 2); i++) {
         const winCombination: number[] = []
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (Math.pow(n, 2) - n) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
 
     // diagonal lines parallel to xz face
@@ -293,14 +299,14 @@ function generateWinCombinations() {
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (Math.pow(n, 2) + 1) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
     for (let i = n - 1; i <= Math.pow(n, 2) - 1; i += n) {
         const winCombination: number[] = []
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (Math.pow(n, 2) - 1) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
 
     // diagonal lines parallel to yz face
@@ -309,99 +315,163 @@ function generateWinCombinations() {
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (n + 1) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
     for (let i = n - 1; i <= Math.pow(n, 2) * (n - 1) + n - 1; i += Math.pow(n, 2)) {
         const winCombination: number[] = []
         for (let j = 0; j < n; j++) {
             winCombination.push(i + (n - 1) * j)
         }
-        winCombinations.push(winCombination)
+        fullWinCombinations.push(winCombination)
     }
 
     // 4 diagonal lines across the origin
     for (let i = 0; i < n; i++) {
         winCombination.push(i + (Math.pow(n, 2) + n) * i)
     }
-    winCombinations.push(winCombination)
+    fullWinCombinations.push(winCombination)
 
     winCombination = []
     for (let i = 0; i < n; i++) {
         winCombination.push(n - 1 + (Math.pow(n, 2) + n - 1) * i)
     }
-    winCombinations.push(winCombination)
+    fullWinCombinations.push(winCombination)
 
     winCombination = []
     for (let i = 0; i < n; i++) {
         winCombination.push(Math.pow(n, 2) - n + (Math.pow(n, 2) - n + 1) * i)
     }
-    winCombinations.push(winCombination)
+    fullWinCombinations.push(winCombination)
 
     winCombination = []
     for (let i = 0; i < n; i++) {
         winCombination.push(Math.pow(n, 2) - 1 + (Math.pow(n, 2) - n - 1) * i)
     }
-    winCombinations.push(winCombination)
+    fullWinCombinations.push(winCombination)
 
-    // console.log(winCombinations)
-
-    updateWinCombinationsOnWinPoint()
+    console.log(`Full win combinations:`)
+    console.log(fullWinCombinations)
 }
 
-function updateWinCombinationsOnWinPoint() {
-    // console.log(winCombinations)
-
+function generateWinCombinations() {
+    testCombination = []
+    points.forEach(point => (point.material as any).emissive.setHex(0x000000))
+    winCombinations = fullWinCombinations
     const n = sceneData.boardSize
     const m = sceneData.winPoint
+    const d = sceneData.dimension
+    // when board size = win point, fullWinCombinations is also winCombinations
     if (m == n) return
 
-    // TODO: missing combinations (diagonal lines)
-    let winCombination: number[] = []
-    if (sceneData.dimension == 2) {
+    let winCombination1: number[] = []
+    let winCombination2: number[] = []
+    let winCombination3: number[] = []
+    let winCombination4: number[] = []
+
+    if (d == 2) {
         for (let dif = 1; dif <= n - m; dif++) {
-            winCombination = []
+            winCombination1 = []
+            winCombination2 = []
+            winCombination3 = []
+            winCombination4 = []
             for (let i = 0; i < n - dif; i++) {
-                winCombination.push(dif + i * (n + 1))
-            }
-            winCombinations.push(winCombination)
+                // diagonal lines parallel to (y=+z) line
+                winCombination1.push(dif + i * (n + 1))
+                winCombination2.push(dif * n + i * (n + 1))
 
-            winCombination = []
-            for (let i = 0; i < n - dif; i++) {
-                winCombination.push(dif * n + i * (n + 1))
+                // diagonal lines parallel to (y=-z) line
+                winCombination3.push((n - 1) - dif + i * (n - 1))
+                winCombination4.push(dif * n + (n - 1) + i * (n - 1))
             }
-            winCombinations.push(winCombination)
-
-            winCombination = []
-            for (let i = 0; i < n - dif; i++) {
-                winCombination.push((n - 1) - dif + i * (n - 1))
-            }
-            winCombinations.push(winCombination)
-
-            winCombination = []
-            for (let i = 0; i < n - dif; i++) {
-                winCombination.push(dif * n + (n - 1) + i * (n - 1))
-            }
-            winCombinations.push(winCombination)
         }
-    } else if (sceneData.dimension == 3) {
-        winCombination = []
-        for (let dif = 1; dif <= n - m; dif++) {
-            for (let i = 0; i < n - dif; i++) {
-                testCombination.push(dif + i * (n + 1))
+    }
 
+    if (d == 3) {
+        for (let dif = 1; dif <= n - m; dif++) {
+            // 2D => 1 face | 3D => n faces
+            // TODO: combine this set of faces with 2D
+
+            // diagonal lines parallel to yz face 
+            for (let face = 0; face < n; face++) {
+                winCombination1 = []
+                winCombination2 = []
+                winCombination3 = []
+                winCombination4 = []
+                for (let i = 0; i < n - dif; i++) {
+                    // (y=+z)
+                    winCombination1.push(dif + Math.pow(n, 2) * face + i * (n + 1))
+                    winCombination2.push(dif * n + Math.pow(n, 2) * face + i * (n + 1))
+
+                    // (y=-z)
+                    winCombination3.push((n - 1) - dif + Math.pow(n, 2) * face + i * (n - 1))
+                    winCombination4.push(dif * n + (n - 1) + Math.pow(n, 2) * face + i * (n - 1))
+                }
+                winCombinations.push(winCombination1)
+                winCombinations.push(winCombination2)
+                winCombinations.push(winCombination3)
+                winCombinations.push(winCombination4)
             }
-            winCombinations.push(winCombination)
+
+            // diagonal lines parallel to xy face 
+            for (let face = 0; face < n; face++) {
+                winCombination1 = []
+                winCombination2 = []
+                winCombination3 = []
+                winCombination4 = []
+                for (let i = 0; i < n - dif; i++) {
+                    // (x=+y)
+                    winCombination1.push(dif * Math.pow(n, 2) + face + (Math.pow(n, 2) + n) * i)
+                    winCombination2.push(dif * n + face + (Math.pow(n, 2) + n) * i)
+
+                    // (x=-y)
+                    winCombination3.push((n - 1 - dif) * Math.pow(n, 2) + face - (Math.pow(n, 2) - n) * i)
+                    winCombination4.push(dif * n + (n - 1) * Math.pow(n, 2) + face - (Math.pow(n, 2) - n) * i)
+                }
+                winCombinations.push(winCombination1)
+                winCombinations.push(winCombination2)
+                winCombinations.push(winCombination3)
+                winCombinations.push(winCombination4)
+            }
+
+            // diagonal lines parallel to xz face 
+            for (let face = 0; face < n; face++) {
+                winCombination1 = []
+                winCombination2 = []
+                winCombination3 = []
+                winCombination4 = []
+                for (let i = 0; i < n - dif; i++) {
+                    // (x=+z)
+                    winCombination1.push(dif + face * n + (Math.pow(n, 2) + 1) * i)
+                    winCombination2.push(dif * Math.pow(n, 2) + face * n + (Math.pow(n, 2) + 1) * i)
+
+                    // (x=-z)
+                    winCombination3.push((n - 1 - dif) + face * n + (Math.pow(n, 2) - 1) * i)
+                    winCombination4.push(dif * Math.pow(n, 2) + (n - 1) + face * n + (Math.pow(n, 2) - 1) * i)
+                }
+                winCombinations.push(winCombination1)
+                winCombinations.push(winCombination2)
+                winCombinations.push(winCombination3)
+                winCombinations.push(winCombination4)
+            }
         }
     }
 
     winCombinations = extractSubCombinations(winCombinations, m)
+
+    // debugging
+    console.log("Win combinations:")
     console.log(winCombinations)
+    testCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
+    // winCombinations.forEach(winCombination => {
+    //     winCombination.forEach(index => (points[index].material as any).emissive.setHex(0xff0000))
+    // })
 }
 
 // get all the subsets of m-adjacent elements
 // original combinations could have different array size  >= m
-function extractSubCombinations(originalCombinations: number[][], m: number): number[][] {
+function extractSubCombinations(originalCombinations: number[][], winPoint: number): number[][] {
     const newCombinations: number[][] = []
+    const m: number = winPoint
     originalCombinations.forEach(winCombination => {
         const n = winCombination.length
         if (m < n) {
@@ -471,7 +541,7 @@ function setupSocket() {
         if (sceneData.winPoint != newSceneData.winPoint) {
             datOptions.winPoint = newSceneData.winPoint
             sceneData.winPoint = datOptions.winPoint
-            updateWinCombinationsOnWinPoint()
+            generateWinCombinations()
         }
 
         if (sceneData.boardSize != newSceneData.boardSize) {
@@ -565,8 +635,8 @@ function setupSocket() {
     })
 }
 
-function broadcast(data: any){
-    if(socketEnabled){
+function broadcast(data: any) {
+    if (socketEnabled) {
         socket.emit("broadcast", data)
     }
 }
@@ -583,7 +653,7 @@ function createDatGUI() {
         gameMode = value
 
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
-            // sync ai moves accross multi-player
+            // TODO: sync ai moves accross multi-player
             socket.emit('tictactoe-joinGame', { aiPreferredMoves: aiPreferredMoves })
         }
     })
@@ -616,17 +686,18 @@ function createDatGUI() {
     })
 
     winPointController = gui.add(datOptions, "winPoint", 3, 30).step(1).name("Win point").listen().onFinishChange(value => {
-        if (sceneData.dimension == 4) {
-            // alert("This feature in 3D board is under development.")
-            winPointController.setValue(sceneData.winPoint)
-        }
-        else if (value > sceneData.boardSize) {
+        // if (sceneData.dimension == 3) {
+        //     alert("This feature in 3D board is under development.")
+        //     winPointController.setValue(sceneData.winPoint)
+        // }
+        // else 
+        if (value > sceneData.boardSize) {
             alert("Win point should not be greater than board size!")
             winPointController.setValue(sceneData.winPoint)
         }
         else {
             sceneData.winPoint = datOptions.winPoint
-            updateWinCombinationsOnWinPoint()
+            generateWinCombinations()
             broadcast(sceneData)
         }
     })
@@ -739,7 +810,7 @@ function updatePlayerNumber(value: number) {
         setTimeout(() => playersFolder.close(), 5000)
     }
 
-    console.log(players)
+    // console.log(players)
 }
 /* END DAT GUI */
 
