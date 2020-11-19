@@ -59,8 +59,8 @@ let sceneData = {
     },
     blind: {
         mode: BlindMode.DISABLE,
-        intervalReveal: 4000,
-        revealDuration: 100,
+        intervalReveal: 4,
+        revealDuration: 0.1,
     },
     deadPoint: {
         number: 16,
@@ -191,7 +191,6 @@ function initGame() {
     generateWinCombinations(); // invoke when update board size or win point
     generateAiPreferredMoves();
 }
-// TODO: when game not start (claimedPointIds empty)
 function generateDeadPoints() {
     generateDeadPointIds();
     deadPointIds.forEach(id => {
@@ -580,8 +579,8 @@ function setupSocket() {
             console.log("Sync blind revealDuration...");
             sceneData.blind.revealDuration = newSceneData.blind.revealDuration;
             // limit revealDuration based on new intervalReveal
-            blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000);
-            sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1000, sceneData.blind.revealDuration);
+            blindRevealDurationController.max(sceneData.blind.intervalReveal - 1);
+            sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration);
             return;
         }
         // TODO: refactor - combine multiple updates, performance?
@@ -728,11 +727,11 @@ function createDatGUI() {
         updateBlindMode();
         broadcast(sceneData);
     }).setValue(sceneData.blind.mode); // kick off init mode
-    blindModeFolder.add(sceneData.blind, "intervalReveal", 1100, 60000, 100).name("interval reveal").listen().onFinishChange(value => {
+    blindModeFolder.add(sceneData.blind, "intervalReveal", 1.1, 60, 0.1).name("interval reveal").listen().onFinishChange(value => {
         updateIntervalReveal();
         broadcast(sceneData);
     });
-    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(100).max(sceneData.blind.intervalReveal - 1000).step(100).listen().name("reveal duration").onFinishChange(value => {
+    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(0.1).max(sceneData.blind.intervalReveal - 1).step(0.1).listen().name("reveal duration").onFinishChange(value => {
         broadcast(sceneData);
     });
     blindModeFolder.open();
@@ -828,8 +827,8 @@ function updateIntervalReveal() {
         blindModeController.setValue(blindModeController.getValue());
     }
     // limit revealDuration based on new intervalReveal
-    blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000);
-    sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1000, sceneData.blind.revealDuration);
+    blindRevealDurationController.max(sceneData.blind.intervalReveal - 1);
+    sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration);
 }
 function resetDeadPoints() {
     // update dead points
@@ -846,9 +845,9 @@ function updateBlindMode() {
                 clearInterval(revealColorLoop);
             }
             else {
-                setTimeout(hideColor, sceneData.blind.revealDuration);
+                setTimeout(hideColor, sceneData.blind.revealDuration * 1000);
             }
-        }, sceneData.blind.intervalReveal);
+        }, sceneData.blind.intervalReveal * 1000);
     }
     else if (sceneData.blind.mode == BlindMode.DISABLE) {
         // reveal color immediately when disable
