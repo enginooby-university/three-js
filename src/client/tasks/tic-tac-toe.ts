@@ -57,6 +57,11 @@ type SceneData = {
         intervalReveal: number, // reveal color for every (interval) ms
         revealDuration: number, // must < intervalReveal
     },
+    deadPoint: {
+        number: number,
+        visible: boolean,
+        color: THREE.Color
+    },
     point: {
         wireframe: boolean,
         radius: number,
@@ -82,15 +87,20 @@ let sceneData: SceneData = {
     eventName: Event.SYNC_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
-    boardSize: 10,
-    winPoint: 3,
+    boardSize: 7,
+    winPoint: 5,
     ai: {
         delay: 500,
     },
     blind: {
-        mode: BlindMode.ALL_PLAYERS,
+        mode: BlindMode.DISABLE,
         intervalReveal: 4000,
         revealDuration: 100,
+    },
+    deadPoint: {
+        number: 16,
+        visible: true,
+        color: new THREE.Color(0x000000)
     },
     point: {
         wireframe: false,
@@ -121,6 +131,7 @@ let players: Player[] = []
 enum GameMode { LOCAL_MULTIPLAYER, REMOTE_MULTIPLAYER }
 let gameMode: GameMode = GameMode.LOCAL_MULTIPLAYER
 
+const DEAD: number = -2 // points which could not be claimed
 const UNCLAIMED: number = -1
 let currentTurn: number = 0
 let aiPreferredMoves: number[] // array of point indexes for aiMove()
@@ -140,6 +151,7 @@ let bars: THREE.LineSegments
 let pointGeometry: THREE.SphereGeometry
 let points: THREE.Mesh[] = [];
 let claimedPointIds: number[] = []
+let deadPointIds: number[] = [4, 7, 10, 19, 20, 32, 36, 45, 60]
 let lastClaimedPoint: THREE.Mesh
 
 export function init() {
@@ -225,9 +237,32 @@ function initGame() {
     movedCount = 0
     createPoints()
     createBars()
+    generateDeadPoints()
     generateFullWinCombinations() // invoke when update board size
     generateWinCombinations() // invoke when update board size or win point
     generateAiPreferredMoves()
+}
+
+// TODO: when game not start (claimedPointIds empty)
+function generateDeadPoints() {
+    generateDeadPointIds()
+
+    deadPointIds.forEach(id => {
+        points[id].userData.claim = DEAD;
+        (points[id].material as any).color.set(sceneData.deadPoint.color);
+    })
+}
+
+function generateDeadPointIds() {
+    // reset 
+    deadPointIds = []
+
+    console.log("Generating dead point ids...")
+    while (deadPointIds.length < sceneData.deadPoint.number) {
+        const random = Math.floor(Math.random() * Math.pow(sceneData.boardSize, sceneData.dimension));
+        if (deadPointIds.indexOf(random) === -1) deadPointIds.push(random);
+    }
+    console.log(deadPointIds);
 }
 
 function generateFullWinCombinations() {
@@ -627,7 +662,7 @@ function setupSocket() {
         if (sceneData.blind.intervalReveal != newSceneData.blind.intervalReveal) {
             console.log("Sync blind intervalReveal...")
             sceneData.blind.intervalReveal = newSceneData.blind.intervalReveal
-            updateIntervalReveal()     
+            updateIntervalReveal()
             // return // no return to update revealDuration right after       
         }
 
@@ -735,6 +770,7 @@ let playerFolders: GUI[] = []
 let playersFolder: GUI
 let blindModeController: GUIController
 let blindRevealDurationController: GUIController
+let deadPointNumberController: GUIController
 let barColorController: GUIController
 let revealColorLoop: NodeJS.Timeout
 const datOptions = {
@@ -781,6 +817,7 @@ function createDatGUI() {
     playersFolder.open()
 
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
+        resetDeadPoints()
         initGame()
         broadcast(sceneData)
     })
@@ -792,6 +829,7 @@ function createDatGUI() {
         sceneData.winPoint = value
         winPointController.max(value)
 
+        resetDeadPoints()
         initGame()
         broadcast(sceneData)
     })
@@ -820,6 +858,13 @@ function createDatGUI() {
 
     const aisFolder: GUI = gui.addFolder("AIs")
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
+
+    const deadPointsFolder = gui.addFolder("Dead points")
+    const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5)
+    deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "number").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
+        resetGame()
+    })
+    deadPointsFolder.open()
 
     const pointsFolder: GUI = gui.addFolder("Points")
     pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
@@ -912,6 +957,13 @@ function updateIntervalReveal() {
     // limit revealDuration based on new intervalReveal
     blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000)
     sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1000, sceneData.blind.revealDuration)
+}
+
+function resetDeadPoints(){
+    // update dead points
+    sceneData.deadPoint.number = 0
+    const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 4)
+    deadPointNumberController.max(deadPointMax)
 }
 
 function updateBlindMode() {
@@ -1145,9 +1197,17 @@ function resetGame() {
         (point.material as any).color.setHex(0xffffff);
     });
 
+    // update limit for dead point number
+    // const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5)
+    // deadPointNumberController.max(deadPointMax)
+    generateDeadPoints()
+
     outlinePass.selectedObjects = []
     addEvents()
-    lastClaimedPoint.visible = true
+
+    // fix last claimed point in previous disappear in new game
+    if (lastClaimedPoint != undefined)
+        lastClaimedPoint.visible = true
 
     // winner in previous game goes last in new game
     currentTurn = getNextTurn(currentTurn)
@@ -1162,7 +1222,7 @@ function resetGame() {
 
 function nextTurn() {
     // game over
-    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension) - 1) {
+    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension) - 1 - deadPointIds.length) {
         // gameOver = true;
         (lastClaimedPoint.material as any).emissive.setHex(0x000000);
         // prevent selecting/hovering points when reseting game
@@ -1259,8 +1319,10 @@ function aiMove() {
                 }
             });
             // console.log(`idToMove: ${idToMove}`)
-            updateClaimedPoint(points[idToMove])
-            return
+            if (idToMove != 99999) {
+                updateClaimedPoint(points[idToMove])
+                return
+            }
         }
     };
 
