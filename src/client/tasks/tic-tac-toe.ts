@@ -433,6 +433,11 @@ function generateWinCombinations() {
                 winCombination3.push((n - 1) - dif + i * (n - 1))
                 winCombination4.push(dif * n + (n - 1) + i * (n - 1))
             }
+
+            winCombinations.push(winCombination1)
+            winCombinations.push(winCombination2)
+            winCombinations.push(winCombination3)
+            winCombinations.push(winCombination4)
         }
     }
 
@@ -959,7 +964,7 @@ function updateIntervalReveal() {
     sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1000, sceneData.blind.revealDuration)
 }
 
-function resetDeadPoints(){
+function resetDeadPoints() {
     // update dead points
     sceneData.deadPoint.number = 0
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 4)
