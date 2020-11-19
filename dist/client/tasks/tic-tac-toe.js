@@ -196,6 +196,7 @@ function generateDeadPoints() {
     deadPointIds.forEach(id => {
         points[id].userData.claim = DEAD;
         points[id].material.color.set(sceneData.deadPoint.color);
+        points[id].visible = sceneData.deadPoint.visible;
     });
 }
 function generateDeadPointIds() {
@@ -685,6 +686,10 @@ const datOptions = {
             // "Non-AI players": BlindMode.NON_AI_PLAYERS,
             "All players": BlindMode.ALL_PLAYERS
         },
+    },
+    color: {
+        deadPoint: sceneData.deadPoint.color.getHex(),
+        bar: sceneData.bar.color.getHex(),
     }
 };
 function createDatGUI() {
@@ -738,9 +743,16 @@ function createDatGUI() {
     const aisFolder = gui.addFolder("AIs");
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
     const deadPointsFolder = gui.addFolder("Dead points");
+    deadPointsFolder.add(sceneData.deadPoint, "visible", true).onChange(value => {
+        deadPointIds.forEach(id => points[id].visible = sceneData.deadPoint.visible);
+    });
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5);
     deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "number").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
         resetGame();
+    });
+    deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {
+        sceneData.deadPoint.color = value;
+        deadPointIds.forEach(id => points[id].material.color.setHex(Number(value.toString().replace('#', '0x'))));
     });
     deadPointsFolder.open();
     const pointsFolder = gui.addFolder("Points");
@@ -796,12 +808,9 @@ function createDatGUI() {
         bars.material.linewidth = value;
         broadcast(sceneData);
     });
-    const barData = {
-        color: bars.material.color.getHex(),
-    };
-    barColorController = barsFolder.addColor(barData, 'color').listen().onChange((value) => {
+    barColorController = barsFolder.addColor(datOptions.color, 'bar').listen().onChange((value) => {
         sceneData.bar.color = value;
-        bars.material.color.setHex(Number(barData.color.toString().replace('#', '0x')));
+        bars.material.color.setHex(Number(value.toString().replace('#', '0x')));
         broadcast(sceneData);
     });
     // barsFolder.open();
@@ -831,7 +840,6 @@ function updateIntervalReveal() {
     sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration);
 }
 function resetDeadPoints() {
-    // update dead points
     sceneData.deadPoint.number = 0;
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 4);
     deadPointNumberController.max(deadPointMax);
