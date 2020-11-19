@@ -798,8 +798,8 @@ const datOptions = {
         },
     },
 
-    
-     color :{
+
+    color: {
         deadPoint: sceneData.deadPoint.color.getHex(),
         bar: sceneData.bar.color.getHex(),
     }
@@ -888,7 +888,9 @@ function createDatGUI() {
     })
     deadPointsFolder.open()
 
-    const pointsFolder: GUI = gui.addFolder("Points")
+    const appearanceFolder: GUI = gui.addFolder("Appearance")
+
+    const pointsFolder: GUI = appearanceFolder.addFolder("Points")
     pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
         points.forEach(point => (point.material as THREE.MeshPhysicalMaterial).wireframe = value)
         broadcast(sceneData)
@@ -931,7 +933,7 @@ function createDatGUI() {
     })
     // pointsFolder.open()
 
-    const barsFolder = gui.addFolder("Bars")
+    const barsFolder = appearanceFolder.addFolder("Bars")
     barsFolder.add(sceneData.bar, "visible", true).name("visible").listen().onChange(value => {
         bars.visible = value
     });
@@ -950,6 +952,8 @@ function createDatGUI() {
         broadcast(sceneData)
     });
     // barsFolder.open();
+
+    appearanceFolder.open()
 }
 
 function revealColor() {

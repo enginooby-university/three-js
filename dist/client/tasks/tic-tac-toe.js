@@ -755,7 +755,8 @@ function createDatGUI() {
         deadPointIds.forEach(id => points[id].material.color.setHex(Number(value.toString().replace('#', '0x'))));
     });
     deadPointsFolder.open();
-    const pointsFolder = gui.addFolder("Points");
+    const appearanceFolder = gui.addFolder("Appearance");
+    const pointsFolder = appearanceFolder.addFolder("Points");
     pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
         points.forEach(point => point.material.wireframe = value);
         broadcast(sceneData);
@@ -796,7 +797,7 @@ function createDatGUI() {
         broadcast(sceneData);
     });
     // pointsFolder.open()
-    const barsFolder = gui.addFolder("Bars");
+    const barsFolder = appearanceFolder.addFolder("Bars");
     barsFolder.add(sceneData.bar, "visible", true).name("visible").listen().onChange(value => {
         bars.visible = value;
     });
@@ -814,6 +815,7 @@ function createDatGUI() {
         broadcast(sceneData);
     });
     // barsFolder.open();
+    appearanceFolder.open();
 }
 function revealColor() {
     claimedPointIds.forEach(id => {
