@@ -36,7 +36,7 @@ export let selectedObjectId: number = -1
 export const setSelectedObjectId = (index: number) => selectedObjectId = index
 
 enum Event {
-    CHANGE_SCENE_DATA = "tictactoe-changeSceneData",
+    SYNC_SCENE_DATA = "tictactoe-syncSceneData",
     SYNC_AI = "tictactoe-syncAi",
     PLAYER_MOVE = "tictactoe-playerMove",
 }
@@ -75,11 +75,11 @@ type SceneData = {
 }
 
 function instanceOfSceneData(data: any): boolean {
-    return data.eventName === Event.CHANGE_SCENE_DATA;
+    return data.eventName === Event.SYNC_SCENE_DATA;
 }
 
 let sceneData: SceneData = {
-    eventName: Event.CHANGE_SCENE_DATA,
+    eventName: Event.SYNC_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
     boardSize: 10,
@@ -89,8 +89,8 @@ let sceneData: SceneData = {
     },
     blind: {
         mode: BlindMode.ALL_PLAYERS,
-        intervalReveal: 5000,
-        revealDuration: 1000,
+        intervalReveal: 4000,
+        revealDuration: 100,
     },
     point: {
         wireframe: false,
@@ -587,7 +587,7 @@ function setupSocket() {
     })
 
     // when receive update from other sockets
-    socket.on(Event.CHANGE_SCENE_DATA, (newSceneData: SceneData) => {
+    socket.on(Event.SYNC_SCENE_DATA, (newSceneData: SceneData) => {
         // only process SceneData of this task
         if (!instanceOfSceneData(newSceneData)) { return } else { newSceneData = newSceneData as SceneData }
         if (!socketEnabled) return
@@ -612,8 +612,33 @@ function setupSocket() {
         if (sceneData.boardSize != newSceneData.boardSize) {
             sceneData.boardSize = newSceneData.boardSize
             sceneData.winPoint = newSceneData.boardSize
+
             initGame()
             return // update 1 change per time? 
+        }
+
+        if (sceneData.blind.mode != newSceneData.blind.mode) {
+            console.log("Sync blind mode...")
+            sceneData.blind.mode = newSceneData.blind.mode
+            updateBlindMode()
+            return
+        }
+
+        if (sceneData.blind.intervalReveal != newSceneData.blind.intervalReveal) {
+            console.log("Sync blind intervalReveal...")
+            sceneData.blind.intervalReveal = newSceneData.blind.intervalReveal
+            updateIntervalReveal()     
+            // return // no return to update revealDuration right after       
+        }
+
+        if (sceneData.blind.revealDuration != newSceneData.blind.revealDuration) {
+            console.log("Sync blind revealDuration...")
+            sceneData.blind.revealDuration = newSceneData.blind.revealDuration
+
+            // limit revealDuration based on new intervalReveal
+            blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000)
+            sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1000, sceneData.blind.revealDuration)
+            return
         }
 
         // TODO: refactor - combine multiple updates, performance?
@@ -708,7 +733,10 @@ function broadcast(data: any) {
 /* DAT GUI */
 let playerFolders: GUI[] = []
 let playersFolder: GUI
+let blindModeController: GUIController
+let blindRevealDurationController: GUIController
 let barColorController: GUIController
+let revealColorLoop: NodeJS.Timeout
 const datOptions = {
     dimension: {
         "2D": 2,
@@ -721,10 +749,11 @@ const datOptions = {
     blind: {
         mode: {
             "Disable": BlindMode.DISABLE,
-            "One player": BlindMode.ONE_PLAYER,
-            "AI players": BlindMode.AI_PLAYERS,
-            "Non-AI players": BlindMode.NON_AI_PLAYERS,
-            "All playlers": BlindMode.ALL_PLAYERS
+            // TODO
+            // "One player": BlindMode.ONE_PLAYER,
+            // "AI players": BlindMode.AI_PLAYERS,
+            // "Non-AI players": BlindMode.NON_AI_PLAYERS,
+            "All players": BlindMode.ALL_PLAYERS
         },
     }
 }
@@ -772,42 +801,20 @@ function createDatGUI() {
         broadcast(sceneData)
     })
 
-    let revealColorLoop: NodeJS.Timeout
     const blindModeFolder: GUI = gui.addFolder("Blind mode")
-    const blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).onFinishChange(value => {
-        if (sceneData.blind.mode == BlindMode.ALL_PLAYERS) {
-            revealColorLoop = setInterval(() => {
-                revealColor()
-                if (sceneData.blind.mode != BlindMode.ALL_PLAYERS) {
-                    clearInterval(revealColorLoop)
-                } else {
-                    setTimeout(hideColor, sceneData.blind.revealDuration)
-                }
-            }, sceneData.blind.intervalReveal)
-        } else if (sceneData.blind.mode == BlindMode.DISABLE) {
-            // reveal color immediately when choose disable
-            revealColor()
-        }
+    blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {
+        updateBlindMode()
+        broadcast(sceneData)
     }).setValue(sceneData.blind.mode) // kick off init mode
 
-    let blindRevealDurationController: GUIController
-
-    blindModeFolder.add(sceneData.blind, "intervalReveal", 1100, 60000, 100).name("interval reveal").onFinishChange(value => {
-        // reset mode to apply change
-        if (sceneData.blind.mode == BlindMode.ALL_PLAYERS) {
-            clearInterval(revealColorLoop)
-            // revealColor()
-            blindModeController.setValue(blindModeController.getValue())
-        }
-
-        // limit revealDuration based on new intervalReveal
-        blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000)
-        if (sceneData.blind.intervalReveal < sceneData.blind.revealDuration + 1000) {
-            sceneData.blind.revealDuration = sceneData.blind.intervalReveal - 1000
-        }
+    blindModeFolder.add(sceneData.blind, "intervalReveal", 1100, 60000, 100).name("interval reveal").listen().onFinishChange(value => {
+        updateIntervalReveal()
+        broadcast(sceneData)
     })
 
-    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(100).max(sceneData.blind.intervalReveal - 1000).step(100).listen().name("reveal duration")
+    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(100).max(sceneData.blind.intervalReveal - 1000).step(100).listen().name("reveal duration").onFinishChange(value => {
+        broadcast(sceneData)
+    })
 
     blindModeFolder.open()
 
@@ -892,6 +899,36 @@ function hideColor() {
     claimedPointIds.forEach(id => {
         (points[id].material as any).color.setHex(0xffffff);
     })
+}
+
+function updateIntervalReveal() {
+    console.log("Reset blind mode to apply change...")
+    if (sceneData.blind.mode == BlindMode.ALL_PLAYERS) {
+        clearInterval(revealColorLoop)
+        // revealColor()
+        blindModeController.setValue(blindModeController.getValue())
+    }
+
+    // limit revealDuration based on new intervalReveal
+    blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000)
+    sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1000, sceneData.blind.revealDuration)
+}
+
+function updateBlindMode() {
+    if (sceneData.blind.mode == BlindMode.ALL_PLAYERS) {
+        hideColor()
+        revealColorLoop = setInterval(() => {
+            revealColor()
+            if (sceneData.blind.mode != BlindMode.ALL_PLAYERS) {
+                clearInterval(revealColorLoop)
+            } else {
+                setTimeout(hideColor, sceneData.blind.revealDuration)
+            }
+        }, sceneData.blind.intervalReveal)
+    } else if (sceneData.blind.mode == BlindMode.DISABLE) {
+        // reveal color immediately when disable
+        revealColor()
+    }
 }
 
 function updatePlayerNumber(value: number) {
@@ -1367,7 +1404,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.set((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            console.log(`Point id: ${hoveredPoint.userData.id}`);
+            // console.log(`Point id: ${hoveredPoint.userData.id}`);
 
             (hoveredPoint.material as any).emissive.set(players[currentTurn].color);
 
