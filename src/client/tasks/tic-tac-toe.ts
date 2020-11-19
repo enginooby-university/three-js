@@ -1,23 +1,29 @@
 /* 
 TODO: 
-    - *Implement remote multi-player mode 
-    - *Implement different win shapes (instead of normal line)
-    - *Fix size point not update when change size board
-    - Customize point geometry (cube...)
-    - Customize AI (intelligent)
-    - More cool effects/animations for game scenes (start, reset)
-    - Fix game reseting animation (y scaling)
-    - Enable/disable inner win (a claimed win combination with 2 heads blocked)
-    - Implement n-multi-win (scores) (n>=2)
-    - Implement n-dimentional board (n>=4)
-    - Implement blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
-    - Implement dead point
-    - Implement countdown mode
-    - Implement different tic tac toe variants
-    - VR support
-    - Mobile responsive
-    - Enhance bars (with MeshLine...)
-    - Lock some Dat options when start game to prevent cheating (winpoint, sizeboard)
+    - Main features:
+        + Enable/disable inner win (a claimed win combination with 2 heads blocked)
+        + Customize AI level (intelligent)
+        + Remote multi-player mode 
+        + Win shapes (instead of straght line)
+        + n-multi-win (scores) (n>=2)
+        + n-dimentional board (n>=4)
+        + Countdown mode
+        + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
+    - Fix:
+        + Size point not update when change size board
+        + Game reseting animation (y scaling)
+    - Dat: 
+        + Add highlight options (OutlinePass)
+        + Lock some Dat options when start game to prevent cheating (winpoint, sizeboard)
+    - Appearance:
+        + Customize point geometry (cube...)
+        + Add cool effects/animations for game events (start, reset)
+        + Enhance bars (with MeshLine...)
+    - Extra (optional):
+        + Sounds
+        + VR support
+        + Mobile responsive
+        + Different tic tac toe variants
 */
 
 import { GUI, GUIController } from '/jsm/libs/dat.gui.module.js'
@@ -610,6 +616,7 @@ function extractSubCombinations(originalCombinations: number[][], winPoint: numb
 }
 
 /* SOCKET */
+// TODO: sync dead points params
 function setupSocket() {
     // TODO: create type for this data
     socket.on(Event.PLAYER_MOVE, (data: any) => {

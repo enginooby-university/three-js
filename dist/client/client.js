@@ -1,8 +1,10 @@
 /*
 TODO:
-    - *Fix: event of this task still enable when change to another task
-    - *Fix: object from another task still availble (underneath) in another task's scene -> reduce performance
-    - *Fix: double click -> screenshot
+    - Fix: object from another task still availble (underneath) in another task's scene -> reduce performance
+    - Fix: double click -> screenshot
+    - Remove task's event listeners when switch to another
+    - Add more Passes
+    - Add more skyboxes
 */
 import * as THREE from '/build/three.module.js';
 import { Tasks } from './task_management.js';
