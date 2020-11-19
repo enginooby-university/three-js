@@ -176,6 +176,7 @@ export function init() {
     updatePlayerNumber(sceneData.playerNumber)
     players[0].isAi = false
     players[1].isAi = true
+
     // kick off first player if AI
     if (players[0].isAi) {
         setTimeout(() => {
@@ -191,51 +192,6 @@ export function setupControls() {
     transformControls.detach()
     // add to scene to display helpers
     scene.add(transformControls)
-}
-
-// const clock: THREE.Clock = new THREE.Clock()
-// const MOVE_SPEED = 0.05
-export function render() {
-    // points.forEach(point => {
-    //     const targetX: number = point.userData.targetPosition.x
-    //     const lowBoundX: number = targetX - MOVE_SPEED
-    //     const highBoundX: number = targetX + MOVE_SPEED
-    //     if (point.position.x != targetX) {
-    //         if (point.position.x < lowBoundX) {
-    //             point.position.x += MOVE_SPEED
-    //         } else if (highBoundX < point.position.x) {
-    //             point.position.x -= MOVE_SPEED
-    //         } else {
-    //             point.position.x = targetX
-    //         }
-    //     }
-
-    //     const targetY: number = point.userData.targetPosition.y
-    //     const lowBoundY: number = targetY - MOVE_SPEED
-    //     const highBoundY: number = targetY + MOVE_SPEED
-    //     if (point.position.y != targetY) {
-    //         if (point.position.y < lowBoundY) {
-    //             point.position.y += MOVE_SPEED
-    //         } else if (highBoundY < point.position.y) {
-    //             point.position.y -= MOVE_SPEED
-    //         } else {
-    //             point.position.y = targetY
-    //         }
-    //     }
-
-    //     const targetZ: number = point.userData.targetPosition.z
-    //     const lowBoundZ: number = targetZ - MOVE_SPEED
-    //     const highBoundZ: number = targetZ + MOVE_SPEED
-    //     if (point.position.z != targetZ) {
-    //         if (point.position.z < lowBoundZ) {
-    //             point.position.z += MOVE_SPEED
-    //         } else if (highBoundZ < point.position.z) {
-    //             point.position.z -= MOVE_SPEED
-    //         } else {
-    //             point.position.z = targetZ
-    //         }
-    //     }
-    // })
 }
 
 function initGame() {
@@ -1159,6 +1115,25 @@ function createPoint(x: number, y: number, z: number, index: number) {
 /* END CREATING */
 
 /* ANIMATIONS */
+
+// const clock: THREE.Clock = new THREE.Clock()
+// const MOVE_SPEED = 0.05
+export function render() {
+    // points.forEach(point => {
+    //     const targetX: number = point.userData.targetPosition.x
+    //     const lowBoundX: number = targetX - MOVE_SPEED
+    //     const highBoundX: number = targetX + MOVE_SPEED
+    //     if (point.position.x != targetX) {
+    //         if (point.position.x < lowBoundX) {
+    //             point.position.x += MOVE_SPEED
+    //         } else if (highBoundX < point.position.x) {
+    //             point.position.x -= MOVE_SPEED
+    //         } else {
+    //             point.position.x = targetX
+    //         }
+    //     }
+}
+
 function yScaleDownAnimation(duration: number) {
     const loop = setInterval(function () {
         console.log("shrinking...")
@@ -1429,7 +1404,6 @@ function countClaims(winCombination: number[]) {
 /* END AI */
 
 /* EVENTS */
-// TODO: setup for all tasks
 export function addEvents() {
     window.addEventListener('mousemove', hoverPoint, false)
     window.addEventListener('contextmenu', claimPoint, false);
