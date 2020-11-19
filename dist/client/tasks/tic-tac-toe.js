@@ -7,16 +7,17 @@ TODO:
     - Customize AI (intelligent)
     - More cool effects/animations for game scenes (start, reset)
     - Fix game reseting animation (y scaling)
-    - Implement n-multi-win (n>=2)
+    - Enable/disable inner win (a claimed win combination with 2 heads blocked)
+    - Implement n-multi-win (scores) (n>=2)
     - Implement n-dimentional board (n>=4)
-    - Implement blind mode (no color)
+    - Implement blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
     - Implement dead point
     - Implement countdown mode
     - Implement different tic tac toe variants
     - VR support
     - Mobile responsive
     - Enhance bars (with MeshLine...)
-    - Lock winpoint when start game (prevent cheating)
+    - Lock some Dat options when start game to prevent cheating (winpoint, sizeboard)
 */
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
@@ -36,6 +37,14 @@ var Event;
     Event["SYNC_AI"] = "tictactoe-syncAi";
     Event["PLAYER_MOVE"] = "tictactoe-playerMove";
 })(Event || (Event = {}));
+var BlindMode;
+(function (BlindMode) {
+    BlindMode[BlindMode["DISABLE"] = 0] = "DISABLE";
+    BlindMode[BlindMode["ONE_PLAYER"] = 1] = "ONE_PLAYER";
+    BlindMode[BlindMode["AI_PLAYERS"] = 2] = "AI_PLAYERS";
+    BlindMode[BlindMode["NON_AI_PLAYERS"] = 3] = "NON_AI_PLAYERS";
+    BlindMode[BlindMode["ALL_PLAYERS"] = 4] = "ALL_PLAYERS";
+})(BlindMode || (BlindMode = {}));
 function instanceOfSceneData(data) {
     return data.eventName === Event.CHANGE_SCENE_DATA;
 }
@@ -47,6 +56,11 @@ let sceneData = {
     winPoint: 3,
     ai: {
         delay: 500,
+    },
+    blind: {
+        mode: BlindMode.ALL_PLAYERS,
+        intervalReveal: 5000,
+        revealDuration: 1000,
     },
     point: {
         wireframe: false,
@@ -88,7 +102,8 @@ let testCombination = [];
 let bars;
 let pointGeometry;
 let points = [];
-let lastSelectedPoint;
+let claimedPointIds = [];
+let lastClaimedPoint;
 export function init() {
     isInitialized = true;
     scene.background = new THREE.Color(0x333333);
@@ -160,6 +175,7 @@ export function render() {
     // })
 }
 function initGame() {
+    claimedPointIds = [];
     movedCount = 0;
     createPoints();
     createBars();
@@ -469,30 +485,14 @@ function extractSubCombinations(originalCombinations, winPoint) {
     });
     return newCombinations;
 }
-/* DAT GUI & SOCKET */
-let playerFolders = [];
-let playersFolder;
-let barColorController;
-const datOptions = {
-    // don't change winPoint directly but through a medium varible
-    // since we need to validate its value before changing
-    winPoint: sceneData.winPoint,
-    dimension: {
-        "2D": 2,
-        "3D": 3
-    },
-    mode: {
-        "Local multi-player": GameMode.LOCAL_MULTIPLAYER,
-        "Remote multi-player": GameMode.REMOTE_MULTIPLAYER,
-    }
-};
+/* SOCKET */
 function setupSocket() {
     // TODO: create type for this data
     socket.on(Event.PLAYER_MOVE, (data) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER)
             return;
         // (points[data.id].material as any).color.set(players[currentTurn].color);
-        updateSelectedPoint(points[data.id]);
+        updateClaimedPoint(points[data.id]);
         nextTurn();
     });
     socket.on(Event.SYNC_AI, (data) => {
@@ -521,22 +521,15 @@ function setupSocket() {
         if (sceneData.dimension != newSceneData.dimension) {
             sceneData.dimension = newSceneData.dimension;
             console.log(sceneData.dimension);
-            if (sceneData.dimension == 3) {
-                // update winpoint
-                datOptions.winPoint = sceneData.boardSize; // to update controller display
-                sceneData.winPoint = sceneData.boardSize;
-            }
             initGame();
         }
         if (sceneData.winPoint != newSceneData.winPoint) {
-            datOptions.winPoint = newSceneData.winPoint;
-            sceneData.winPoint = datOptions.winPoint;
+            sceneData.winPoint = newSceneData.winPoint;
             generateWinCombinations();
         }
         if (sceneData.boardSize != newSceneData.boardSize) {
             sceneData.boardSize = newSceneData.boardSize;
             sceneData.winPoint = newSceneData.boardSize;
-            datOptions.winPoint = newSceneData.boardSize;
             initGame();
             return; // update 1 change per time? 
         }
@@ -616,16 +609,37 @@ function broadcast(data) {
         socket.emit("broadcast", data);
     }
 }
+/* DAT GUI */
+let playerFolders = [];
+let playersFolder;
+let barColorController;
+const datOptions = {
+    dimension: {
+        "2D": 2,
+        "3D": 3
+    },
+    gameMode: {
+        "Local multi-player": GameMode.LOCAL_MULTIPLAYER,
+        "Remote multi-player": GameMode.REMOTE_MULTIPLAYER,
+    },
+    blind: {
+        mode: {
+            "Disable": BlindMode.DISABLE,
+            "One player": BlindMode.ONE_PLAYER,
+            "AI players": BlindMode.AI_PLAYERS,
+            "Non-AI players": BlindMode.NON_AI_PLAYERS,
+            "All playlers": BlindMode.ALL_PLAYERS
+        },
+    }
+};
 function createDatGUI() {
     const selectedGameMode = {
         name: GameMode.LOCAL_MULTIPLAYER,
     };
-    let winPointController;
     gui = new GUI();
-    gui.add(selectedGameMode, "name", datOptions.mode).name("Game mode").onChange(value => {
+    gui.add(selectedGameMode, "name", datOptions.gameMode).name("Game mode").onChange(value => {
         gameMode = value;
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
-            // TODO: sync ai moves accross multi-player
             socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
         }
     });
@@ -636,37 +650,56 @@ function createDatGUI() {
     playersFolder = gui.addFolder("Players");
     playersFolder.open();
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
-        if (value == 3) {
-            // update winpoint
-            datOptions.winPoint = sceneData.boardSize; // to update controller display
-            sceneData.winPoint = sceneData.boardSize;
-        }
         initGame();
         broadcast(sceneData);
     });
+    let winPointController;
     gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").listen().onFinishChange((value) => {
         // update winpoint
-        datOptions.winPoint = value;
         sceneData.winPoint = value;
+        winPointController.max(value);
         initGame();
         broadcast(sceneData);
     });
-    winPointController = gui.add(datOptions, "winPoint", 3, 30).step(1).name("Win point").listen().onFinishChange(value => {
-        // if (sceneData.dimension == 3) {
-        //     alert("This feature in 3D board is under development.")
-        //     winPointController.setValue(sceneData.winPoint)
-        // }
-        // else 
-        if (value > sceneData.boardSize) {
-            alert("Win point should not be greater than board size!");
-            winPointController.setValue(sceneData.winPoint);
+    winPointController = gui.add(sceneData, "winPoint").min(3).max(sceneData.boardSize).step(1).name("Win point").listen().onFinishChange(value => {
+        generateWinCombinations();
+        broadcast(sceneData);
+    });
+    let revealColorLoop;
+    const blindModeFolder = gui.addFolder("Blind mode");
+    const blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).onFinishChange(value => {
+        if (sceneData.blind.mode == BlindMode.ALL_PLAYERS) {
+            revealColorLoop = setInterval(() => {
+                revealColor();
+                if (sceneData.blind.mode != BlindMode.ALL_PLAYERS) {
+                    clearInterval(revealColorLoop);
+                }
+                else {
+                    setTimeout(hideColor, sceneData.blind.revealDuration);
+                }
+            }, sceneData.blind.intervalReveal);
         }
-        else {
-            sceneData.winPoint = datOptions.winPoint;
-            generateWinCombinations();
-            broadcast(sceneData);
+        else if (sceneData.blind.mode == BlindMode.DISABLE) {
+            // reveal color immediately when choose disable
+            revealColor();
+        }
+    }).setValue(sceneData.blind.mode); // kick off init mode
+    let blindRevealDurationController;
+    blindModeFolder.add(sceneData.blind, "intervalReveal", 1100, 60000, 100).name("interval reveal").onFinishChange(value => {
+        // reset mode to apply change
+        if (sceneData.blind.mode == BlindMode.ALL_PLAYERS) {
+            clearInterval(revealColorLoop);
+            // revealColor()
+            blindModeController.setValue(blindModeController.getValue());
+        }
+        // limit revealDuration based on new intervalReveal
+        blindRevealDurationController.max(sceneData.blind.intervalReveal - 1000);
+        if (sceneData.blind.intervalReveal < sceneData.blind.revealDuration + 1000) {
+            sceneData.blind.revealDuration = sceneData.blind.intervalReveal - 1000;
         }
     });
+    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(100).max(sceneData.blind.intervalReveal - 1000).step(100).listen().name("reveal duration");
+    blindModeFolder.open();
     const aisFolder = gui.addFolder("AIs");
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
     const pointsFolder = gui.addFolder("Points");
@@ -731,6 +764,19 @@ function createDatGUI() {
         broadcast(sceneData);
     });
     // barsFolder.open();
+}
+function revealColor() {
+    claimedPointIds.forEach(id => {
+        players.forEach(player => {
+            if (points[id].userData.claim == player.id)
+                points[id].material.color.set(player.color);
+        });
+    });
+}
+function hideColor() {
+    claimedPointIds.forEach(id => {
+        points[id].material.color.setHex(0xffffff);
+    });
 }
 function updatePlayerNumber(value) {
     // reset playersFolder
@@ -922,7 +968,7 @@ function resetGame() {
     });
     outlinePass.selectedObjects = [];
     addEvents();
-    lastSelectedPoint.visible = true;
+    lastClaimedPoint.visible = true;
     // winner in previous game goes last in new game
     currentTurn = getNextTurn(currentTurn);
     if (players[currentTurn].isAi) {
@@ -936,7 +982,7 @@ function nextTurn() {
     // game over
     if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension) - 1) {
         // gameOver = true;
-        lastSelectedPoint.material.emissive.setHex(0x000000);
+        lastClaimedPoint.material.emissive.setHex(0x000000);
         // prevent selecting/hovering points when reseting game
         removeEvents();
         setTimeout(resetGame, 800);
@@ -989,7 +1035,7 @@ function aiMove() {
             console.log("AI: attacking move");
             for (let index of winCombination) {
                 if (points[index].userData.claim == UNCLAIMED) {
-                    updateSelectedPoint(points[index]);
+                    updateClaimedPoint(points[index]);
                     return;
                 }
             }
@@ -1006,7 +1052,7 @@ function aiMove() {
             console.log("AI: defensing move [1]");
             for (let id of winCombination) {
                 if (points[id].userData.claim == UNCLAIMED) {
-                    updateSelectedPoint(points[id]);
+                    updateClaimedPoint(points[id]);
                     return;
                 }
             }
@@ -1024,13 +1070,13 @@ function aiMove() {
             winCombination.forEach(function (id) {
                 if (points[id].userData.claim == UNCLAIMED) {
                     // selet the closest point
-                    if (Math.abs(id - lastSelectedPoint.userData.id) < idToMove) {
+                    if (Math.abs(id - lastClaimedPoint.userData.id) < idToMove) {
                         idToMove = id;
                     }
                 }
             });
             // console.log(`idToMove: ${idToMove}`)
-            updateSelectedPoint(points[idToMove]);
+            updateClaimedPoint(points[idToMove]);
             return;
         }
     }
@@ -1041,7 +1087,7 @@ function aiMove() {
     for (let index of aiPreferredMoves) {
         if (points[index].userData.claim == UNCLAIMED) {
             console.log("AI: preferred move");
-            updateSelectedPoint(points[index]);
+            updateClaimedPoint(points[index]);
             return;
         }
     }
@@ -1050,7 +1096,7 @@ function aiMove() {
     for (let point of points) {
         if (point.userData.claim == UNCLAIMED) {
             console.log("AI: random move");
-            updateSelectedPoint(point);
+            updateClaimedPoint(point);
             return;
         }
     }
@@ -1106,13 +1152,13 @@ function countClaims(winCombination) {
 // TODO: setup for all tasks
 export function addEvents() {
     window.addEventListener('mousemove', hoverPoint, false);
-    window.addEventListener('contextmenu', selectPoint, false);
+    window.addEventListener('contextmenu', claimPoint, false);
 }
 export function removeEvents() {
     window.removeEventListener('mousemove', hoverPoint, false);
-    window.removeEventListener('contextmenu', selectPoint, false);
+    window.removeEventListener('contextmenu', claimPoint, false);
 }
-function selectPoint(event) {
+function claimPoint(event) {
     event.preventDefault();
     if (event.button != 2)
         return; // right click only
@@ -1120,7 +1166,7 @@ function selectPoint(event) {
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object;
         if (selectedPoint.userData.claim == UNCLAIMED) {
-            updateSelectedPoint(selectedPoint);
+            updateClaimedPoint(selectedPoint);
             if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
                 socket.emit('broadcast', { eventName: Event.PLAYER_MOVE, id: selectedPoint.userData.id, color: currentTurn });
             }
@@ -1130,19 +1176,22 @@ function selectPoint(event) {
         }
     }
 }
-function updateSelectedPoint(selectedPoint) {
-    selectedPoint.material.color.set(players[currentTurn].color);
+function updateClaimedPoint(selectedPoint) {
+    if (sceneData.blind.mode != BlindMode.ALL_PLAYERS) {
+        selectedPoint.material.color.set(players[currentTurn].color);
+    }
     selectedPoint.userData.claim = currentTurn;
+    claimedPointIds.push(selectedPoint.userData.id);
     // un-highlight previous selected point
-    if (lastSelectedPoint !== undefined) {
+    if (lastClaimedPoint !== undefined) {
         // (lastSelectedPoint.material as THREE.Material).depthWrite = true
     }
     // update and highlight new selected point
-    lastSelectedPoint = selectedPoint;
+    lastClaimedPoint = selectedPoint;
     // console.log(`Selected index: ${lastSelectedPoint.userData.id}`)
     // (lastSelectedPoint.material as THREE.Material).depthWrite = false
     if (outlinePass !== undefined)
-        outlinePass.selectedObjects = [lastSelectedPoint];
+        outlinePass.selectedObjects = [lastClaimedPoint];
 }
 let hoveredPoint;
 function hoverPoint(event) {

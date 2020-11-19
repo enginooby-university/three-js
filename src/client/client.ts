@@ -2,6 +2,7 @@
 TODO:
     - *Fix: event of this task still enable when change to another task
     - *Fix: object from another task still availble (underneath) in another task's scene -> reduce performance
+    - *Fix: double click -> screenshot
 */
 
 import * as THREE from '/build/three.module.js'
