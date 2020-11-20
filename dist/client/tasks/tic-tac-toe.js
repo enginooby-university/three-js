@@ -4,10 +4,11 @@ TODO:
         + Customize AI level (intelligent)
         + Remote multi-player mode
         + Win shapes (instead of straght line)
-        + n-multi-win (scores) (n>=2)
+        + n-multi-score (scores) (n>=2) (overlapping/not)
         + Countdown mode (socket)
         + Bomb mode
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
+        + Dead point (socket)
     - Fix:
         + Size point not update when change size board
         + Game reseting animation (y scaling)
@@ -53,6 +54,11 @@ var BlindMode;
     BlindMode[BlindMode["NON_AI_PLAYERS"] = 3] = "NON_AI_PLAYERS";
     BlindMode[BlindMode["ALL_PLAYERS"] = 4] = "ALL_PLAYERS";
 })(BlindMode || (BlindMode = {}));
+var MultiScoreMode;
+(function (MultiScoreMode) {
+    MultiScoreMode[MultiScoreMode["HIGHEST_SCORE"] = 0] = "HIGHEST_SCORE";
+    MultiScoreMode[MultiScoreMode["GOAL_SCORE"] = 1] = "GOAL_SCORE";
+})(MultiScoreMode || (MultiScoreMode = {}));
 function instanceOfSceneData(data) {
     return data.eventName === Event.SYNC_SCENE_DATA;
 }
@@ -61,7 +67,7 @@ let sceneData = {
     playerNumber: 2,
     dimension: 3,
     boardSize: 7,
-    winPoint: 5,
+    winPoint: 3,
     ai: {
         delay: 2000,
     },
@@ -73,6 +79,10 @@ let sceneData = {
     countdown: {
         enable: true,
         time: 60,
+    },
+    multiScore: {
+        mode: MultiScoreMode.GOAL_SCORE,
+        goalScore: 1,
     },
     deadPoint: {
         number: 16,
@@ -105,7 +115,8 @@ var GameMode;
     GameMode[GameMode["REMOTE_MULTIPLAYER"] = 1] = "REMOTE_MULTIPLAYER";
 })(GameMode || (GameMode = {}));
 let gameMode = GameMode.LOCAL_MULTIPLAYER;
-const DEAD = -2; // points which could not be claimed
+const DEAD = -3; // points which could not be claimed
+const CLAIMED = -2;
 const UNCLAIMED = -1;
 let currentTurn = 0;
 let aiPreferredMoves; // array of point indexes for aiMove()
@@ -118,10 +129,12 @@ let turnCount = 0; // keep track when all point are claimed
 */
 let fullWinCombinations = [];
 let winCombinations = [];
+let claimedWinCombinations = [];
 let testCombination = [];
 let bars;
 let pointGeometry;
 let points = [];
+let highlighBorders = [];
 let claimedPointIds = [];
 let deadPointIds = [4, 7, 10, 19, 20, 32, 36, 45, 60];
 let lastClaimedPoint;
@@ -138,7 +151,7 @@ export function init() {
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber);
     players[0].isAi = false;
-    players[1].isAi = true;
+    players[1].isAi = false;
     // kick off first player if AI
     if (players[0].isAi) {
         setTimeout(() => {
@@ -170,11 +183,12 @@ window.onload = () => {
 let countDownLoop;
 let currentTurnCountDown;
 function activateCountDown() {
+    countdownElement.style.display = "block";
     countdownElement.style.color = "#" + players[currentTurn].color.getHexString();
     currentTurnCountDown = sceneData.countdown.time;
     countDownLoop = setInterval(() => {
         countdownElement.innerHTML = currentTurnCountDown.toString();
-        console.log(`Count down: ${currentTurnCountDown}`);
+        // console.log(`Count down: ${currentTurnCountDown}`)
         currentTurnCountDown--;
         if (currentTurnCountDown == sceneData.countdown.time - 1)
             countdownElement.style.color = "#" + players[currentTurn].color.getHexString();
@@ -715,7 +729,7 @@ function createDatGUI() {
         initGame();
         broadcast(sceneData);
     });
-    winPointController = gui.add(sceneData, "winPoint").min(3).max(sceneData.boardSize).step(1).name("Win point").listen().onFinishChange(value => {
+    winPointController = gui.add(sceneData, "winPoint").min(3).max(sceneData.boardSize).step(1).name("Points to score").listen().onFinishChange(value => {
         generateWinCombinations();
         broadcast(sceneData);
     });
@@ -736,8 +750,10 @@ function createDatGUI() {
     countdownModeFolder.add(sceneData.countdown, "enable", true).listen().onChange(value => {
         if (value == true)
             activateCountDown();
-        else
+        else {
+            countdownElement.style.display = "none";
             clearInterval(countDownLoop);
+        }
     });
     countdownModeFolder.add(sceneData.countdown, "time", 1, 60, 1).listen().onFinishChange(value => {
         if (sceneData.countdown.enable) {
@@ -879,7 +895,7 @@ function updatePlayerNumber(value) {
         // TODO: ensure color is unique
         const randomColor = new THREE.Color(0xffffff);
         randomColor.setHex(Math.random() * 0xffffff);
-        const newPlayer = { id: i, isAi: false, color: randomColor };
+        const newPlayer = { id: i, isAi: false, color: randomColor, score: 0 };
         const data = {
             colorHex: newPlayer.color.getHex()
         };
@@ -995,6 +1011,7 @@ function createPoint(x, y, z, index) {
     const point = new THREE.Mesh(pointGeometry, pointMaterial);
     point.userData.id = index;
     point.userData.claim = UNCLAIMED;
+    point.userData.highlight = false;
     points.push(point);
     // point.userData.targetPosition = new THREE.Vector3(x, y, z)
     point.position.set(x, y, z);
@@ -1073,11 +1090,19 @@ function getNextTurn(currentTurn) {
     return nextTurn;
 }
 function resetGame() {
+    // remove highlight boders
+    highlighBorders.forEach(border => scene.remove(border));
+    highlighBorders = [];
+    // restore winCombinations
+    claimedWinCombinations.forEach(winCombination => winCombinations.push(winCombination));
+    // restore players' scores
+    players.forEach(player => player.score = 0);
     // gameOver = false
     turnCount = 0;
     // yScaleAnimation(600, 300)
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
+        point.userData.highlight = false;
         point.material.color.setHex(0xffffff);
     });
     // update limit for dead point number
@@ -1122,31 +1147,61 @@ function nextTurn() {
         }
     }
 }
-// check if the last move finishes the game
+// check if the last move (of last player) finishes game
 function checkWin() {
     let won = false;
     var breakEx = {};
     try {
-        winCombinations.forEach(function (winCombination) {
+        // winCombinations.forEach(function (winCombination: number[]) {
+        for (let i = 0; i < winCombinations.length; i++) {
             let count = 0;
-            winCombination.forEach(function (index) {
+            winCombinations[i].forEach(function (index) {
                 if (points[index].userData.claim == currentTurn)
                     count++;
             });
             if (count === sceneData.winPoint) {
-                won = true;
-                winCombination.forEach(function (index) {
-                    outlinePass.selectedObjects.push(points[index]);
+                lastClaimedPoint.visible = true;
+                players[currentTurn].score++;
+                console.log(`Player ${currentTurn + 1} earnd new score: ${players[currentTurn].score}`);
+                if (players[currentTurn].score == sceneData.multiScore.goalScore) {
+                    won = true;
+                }
+                winCombinations[i].forEach(function (index) {
+                    if (!points[index].userData.highlight)
+                        createHighlightBorder(points[index]);
+                    points[index].userData.highlight = true;
+                    // (points[index].material as any).emissive.set(0x444444);
+                    // outlinePass.selectedObjects.push(points[index])
                 });
+                claimedWinCombinations.push(winCombinations.splice(i, 1)[0]);
                 throw breakEx;
             }
-        });
+        }
     }
     catch (ex) {
         if (ex != breakEx)
             throw ex;
     }
     return won;
+}
+// TODO: scale point along with its border
+// TODO: Dat option for borders
+function createHighlightBorder(point) {
+    const pointMaterial = new THREE.MeshPhysicalMaterial({
+        color: players[currentTurn].color,
+        // metalness: sceneData.point.metalness,
+        // roughness: sceneData.point.roughness,
+        // transparent: true,
+        wireframe: sceneData.point.wireframe,
+        // opacity: 0.7,
+        side: THREE.BackSide,
+    });
+    const border = new THREE.Mesh(pointGeometry, pointMaterial);
+    border.scale.multiplyScalar(1.2);
+    border.position.set(point.position.x, point.position.y, point.position.z);
+    // point.userData.targetPosition = new THREE.Vector3(x, y, z)
+    highlighBorders.push(border);
+    scene.add(border);
 }
 /* END GAME PLAY */
 /* AI */
@@ -1320,7 +1375,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.set(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`);
+            console.log(`Point id: ${hoveredPoint.userData.id}`);
             hoveredPoint.material.emissive.set(players[currentTurn].color);
         }
     }
