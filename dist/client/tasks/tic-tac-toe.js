@@ -1,13 +1,12 @@
 /*
 TODO:
     - Main features:
-        + Enable/disable inner win (a claimed win combination with 2 heads blocked)
         + Customize AI level (intelligent)
         + Remote multi-player mode
         + Win shapes (instead of straght line)
         + n-multi-win (scores) (n>=2)
-        + n-dimentional board (n>=4)
         + Countdown mode
+        + Bomb mode
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
     - Fix:
         + Size point not update when change size board
@@ -23,7 +22,9 @@ TODO:
         + Sounds
         + VR support
         + Mobile responsive
+        + n-dimentional board (n>=4)
         + Different tic tac toe variants
+        + Enable/disable inner win (a claimed win combination with 2 heads blocked)
 */
 import { GUI } from '/jsm/libs/dat.gui.module.js';
 import * as THREE from '/build/three.module.js';
@@ -68,6 +69,10 @@ let sceneData = {
         intervalReveal: 4,
         revealDuration: 0.1,
     },
+    countdown: {
+        enable: true,
+        time: 5,
+    },
     deadPoint: {
         number: 16,
         visible: true,
@@ -102,7 +107,7 @@ const UNCLAIMED = -1;
 let currentTurn = 0;
 let aiPreferredMoves; // array of point indexes for aiMove()
 var gameOver = false;
-let movedCount = 0; // keep track when all point are claimed
+let turnCount = 0; // keep track when all point are claimed
 /*
     Conbinations when win point = board size
     This set already includes all lines parallel to x/y/z axis, xy/xz/yz face and 4 diagonal lines
@@ -147,13 +152,26 @@ export function setupControls() {
 }
 function initGame() {
     claimedPointIds = [];
-    movedCount = 0;
+    turnCount = 0;
     createPoints();
     createBars();
     generateDeadPoints();
     generateFullWinCombinations(); // invoke when update board size
     generateWinCombinations(); // invoke when update board size or win point
     generateAiPreferredMoves();
+    if (sceneData.countdown.enable)
+        activateCountDown();
+}
+let countDownLoop;
+let currentTurnCountDown;
+function activateCountDown() {
+    currentTurnCountDown = sceneData.countdown.time;
+    countDownLoop = setInterval(() => {
+        currentTurnCountDown--;
+        console.log(`Count down: ${currentTurnCountDown}`);
+        if (currentTurnCountDown == 0)
+            nextTurn();
+    }, 1000);
 }
 function generateDeadPoints() {
     generateDeadPointIds();
@@ -705,6 +723,20 @@ function createDatGUI() {
         broadcast(sceneData);
     });
     blindModeFolder.open();
+    const countdownModeFolder = gui.addFolder("Countdown mode");
+    countdownModeFolder.add(sceneData.countdown, "enable", true).listen().onChange(value => {
+        if (value == true)
+            activateCountDown();
+        else
+            clearInterval(countDownLoop);
+    });
+    countdownModeFolder.add(sceneData.countdown, "time", 1, 20, 1).listen().onFinishChange(value => {
+        if (sceneData.countdown.enable) {
+            clearInterval(countDownLoop);
+            activateCountDown();
+        }
+    });
+    countdownModeFolder.open();
     const aisFolder = gui.addFolder("AIs");
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
     const deadPointsFolder = gui.addFolder("Dead points");
@@ -960,6 +992,7 @@ function createPoint(x, y, z, index) {
 // const clock: THREE.Clock = new THREE.Clock()
 // const MOVE_SPEED = 0.05
 export function render() {
+    // console.log(Math.floor((clock.getElapsedTime()))) // seconds passed
     // points.forEach(point => {
     //     const targetX: number = point.userData.targetPosition.x
     //     const lowBoundX: number = targetX - MOVE_SPEED
@@ -1028,7 +1061,7 @@ function getNextTurn(currentTurn) {
 }
 function resetGame() {
     // gameOver = false
-    movedCount = 0;
+    turnCount = 0;
     // yScaleAnimation(600, 300)
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
@@ -1053,8 +1086,11 @@ function resetGame() {
     }
 }
 function nextTurn() {
+    // reset countdown time
+    if (sceneData.countdown.enable)
+        currentTurnCountDown = sceneData.countdown.time;
     // game over
-    if (checkWin() || movedCount == Math.pow(sceneData.boardSize, sceneData.dimension) - 1 - deadPointIds.length) {
+    if (checkWin() || turnCount == Math.pow(sceneData.boardSize, sceneData.dimension) - deadPointIds.length) {
         // gameOver = true;
         lastClaimedPoint.material.emissive.setHex(0x000000);
         // prevent selecting/hovering points when reseting game
@@ -1062,7 +1098,6 @@ function nextTurn() {
         setTimeout(resetGame, 800);
     }
     else {
-        movedCount++;
         currentTurn = getNextTurn(currentTurn);
         console.log(`Current turn: ${currentTurn}`);
         if (players[currentTurn].isAi) {
@@ -1252,6 +1287,7 @@ function claimPoint(event) {
     }
 }
 function updateClaimedPoint(selectedPoint) {
+    turnCount++;
     if (sceneData.blind.mode != BlindMode.ALL_PLAYERS) {
         selectedPoint.material.color.set(players[currentTurn].color);
     }
