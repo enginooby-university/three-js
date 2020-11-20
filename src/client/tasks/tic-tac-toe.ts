@@ -12,7 +12,7 @@ TODO:
         + Size point not update when change size board
         + Game reseting animation (y scaling)
         + Disable events on AI turns
-        + Defensive move [1] AI not working for pointsToScore = 3
+        + Turn is different in different sockets in new game
     - Dat: 
         + Add highlight options (OutlinePass)
         + Lock some Dat options when start game to prevent cheating (pointsToScore, sizeboard)
@@ -108,7 +108,7 @@ let sceneData: SceneData = {
     playerNumber: 2,
     dimension: 3,
     boardSize: 7,
-    pointsToScore: 3,
+    pointsToScore: 5,
     ai: {
         delay: 2000,
     },
@@ -118,7 +118,7 @@ let sceneData: SceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: true,
+        enable: false,
         time: 60,
     },
     multiScore: {
@@ -648,6 +648,7 @@ function setupSocket() {
     socket.on(Event.SYNC_AI, (data: any) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
         aiPreferredMoves = data.aiPreferredMoves
+
         console.log(`Sync AI:`)
         console.log(data.aiPreferredMoves)
     })
@@ -655,6 +656,7 @@ function setupSocket() {
     socket.on(Event.SYNC_DEAD_POINTS, (data: any) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
         resetGame()
+        currentTurn = 0
         // clear current dead points of current socket
         clearDeadPoints()
         // sync and generate dead points from other sockets
@@ -680,7 +682,9 @@ function setupSocket() {
         // changes requiring doing stuffs
         if (sceneData.playerNumber != newSceneData.playerNumber) {
             sceneData.playerNumber = newSceneData.playerNumber
+            currentTurn = 0
             updatePlayerNumber(sceneData.playerNumber)
+            resetGame()
         }
 
         if (sceneData.dimension != newSceneData.dimension) {
@@ -815,7 +819,7 @@ function broadcast(data: any) {
     }
 }
 
-// sync data that do not require doing other stuffs e.g. reset game... (no onChange in controller)
+// sync data that do not require doing other stuffs e.g. reset game... (controller onChange only for broadcasting)
 function copySceneData(currentSceneData: SceneData, newSceneData: SceneData) {
     currentSceneData.multiScore.highestScoreToWin = newSceneData.multiScore.highestScoreToWin
     currentSceneData.multiScore.scoresToWin = newSceneData.multiScore.scoresToWin
@@ -873,7 +877,9 @@ function createDatGUI() {
     })
 
     gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
+        currentTurn = 0
         updatePlayerNumber(value)
+        resetGame()
         broadcast(sceneData)
     })
 
@@ -905,9 +911,9 @@ function createDatGUI() {
 
     const multiScoreModeFolder = gui.addFolder("Multi-score mode")
     const maxScoresToWin: number = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore)
-    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value=>broadcast(sceneData))
-    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value=>broadcast(sceneData))
-    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value=>broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value => broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value => broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value => broadcast(sceneData))
     multiScoreModeFolder.open()
 
     const blindModeFolder: GUI = gui.addFolder("Blind mode")
