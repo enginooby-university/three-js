@@ -13,6 +13,7 @@ TODO:
         + Size point not update when change size board
         + Game reseting animation (y scaling)
         + Disable events on AI turns
+        + Defensive move [1] AI not working for pointsToScore = 3
     - Dat:
         + Add highlight options (OutlinePass)
         + Lock some Dat options when start game to prevent cheating (pointsToScore, sizeboard)
@@ -735,6 +736,11 @@ function createDatGUI() {
         generateWinCombinations();
         broadcast(sceneData);
     });
+    const multiScoreModeFolder = gui.addFolder("Multi-score mode");
+    const maxScoresToWin = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore);
+    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win");
+    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false);
+    multiScoreModeFolder.open();
     const blindModeFolder = gui.addFolder("Blind mode");
     blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {
         updateBlindMode();
@@ -1177,7 +1183,6 @@ function checkWin() {
                     if (!sceneData.multiScore.overlapping)
                         // override color claim so that points will not be counted for another combinations
                         points[index].userData.claim = CLAIMED;
-                    // (points[index].material as any).emissive.set(0x444444);
                     // outlinePass.selectedObjects.push(points[index])
                 });
                 claimedWinCombinations.push(winCombinations.splice(i, 1)[0]);
@@ -1227,6 +1232,9 @@ function aiMove() {
             }
             ;
         }
+    }
+    for (let winCombination of winCombinations) {
+        countClaims(winCombination);
         // defensing move (when opponent is 1 point away from win point)
         if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - 1 && ClaimCounter.currentPlayerCount == 0) {
             console.log("AI: defensing move [1]");
@@ -1238,6 +1246,9 @@ function aiMove() {
             }
             ;
         }
+    }
+    for (let winCombination of winCombinations) {
+        countClaims(winCombination);
         // defensing move (when opponent is 2 points away from win point)
         if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - 2 && ClaimCounter.currentPlayerCount == 0) {
             console.log("AI: defensing move [2]");
