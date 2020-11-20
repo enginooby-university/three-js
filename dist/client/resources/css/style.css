@@ -177,6 +177,7 @@ body {
 }
 
 #tictactoe-countdown {
+    text-shadow: 2px 2px 1px #ffffff;
     -webkit-text-stroke-width: 1px;
     -webkit-text-stroke-color: black;
     font-weight: 800;
