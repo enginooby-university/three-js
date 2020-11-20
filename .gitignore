@@ -3,4 +3,4 @@
 /package-lock.json
 
 # ignore big unchanged files when deploy to Heroku
-/dist/client/resources
+# /dist/client/resources

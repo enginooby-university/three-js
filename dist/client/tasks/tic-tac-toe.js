@@ -1151,9 +1151,9 @@ function checkWin() {
 /* END GAME PLAY */
 /* AI */
 function aiMove() {
-    // attacking move (finish game)
     for (let winCombination of winCombinations) {
         countClaims(winCombination);
+        // attacking move (finish game)
         if (ClaimCounter.currentPlayerCount == sceneData.winPoint - 1) {
             console.log("AI: attacking move");
             for (let index of winCombination) {
@@ -1164,13 +1164,7 @@ function aiMove() {
             }
             ;
         }
-    }
-    // defensing move (higher threat case)
-    // TODO: detect higher threat case (thread is blocked one side<thread is not blocked)
-    for (let winCombination of winCombinations) {
-        countClaims(winCombination);
-        // if in this combination previous player claimed more than (win point - 1) points
-        // while current player has no claimed point
+        // defensing move (when opponent is 1 point away from win point)
         if (ClaimCounter.previousPlayerCount == sceneData.winPoint - 1 && ClaimCounter.currentPlayerCount == 0) {
             console.log("AI: defensing move [1]");
             for (let id of winCombination) {
@@ -1181,11 +1175,7 @@ function aiMove() {
             }
             ;
         }
-    }
-    ;
-    // defensing move
-    for (let winCombination of winCombinations) {
-        countClaims(winCombination);
+        // defensing move (when opponent is 2 points away from win point)
         if (ClaimCounter.previousPlayerCount == sceneData.winPoint - 2 && ClaimCounter.currentPlayerCount == 0) {
             console.log("AI: defensing move [2]");
             // the seleted point index among possible points
@@ -1205,10 +1195,8 @@ function aiMove() {
             }
         }
     }
-    ;
-    // random move
+    // pre-defined move (position meets the most win combination, e.g. center)
     // TODO: generate preferredIndexes to improve AI
-    // const preferredIndexes: number[] = [13, 16, 10, 3, 4, 5, 21, 22, 23, 12, 14];
     for (let index of aiPreferredMoves) {
         if (points[index].userData.claim == UNCLAIMED) {
             console.log("AI: preferred move");
@@ -1217,7 +1205,7 @@ function aiMove() {
         }
     }
     ;
-    // all the preferred are taken, just take first unclaimed
+    // random move (all the preferred are taken, just take first unclaimed)
     for (let point of points) {
         if (point.userData.claim == UNCLAIMED) {
             console.log("AI: random move");
