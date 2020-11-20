@@ -55,11 +55,6 @@ var BlindMode;
     BlindMode[BlindMode["NON_AI_PLAYERS"] = 3] = "NON_AI_PLAYERS";
     BlindMode[BlindMode["ALL_PLAYERS"] = 4] = "ALL_PLAYERS";
 })(BlindMode || (BlindMode = {}));
-var MultiScoreMode;
-(function (MultiScoreMode) {
-    MultiScoreMode[MultiScoreMode["HIGHEST_SCORE"] = 0] = "HIGHEST_SCORE";
-    MultiScoreMode[MultiScoreMode["GOAL_SCORE"] = 1] = "GOAL_SCORE";
-})(MultiScoreMode || (MultiScoreMode = {}));
 function instanceOfSceneData(data) {
     return data.eventName === Event.SYNC_SCENE_DATA;
 }
@@ -82,8 +77,8 @@ let sceneData = {
         time: 60,
     },
     multiScore: {
-        mode: MultiScoreMode.GOAL_SCORE,
-        scoresToWin: 2,
+        highestScoreToWin: false,
+        scoresToWin: 1,
         overlapping: false,
     },
     deadPoint: {
@@ -738,6 +733,7 @@ function createDatGUI() {
     });
     const multiScoreModeFolder = gui.addFolder("Multi-score mode");
     const maxScoresToWin = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore);
+    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score");
     multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win");
     multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false);
     multiScoreModeFolder.open();
@@ -1173,7 +1169,7 @@ function checkWin() {
                 lastClaimedPoint.visible = true;
                 players[currentTurn].score++;
                 console.log(`Player ${currentTurn + 1} earnd new score: ${players[currentTurn].score}`);
-                if (players[currentTurn].score == sceneData.multiScore.scoresToWin) {
+                if (players[currentTurn].score == sceneData.multiScore.scoresToWin && !sceneData.multiScore.highestScoreToWin) {
                     won = true;
                 }
                 winCombinations[i].forEach(function (index) {

@@ -52,7 +52,6 @@ enum Event {
 }
 
 enum BlindMode { DISABLE, ONE_PLAYER, AI_PLAYERS, NON_AI_PLAYERS, ALL_PLAYERS }
-enum MultiScoreMode { HIGHEST_SCORE, GOAL_SCORE }
 
 type SceneData = {
     eventName: string, // to distinguish SceneData among different tasks
@@ -73,7 +72,7 @@ type SceneData = {
         time: number,
     },
     multiScore: {
-        mode: MultiScoreMode,
+        highestScoreToWin: boolean,
         scoresToWin: number,
         overlapping: boolean,
     },
@@ -122,9 +121,9 @@ let sceneData: SceneData = {
         time: 60,
     },
     multiScore: {
-        mode: MultiScoreMode.GOAL_SCORE,
-        scoresToWin: 2,
-        overlapping: false, // count 
+        highestScoreToWin: false, // play until all points are claim, winner has the highest scores
+        scoresToWin: 1,
+        overlapping: false, // different combination can share the same points
     },
     deadPoint: {
         number: 16,
@@ -868,6 +867,7 @@ function createDatGUI() {
 
     const multiScoreModeFolder = gui.addFolder("Multi-score mode")
     const maxScoresToWin: number = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore)
+    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score")
     multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win")
     multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false)
     multiScoreModeFolder.open()
@@ -1364,7 +1364,7 @@ function checkWin() {
 
                 players[currentTurn].score++
                 console.log(`Player ${currentTurn + 1} earnd new score: ${players[currentTurn].score}`)
-                if (players[currentTurn].score == sceneData.multiScore.scoresToWin) {
+                if (players[currentTurn].score == sceneData.multiScore.scoresToWin && !sceneData.multiScore.highestScoreToWin) {
                     won = true;
                 }
 
