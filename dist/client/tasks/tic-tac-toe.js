@@ -15,7 +15,7 @@ TODO:
         + Disable events on AI turns
     - Dat:
         + Add highlight options (OutlinePass)
-        + Lock some Dat options when start game to prevent cheating (winpoint, sizeboard)
+        + Lock some Dat options when start game to prevent cheating (pointsToScore, sizeboard)
     - Appearance:
         + Customize point geometry (cube...)
         + Add cool effects/animations for game events (start, reset)
@@ -67,7 +67,7 @@ let sceneData = {
     playerNumber: 2,
     dimension: 3,
     boardSize: 7,
-    winPoint: 3,
+    pointsToScore: 3,
     ai: {
         delay: 2000,
     },
@@ -82,7 +82,8 @@ let sceneData = {
     },
     multiScore: {
         mode: MultiScoreMode.GOAL_SCORE,
-        goalScore: 1,
+        scoresToWin: 2,
+        overlapping: false,
     },
     deadPoint: {
         number: 16,
@@ -134,7 +135,7 @@ let testCombination = [];
 let bars;
 let pointGeometry;
 let points = [];
-let highlighBorders = [];
+let highlightBorders = [];
 let claimedPointIds = [];
 let deadPointIds = [4, 7, 10, 19, 20, 32, 36, 45, 60];
 let lastClaimedPoint;
@@ -169,6 +170,7 @@ export function setupControls() {
 function initGame() {
     claimedPointIds = [];
     turnCount = 0;
+    resetHighlightBorders();
     createPoints();
     createBars();
     generateDeadPoints();
@@ -342,7 +344,7 @@ function generateWinCombinations() {
     points.forEach(point => point.material.emissive.setHex(0x000000));
     winCombinations = fullWinCombinations;
     const n = sceneData.boardSize;
-    const m = sceneData.winPoint;
+    const m = sceneData.pointsToScore;
     const d = sceneData.dimension;
     // when board size = win point, fullWinCombinations is also winCombinations
     if (m == n)
@@ -504,9 +506,9 @@ function generateWinCombinations() {
 }
 // get all the subsets of m-adjacent elements
 // original combinations could have different array size  >= m
-function extractSubCombinations(originalCombinations, winPoint) {
+function extractSubCombinations(originalCombinations, pointsToScore) {
     const newCombinations = [];
-    const m = winPoint;
+    const m = pointsToScore;
     originalCombinations.forEach(winCombination => {
         const n = winCombination.length;
         if (m < n) {
@@ -560,13 +562,13 @@ function setupSocket() {
             console.log(sceneData.dimension);
             initGame();
         }
-        if (sceneData.winPoint != newSceneData.winPoint) {
-            sceneData.winPoint = newSceneData.winPoint;
+        if (sceneData.pointsToScore != newSceneData.pointsToScore) {
+            sceneData.pointsToScore = newSceneData.pointsToScore;
             generateWinCombinations();
         }
         if (sceneData.boardSize != newSceneData.boardSize) {
             sceneData.boardSize = newSceneData.boardSize;
-            sceneData.winPoint = newSceneData.boardSize;
+            sceneData.pointsToScore = newSceneData.boardSize;
             initGame();
             return; // update 1 change per time? 
         }
@@ -720,16 +722,16 @@ function createDatGUI() {
         initGame();
         broadcast(sceneData);
     });
-    let winPointController;
+    let pointsToScoreController;
     gui.add(sceneData, "boardSize", 3, 30).step(1).name("Board size").listen().onFinishChange((value) => {
-        // update winpoint
-        sceneData.winPoint = value;
-        winPointController.max(value);
+        // update pointsToScore
+        sceneData.pointsToScore = value;
+        pointsToScoreController.max(value);
         resetDeadPoints();
         initGame();
         broadcast(sceneData);
     });
-    winPointController = gui.add(sceneData, "winPoint").min(3).max(sceneData.boardSize).step(1).name("Points to score").listen().onFinishChange(value => {
+    pointsToScoreController = gui.add(sceneData, "pointsToScore").min(3).max(sceneData.boardSize).step(1).name("Points to score").listen().onFinishChange(value => {
         generateWinCombinations();
         broadcast(sceneData);
     });
@@ -1089,10 +1091,12 @@ function getNextTurn(currentTurn) {
     }
     return nextTurn;
 }
+function resetHighlightBorders() {
+    highlightBorders.forEach(border => scene.remove(border));
+    highlightBorders = [];
+}
 function resetGame() {
-    // remove highlight boders
-    highlighBorders.forEach(border => scene.remove(border));
-    highlighBorders = [];
+    resetHighlightBorders();
     // restore winCombinations
     claimedWinCombinations.forEach(winCombination => winCombinations.push(winCombination));
     // restore players' scores
@@ -1159,17 +1163,20 @@ function checkWin() {
                 if (points[index].userData.claim == currentTurn)
                     count++;
             });
-            if (count === sceneData.winPoint) {
+            if (count === sceneData.pointsToScore) {
                 lastClaimedPoint.visible = true;
                 players[currentTurn].score++;
                 console.log(`Player ${currentTurn + 1} earnd new score: ${players[currentTurn].score}`);
-                if (players[currentTurn].score == sceneData.multiScore.goalScore) {
+                if (players[currentTurn].score == sceneData.multiScore.scoresToWin) {
                     won = true;
                 }
                 winCombinations[i].forEach(function (index) {
                     if (!points[index].userData.highlight)
                         createHighlightBorder(points[index]);
                     points[index].userData.highlight = true;
+                    if (!sceneData.multiScore.overlapping)
+                        // override color claim so that points will not be counted for another combinations
+                        points[index].userData.claim = CLAIMED;
                     // (points[index].material as any).emissive.set(0x444444);
                     // outlinePass.selectedObjects.push(points[index])
                 });
@@ -1184,7 +1191,7 @@ function checkWin() {
     }
     return won;
 }
-// TODO: scale point along with its border
+// TODO: update point scale, color along with its border
 // TODO: Dat option for borders
 function createHighlightBorder(point) {
     const pointMaterial = new THREE.MeshPhysicalMaterial({
@@ -1197,10 +1204,11 @@ function createHighlightBorder(point) {
         side: THREE.BackSide,
     });
     const border = new THREE.Mesh(pointGeometry, pointMaterial);
+    border.userData.claim = currentTurn;
     border.scale.multiplyScalar(1.2);
     border.position.set(point.position.x, point.position.y, point.position.z);
     // point.userData.targetPosition = new THREE.Vector3(x, y, z)
-    highlighBorders.push(border);
+    highlightBorders.push(border);
     scene.add(border);
 }
 /* END GAME PLAY */
@@ -1209,7 +1217,7 @@ function aiMove() {
     for (let winCombination of winCombinations) {
         countClaims(winCombination);
         // attacking move (finish game)
-        if (ClaimCounter.currentPlayerCount == sceneData.winPoint - 1) {
+        if (ClaimCounter.currentPlayerCount == sceneData.pointsToScore - 1) {
             console.log("AI: attacking move");
             for (let index of winCombination) {
                 if (points[index].userData.claim == UNCLAIMED) {
@@ -1220,7 +1228,7 @@ function aiMove() {
             ;
         }
         // defensing move (when opponent is 1 point away from win point)
-        if (ClaimCounter.previousPlayerCount == sceneData.winPoint - 1 && ClaimCounter.currentPlayerCount == 0) {
+        if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - 1 && ClaimCounter.currentPlayerCount == 0) {
             console.log("AI: defensing move [1]");
             for (let id of winCombination) {
                 if (points[id].userData.claim == UNCLAIMED) {
@@ -1231,7 +1239,7 @@ function aiMove() {
             ;
         }
         // defensing move (when opponent is 2 points away from win point)
-        if (ClaimCounter.previousPlayerCount == sceneData.winPoint - 2 && ClaimCounter.currentPlayerCount == 0) {
+        if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - 2 && ClaimCounter.currentPlayerCount == 0) {
             console.log("AI: defensing move [2]");
             // the seleted point index among possible points
             let idToMove = 99999;
