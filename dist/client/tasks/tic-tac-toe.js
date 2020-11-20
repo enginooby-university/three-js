@@ -63,7 +63,7 @@ let sceneData = {
     boardSize: 7,
     winPoint: 5,
     ai: {
-        delay: 500,
+        delay: 2000,
     },
     blind: {
         mode: BlindMode.DISABLE,
@@ -71,8 +71,8 @@ let sceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: false,
-        time: 5,
+        enable: true,
+        time: 60,
     },
     deadPoint: {
         number: 16,
@@ -162,9 +162,11 @@ function initGame() {
     generateFullWinCombinations(); // invoke when update board size
     generateWinCombinations(); // invoke when update board size or win point
     generateAiPreferredMoves();
+}
+window.onload = () => {
     if (sceneData.countdown.enable)
         activateCountDown();
-}
+};
 let countDownLoop;
 let currentTurnCountDown;
 function activateCountDown() {
@@ -737,7 +739,7 @@ function createDatGUI() {
         else
             clearInterval(countDownLoop);
     });
-    countdownModeFolder.add(sceneData.countdown, "time", 1, 20, 1).listen().onFinishChange(value => {
+    countdownModeFolder.add(sceneData.countdown, "time", 1, 60, 1).listen().onFinishChange(value => {
         if (sceneData.countdown.enable) {
             clearInterval(countDownLoop);
             activateCountDown();
