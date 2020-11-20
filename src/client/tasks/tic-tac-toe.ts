@@ -1039,10 +1039,15 @@ function updatePlayerNumber(value: number) {
         playerFolders.push(newPlayerFolder)
         // TODO: kick off current player to move when being changed to AI
         newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen()
-        newPlayerFolder.addColor(data, 'colorHex').name("color").onChange((value) => {
+        newPlayerFolder.addColor(data, 'colorHex').name("color").onFinishChange((value) => {
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')))
 
-            // update seleted point to new color
+            // update countdown text color
+            if(sceneData.countdown.enable && newPlayer.id==currentTurn){
+                countdownElement.style.color = "#" + newPlayer.color.getHexString()
+            }
+
+            // update seleted points to new color
             points.forEach(point => {
                 if (point.userData.claim == newPlayer.id) {
                     (point as any).material.color.set(value);
