@@ -1,3 +1,8 @@
+<!-- 
+    TODO:
+        - "text-layer" class be above other elements (higher index?)
+-->
+
 <!DOCTYPE html>
 <html>
 
@@ -33,7 +38,8 @@
         <button class="openbtn">☰ </button>
     </div>
 
-    <div class="text-layer" id="top-text"></div>
+    <div class="text-layer top" id="instruction"></div>
+    <div class="text-layer top" id="tictactoe-countdown"></div>
     <div class="text-layer" id="info">Game: Tic Tac Toe</div>
 
     <canvas id="threejs-canvas" onmousedown="return false" unselectable="on"></canvas>

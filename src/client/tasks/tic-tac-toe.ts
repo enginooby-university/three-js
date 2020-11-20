@@ -5,12 +5,13 @@ TODO:
         + Remote multi-player mode 
         + Win shapes (instead of straght line)
         + n-multi-win (scores) (n>=2)
-        + Countdown mode
+        + Countdown mode (socket)
         + Bomb mode
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
     - Fix:
         + Size point not update when change size board
         + Game reseting animation (y scaling)
+        + Disable events on AI turns
     - Dat: 
         + Add highlight options (OutlinePass)
         + Lock some Dat options when start game to prevent cheating (winpoint, sizeboard)
@@ -109,7 +110,7 @@ let sceneData: SceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: true,
+        enable: false,
         time: 5,
     },
     deadPoint: {
@@ -134,7 +135,9 @@ let sceneData: SceneData = {
     }
 }
 
-const textElement = document.querySelector("#top-text")!
+/* DOM */
+const instructionElement = document.querySelector("#instruction")! as HTMLElement
+const countdownElement = document.querySelector("#tictactoe-countdown")! as HTMLElement
 
 type Player = {
     id: number,
@@ -172,7 +175,7 @@ let lastClaimedPoint: THREE.Mesh
 export function init() {
     isInitialized = true
     scene.background = new THREE.Color(0x333333)
-    textElement.innerHTML = "Right click to select"
+    instructionElement.innerHTML = "Right click to select"
 
     setupSocket()
     addEvents()
@@ -218,11 +221,19 @@ function initGame() {
 let countDownLoop: NodeJS.Timeout
 let currentTurnCountDown: number
 function activateCountDown() {
+    countdownElement.style.color = "#" + players[currentTurn].color.getHexString()
     currentTurnCountDown = sceneData.countdown.time
     countDownLoop = setInterval(() => {
-        currentTurnCountDown--
+        countdownElement.innerHTML = currentTurnCountDown.toString()
         console.log(`Count down: ${currentTurnCountDown}`)
-        if (currentTurnCountDown == 0) nextTurn()
+        currentTurnCountDown--
+
+        if (currentTurnCountDown == sceneData.countdown.time - 1)
+            countdownElement.style.color = "#" + players[currentTurn].color.getHexString()
+
+        if (currentTurnCountDown == 0)
+            nextTurn()
+
     }, 1000)
 }
 
@@ -857,7 +868,7 @@ function createDatGUI() {
             clearInterval(countDownLoop)
     })
     countdownModeFolder.add(sceneData.countdown, "time", 1, 20, 1).listen().onFinishChange(value => {
-        if(sceneData.countdown.enable) {
+        if (sceneData.countdown.enable) {
             clearInterval(countDownLoop)
             activateCountDown()
         }
@@ -1262,8 +1273,6 @@ function resetGame() {
 }
 
 function nextTurn() {
-    // reset countdown time
-    if (sceneData.countdown.enable) currentTurnCountDown = sceneData.countdown.time
     // game over
     if (checkWin() || turnCount == Math.pow(sceneData.boardSize, sceneData.dimension) - deadPointIds.length) {
         // gameOver = true;
@@ -1273,6 +1282,11 @@ function nextTurn() {
         setTimeout(resetGame, 800)
     } else {
         currentTurn = getNextTurn(currentTurn)
+
+        // reset countdown time
+        if (sceneData.countdown.enable) {
+            currentTurnCountDown = sceneData.countdown.time
+        }
 
         console.log(`Current turn: ${currentTurn}`)
 
@@ -1528,3 +1542,4 @@ function getIntersectObjects(event: MouseEvent) {
     raycaster.setFromCamera(mouse, camera)
     return raycaster.intersectObjects(points, false) as THREE.Intersection[]
 }
+/* END EVENTS */
