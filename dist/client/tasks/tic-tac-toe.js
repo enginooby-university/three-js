@@ -572,6 +572,8 @@ function setupSocket() {
         }
         if (!socketEnabled)
             return;
+        // changes not requiring doing stuffs
+        copySceneData(sceneData, newSceneData);
         // changes requiring doing stuffs
         if (sceneData.playerNumber != newSceneData.playerNumber) {
             sceneData.playerNumber = newSceneData.playerNumber;
@@ -688,6 +690,13 @@ function broadcast(data) {
         socket.emit("broadcast", data);
     }
 }
+// sync data that do not require doing other stuffs e.g. reset game... (no onChange in controller)
+function copySceneData(currentSceneData, newSceneData) {
+    currentSceneData.multiScore.highestScoreToWin = newSceneData.multiScore.highestScoreToWin;
+    currentSceneData.multiScore.scoresToWin = newSceneData.multiScore.scoresToWin;
+    currentSceneData.multiScore.overlapping = newSceneData.multiScore.overlapping;
+}
+/* END SOCKET */
 /* DAT GUI */
 let playerFolders = [];
 let playersFolder;
@@ -758,9 +767,9 @@ function createDatGUI() {
     });
     const multiScoreModeFolder = gui.addFolder("Multi-score mode");
     const maxScoresToWin = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore);
-    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score");
-    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win");
-    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false);
+    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value => broadcast(sceneData));
+    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value => broadcast(sceneData));
+    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value => broadcast(sceneData));
     multiScoreModeFolder.open();
     const blindModeFolder = gui.addFolder("Blind mode");
     blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {

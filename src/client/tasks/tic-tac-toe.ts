@@ -674,6 +674,9 @@ function setupSocket() {
         if (!instanceOfSceneData(newSceneData)) { return } else { newSceneData = newSceneData as SceneData }
         if (!socketEnabled) return
 
+        // changes not requiring doing stuffs
+        copySceneData(sceneData, newSceneData)
+
         // changes requiring doing stuffs
         if (sceneData.playerNumber != newSceneData.playerNumber) {
             sceneData.playerNumber = newSceneData.playerNumber
@@ -812,6 +815,15 @@ function broadcast(data: any) {
     }
 }
 
+// sync data that do not require doing other stuffs e.g. reset game... (no onChange in controller)
+function copySceneData(currentSceneData: SceneData, newSceneData: SceneData) {
+    currentSceneData.multiScore.highestScoreToWin = newSceneData.multiScore.highestScoreToWin
+    currentSceneData.multiScore.scoresToWin = newSceneData.multiScore.scoresToWin
+    currentSceneData.multiScore.overlapping = newSceneData.multiScore.overlapping
+}
+/* END SOCKET */
+
+
 /* DAT GUI */
 let playerFolders: GUI[] = []
 let playersFolder: GUI
@@ -893,9 +905,9 @@ function createDatGUI() {
 
     const multiScoreModeFolder = gui.addFolder("Multi-score mode")
     const maxScoresToWin: number = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore)
-    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score")
-    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win")
-    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false)
+    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value=>broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value=>broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value=>broadcast(sceneData))
     multiScoreModeFolder.open()
 
     const blindModeFolder: GUI = gui.addFolder("Blind mode")
