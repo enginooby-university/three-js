@@ -4,11 +4,10 @@ TODO:
         + Customize AI level (intelligent)
         + Remote multi-player mode
         + Win shapes (instead of straght line)
-        + n-multi-score (scores) (n>=2) (overlapping/not)
-        + Countdown mode (socket)
+        + n-multi-score (scores) (n>=2) [socket, dom]
+        + Countdown mode [socket]
         + Bomb mode
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
-        + Dead point (socket)
     - Fix:
         + Size point not update when change size board
         + Game reseting animation (y scaling)
@@ -22,6 +21,7 @@ TODO:
         + Add cool effects/animations for game events (start, reset)
         + Enhance bars (with MeshLine...)
     - Extra (optional):
+        + Dead point color, visible [socket]
         + Sounds
         + VR support
         + Mobile responsive
@@ -45,6 +45,7 @@ var Event;
 (function (Event) {
     Event["SYNC_SCENE_DATA"] = "tictactoe-syncSceneData";
     Event["SYNC_AI"] = "tictactoe-syncAi";
+    Event["SYNC_DEAD_POINTS"] = "tictactoe-syncDeadPoints";
     Event["PLAYER_MOVE"] = "tictactoe-playerMove";
 })(Event || (Event = {}));
 var BlindMode;
@@ -169,6 +170,7 @@ function initGame() {
     resetHighlightBorders();
     createPoints();
     createBars();
+    generateDeadPointIds();
     generateDeadPoints();
     generateFullWinCombinations(); // invoke when update board size
     generateWinCombinations(); // invoke when update board size or win point
@@ -194,8 +196,15 @@ function activateCountDown() {
             nextTurn();
     }, 1000);
 }
+function clearDeadPoints() {
+    deadPointIds.forEach(id => {
+        points[id].userData.claim = UNCLAIMED;
+        points[id].material.color.set(0xffffff);
+        points[id].visible = sceneData.deadPoint.visible;
+    });
+}
+// mark points as DEAD when deadPointIds is availble
 function generateDeadPoints() {
-    generateDeadPointIds();
     deadPointIds.forEach(id => {
         points[id].userData.claim = DEAD;
         points[id].material.color.set(sceneData.deadPoint.color);
@@ -537,6 +546,21 @@ function setupSocket() {
         console.log(`Sync AI:`);
         console.log(data.aiPreferredMoves);
     });
+    socket.on(Event.SYNC_DEAD_POINTS, (data) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER)
+            return;
+        resetGame();
+        // clear current dead points of current socket
+        clearDeadPoints();
+        // sync and generate dead points from other sockets
+        deadPointIds = data.deadPointIds;
+        generateDeadPoints();
+        // update controller
+        sceneData.deadPoint.number = deadPointIds.length;
+        deadPointNumberController.updateDisplay();
+        console.log(`Sync dead points:`);
+        console.log(data.deadPointIds);
+    });
     // when receive update from other sockets
     socket.on(Event.SYNC_SCENE_DATA, (newSceneData) => {
         // only process SceneData of this task
@@ -705,6 +729,7 @@ function createDatGUI() {
         gameMode = value;
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
             socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
+            socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
         }
     });
     gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
@@ -714,7 +739,7 @@ function createDatGUI() {
     playersFolder = gui.addFolder("Players");
     playersFolder.open();
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
-        resetDeadPoints();
+        resetDeadPointsController();
         initGame();
         broadcast(sceneData);
     });
@@ -723,7 +748,7 @@ function createDatGUI() {
         // update pointsToScore
         sceneData.pointsToScore = value;
         pointsToScoreController.max(value);
-        resetDeadPoints();
+        resetDeadPointsController();
         initGame();
         broadcast(sceneData);
     });
@@ -774,7 +799,9 @@ function createDatGUI() {
     });
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5);
     deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "number").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
+        generateDeadPointIds();
         resetGame();
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
     });
     deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {
         sceneData.deadPoint.color = value;
@@ -867,7 +894,7 @@ function updateIntervalReveal() {
     blindRevealDurationController.max(sceneData.blind.intervalReveal - 1);
     sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration);
 }
-function resetDeadPoints() {
+function resetDeadPointsController() {
     sceneData.deadPoint.number = 0;
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 4);
     deadPointNumberController.max(deadPointMax);
@@ -1111,9 +1138,9 @@ function resetGame() {
         point.userData.highlight = false;
         point.material.color.setHex(0xffffff);
     });
-    // update limit for dead point number
-    // const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5)
-    // deadPointNumberController.max(deadPointMax)
+    // not generate new dead point array since can not sync it for now
+    if (gameMode != GameMode.REMOTE_MULTIPLAYER)
+        generateDeadPointIds();
     generateDeadPoints();
     outlinePass.selectedObjects = [];
     addEvents();
@@ -1390,7 +1417,7 @@ function hoverPoint(event) {
                 hoveredPoint.material.emissive.set(hoveredPoint.currentHex);
             hoveredPoint = currentHoveredPoint;
             hoveredPoint.currentHex = hoveredPoint.material.emissive.getHex();
-            console.log(`Point id: ${hoveredPoint.userData.id}`);
+            // console.log(`Point id: ${hoveredPoint.userData.id}`);
             hoveredPoint.material.emissive.set(players[currentTurn].color);
         }
     }

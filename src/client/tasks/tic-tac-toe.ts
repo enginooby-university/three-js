@@ -4,11 +4,10 @@ TODO:
         + Customize AI level (intelligent)
         + Remote multi-player mode 
         + Win shapes (instead of straght line)
-        + n-multi-score (scores) (n>=2) (overlapping/not)
-        + Countdown mode (socket)
+        + n-multi-score (scores) (n>=2) [socket, dom]
+        + Countdown mode [socket]
         + Bomb mode
-        + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
-        + Dead point (socket)
+        + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed) 
     - Fix:
         + Size point not update when change size board
         + Game reseting animation (y scaling)
@@ -22,6 +21,7 @@ TODO:
         + Add cool effects/animations for game events (start, reset)
         + Enhance bars (with MeshLine...)
     - Extra (optional):
+        + Dead point color, visible [socket]
         + Sounds
         + VR support
         + Mobile responsive
@@ -48,6 +48,7 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 enum Event {
     SYNC_SCENE_DATA = "tictactoe-syncSceneData",
     SYNC_AI = "tictactoe-syncAi",
+    SYNC_DEAD_POINTS = "tictactoe-syncDeadPoints",
     PLAYER_MOVE = "tictactoe-playerMove",
 }
 
@@ -228,6 +229,7 @@ function initGame() {
     resetHighlightBorders()
     createPoints()
     createBars()
+    generateDeadPointIds()
     generateDeadPoints()
     generateFullWinCombinations() // invoke when update board size
     generateWinCombinations() // invoke when update board size or win point
@@ -259,9 +261,16 @@ function activateCountDown() {
     }, 1000)
 }
 
-function generateDeadPoints() {
-    generateDeadPointIds()
+function clearDeadPoints() {
+    deadPointIds.forEach(id => {
+        points[id].userData.claim = UNCLAIMED;
+        (points[id].material as any).color.set(0xffffff);
+        points[id].visible = sceneData.deadPoint.visible
+    })
+}
 
+// mark points as DEAD when deadPointIds is availble
+function generateDeadPoints() {
     deadPointIds.forEach(id => {
         points[id].userData.claim = DEAD;
         (points[id].material as any).color.set(sceneData.deadPoint.color);
@@ -643,6 +652,22 @@ function setupSocket() {
         console.log(data.aiPreferredMoves)
     })
 
+    socket.on(Event.SYNC_DEAD_POINTS, (data: any) => {
+        if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
+        resetGame()
+        // clear current dead points of current socket
+        clearDeadPoints()
+        // sync and generate dead points from other sockets
+        deadPointIds = data.deadPointIds
+        generateDeadPoints()
+        // update controller
+        sceneData.deadPoint.number = deadPointIds.length
+        deadPointNumberController.updateDisplay()
+
+        console.log(`Sync dead points:`)
+        console.log(data.deadPointIds)
+    })
+
     // when receive update from other sockets
     socket.on(Event.SYNC_SCENE_DATA, (newSceneData: SceneData) => {
         // only process SceneData of this task
@@ -831,6 +856,7 @@ function createDatGUI() {
 
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
             socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves })
+            socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds })
         }
     })
 
@@ -843,7 +869,7 @@ function createDatGUI() {
     playersFolder.open()
 
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
-        resetDeadPoints()
+        resetDeadPointsController()
         initGame()
         broadcast(sceneData)
     })
@@ -855,7 +881,7 @@ function createDatGUI() {
         sceneData.pointsToScore = value
         pointsToScoreController.max(value)
 
-        resetDeadPoints()
+        resetDeadPointsController()
         initGame()
         broadcast(sceneData)
     })
@@ -918,7 +944,10 @@ function createDatGUI() {
 
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5)
     deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "number").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
+        generateDeadPointIds()
         resetGame()
+
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds })
     })
 
     deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {
@@ -1023,7 +1052,7 @@ function updateIntervalReveal() {
     sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration)
 }
 
-function resetDeadPoints() {
+function resetDeadPointsController() {
     sceneData.deadPoint.number = 0
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 4)
     deadPointNumberController.max(deadPointMax)
@@ -1297,9 +1326,9 @@ function resetGame() {
         (point.material as any).color.setHex(0xffffff);
     });
 
-    // update limit for dead point number
-    // const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5)
-    // deadPointNumberController.max(deadPointMax)
+    // not generate new dead point array since can not sync it for now
+    if (gameMode != GameMode.REMOTE_MULTIPLAYER)
+        generateDeadPointIds()
     generateDeadPoints()
 
     outlinePass.selectedObjects = []
@@ -1604,7 +1633,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.set((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            console.log(`Point id: ${hoveredPoint.userData.id}`);
+            // console.log(`Point id: ${hoveredPoint.userData.id}`);
 
             (hoveredPoint.material as any).emissive.set(players[currentTurn].color);
 
