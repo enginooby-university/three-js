@@ -1414,8 +1414,13 @@ function updateClaimedPoint(selectedPoint) {
     lastClaimedPoint = selectedPoint;
     // console.log(`Selected index: ${lastSelectedPoint.userData.id}`)
     // (lastSelectedPoint.material as THREE.Material).depthWrite = false
-    if (outlinePass !== undefined)
-        outlinePass.selectedObjects = [lastClaimedPoint];
+    // outline other players' last moves
+    if (outlinePass !== undefined) {
+        if (outlinePass.selectedObjects.length == sceneData.playerNumber - 1) {
+            outlinePass.selectedObjects.shift();
+        }
+        outlinePass.selectedObjects.push(lastClaimedPoint);
+    }
 }
 let hoveredPoint;
 function hoverPoint(event) {
