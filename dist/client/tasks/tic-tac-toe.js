@@ -73,7 +73,7 @@ let sceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: false,
+        enable: true,
         time: 60,
     },
     multiScore: {
@@ -171,6 +171,10 @@ function initGame() {
     generateFullWinCombinations(); // invoke when update board size
     generateWinCombinations(); // invoke when update board size or win point
     generateAiPreferredMoves();
+    if (sceneData.countdown.enable) {
+        clearInterval(countDownLoop);
+        activateCountDown();
+    }
 }
 window.onload = () => {
     if (sceneData.countdown.enable)
@@ -179,6 +183,8 @@ window.onload = () => {
 let countDownLoop;
 let currentTurnCountDown;
 function activateCountDown() {
+    if (players.length == 0)
+        return;
     countdownElement.style.display = "block";
     countdownElement.style.color = "#" + players[currentTurn].color.getHexString();
     currentTurnCountDown = sceneData.countdown.time;
@@ -1181,6 +1187,10 @@ function resetGame() {
         lastClaimedPoint.visible = true;
     // winner in previous game goes last in new game
     currentTurn = getNextTurn(currentTurn);
+    if (sceneData.countdown.enable) {
+        clearInterval(countDownLoop);
+        activateCountDown();
+    }
     if (players[currentTurn].isAi) {
         kickOffAiMove();
     }
@@ -1404,9 +1414,9 @@ export function removeEvents() {
 function claimPoint(event) {
     if (players[currentTurn].isAi)
         return;
-    event.preventDefault();
     if (event.button != 2)
         return; // right click only
+    event.preventDefault();
     const intersectObjects = getIntersectObjects(event);
     if (intersectObjects.length) {
         const selectedPoint = intersectObjects[0].object;

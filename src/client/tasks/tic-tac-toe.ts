@@ -117,7 +117,7 @@ let sceneData: SceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: false,
+        enable: true,
         time: 60,
     },
     multiScore: {
@@ -230,6 +230,11 @@ function initGame() {
     generateFullWinCombinations() // invoke when update board size
     generateWinCombinations() // invoke when update board size or win point
     generateAiPreferredMoves()
+
+    if (sceneData.countdown.enable) {
+        clearInterval(countDownLoop)
+        activateCountDown()
+    }
 }
 
 window.onload = () => {
@@ -239,6 +244,8 @@ window.onload = () => {
 let countDownLoop: NodeJS.Timeout
 let currentTurnCountDown: number
 function activateCountDown() {
+    if(players.length==0) return
+
     countdownElement.style.display = "block"
     countdownElement.style.color = "#" + players[currentTurn].color.getHexString()
 
@@ -1380,6 +1387,11 @@ function resetGame() {
     // winner in previous game goes last in new game
     currentTurn = getNextTurn(currentTurn)
 
+    if (sceneData.countdown.enable) {
+        clearInterval(countDownLoop)
+        activateCountDown()
+    }
+
     if (players[currentTurn].isAi) {
         kickOffAiMove()
     }
@@ -1619,9 +1631,9 @@ export function removeEvents() {
 
 function claimPoint(event: MouseEvent) {
     if (players[currentTurn].isAi) return;
+    if (event.button != 2) return // right click only
 
     event.preventDefault()
-    if (event.button != 2) return // right click only
 
     const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
     if (intersectObjects.length) {
