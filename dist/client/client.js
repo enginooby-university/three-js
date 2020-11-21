@@ -620,7 +620,7 @@ function openNav() {
         stat.dom.style.marginLeft = "250px";
     });
 }
-openNav();
+// openNav()
 function closeNav() {
     sidebarElement.style.width = "0";
     mainElement.style.marginLeft = "0";

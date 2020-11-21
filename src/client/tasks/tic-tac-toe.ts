@@ -1,13 +1,13 @@
 /* 
 TODO: 
     - Main features:
-        + Customize AI level (intelligent)
         + Remote multi-player mode 
         + Win shapes (instead of straght line)
-        + n-multi-score (scores) (n>=2) [socket, dom]
-        + Countdown mode [socket]
         + Bomb mode
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed) 
+    - AI:
+        + Customize intelligent level
+        + Track all players' claim count (for now only previous player)
     - Fix:
         + Size point not update when change size board
         + Turn is different in different sockets in new game
@@ -107,7 +107,7 @@ let sceneData: SceneData = {
     eventName: Event.SYNC_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
-    boardSize: 7,
+    boardSize: 8,
     pointsToScore: 5,
     ai: {
         delay: 2000,
@@ -118,8 +118,8 @@ let sceneData: SceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: true,
-        time: 60,
+        enable: false,
+        time: 30,
     },
     multiScore: {
         highestScoreToWin: false, // play until all points are claim, winner has the highest scores
@@ -749,6 +749,7 @@ function setupSocket() {
                 countdownElement.style.display = "none"
                 clearInterval(countDownLoop)
             }
+            return
         }
 
         if (sceneData.countdown.time != newSceneData.countdown.time) {
@@ -757,6 +758,7 @@ function setupSocket() {
                 clearInterval(countDownLoop)
                 activateCountDown()
             }
+            return
         }
 
         // TODO: refactor - combine multiple updates, performance?
@@ -943,7 +945,7 @@ function createDatGUI() {
     multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value => broadcast(sceneData))
     multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value => broadcast(sceneData))
     multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value => broadcast(sceneData))
-    multiScoreModeFolder.open()
+    // multiScoreModeFolder.open()
 
     const blindModeFolder: GUI = gui.addFolder("Blind mode")
     blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {
@@ -960,7 +962,7 @@ function createDatGUI() {
         broadcast(sceneData)
     })
 
-    blindModeFolder.open()
+    // blindModeFolder.open()
 
     const countdownModeFolder = gui.addFolder("Countdown mode")
     countdownModeFolder.add(sceneData.countdown, "enable", true).listen().onChange(value => {
@@ -982,7 +984,7 @@ function createDatGUI() {
         broadcast(sceneData)
     })
 
-    countdownModeFolder.open()
+    // countdownModeFolder.open()
 
     const aisFolder: GUI = gui.addFolder("AIs")
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
@@ -1006,7 +1008,7 @@ function createDatGUI() {
         deadPointIds.forEach(id => ((points[id].material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(value.toString().replace('#', '0x')))
         )
     })
-    deadPointsFolder.open()
+    // deadPointsFolder.open()
 
     const appearanceFolder: GUI = gui.addFolder("Appearance")
 
@@ -1073,7 +1075,7 @@ function createDatGUI() {
     });
     // barsFolder.open();
 
-    appearanceFolder.open()
+    // appearanceFolder.open()
 }
 
 function revealColor() {

@@ -715,7 +715,7 @@ function openNav() {
     })
 }
 
-openNav()
+// openNav()
 
 function closeNav() {
     sidebarElement.style.width = "0";

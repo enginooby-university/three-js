@@ -1,13 +1,13 @@
 /*
 TODO:
     - Main features:
-        + Customize AI level (intelligent)
         + Remote multi-player mode
         + Win shapes (instead of straght line)
-        + n-multi-score (scores) (n>=2) [socket, dom]
-        + Countdown mode [socket]
         + Bomb mode
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
+    - AI:
+        + Customize intelligent level
+        + Track all players' claim count (for now only previous player)
     - Fix:
         + Size point not update when change size board
         + Turn is different in different sockets in new game
@@ -63,7 +63,7 @@ let sceneData = {
     eventName: Event.SYNC_SCENE_DATA,
     playerNumber: 2,
     dimension: 3,
-    boardSize: 7,
+    boardSize: 8,
     pointsToScore: 5,
     ai: {
         delay: 2000,
@@ -74,8 +74,8 @@ let sceneData = {
         revealDuration: 0.1,
     },
     countdown: {
-        enable: true,
-        time: 60,
+        enable: false,
+        time: 30,
     },
     multiScore: {
         highestScoreToWin: false,
@@ -635,6 +635,7 @@ function setupSocket() {
                 countdownElement.style.display = "none";
                 clearInterval(countDownLoop);
             }
+            return;
         }
         if (sceneData.countdown.time != newSceneData.countdown.time) {
             sceneData.countdown.time = newSceneData.countdown.time;
@@ -642,6 +643,7 @@ function setupSocket() {
                 clearInterval(countDownLoop);
                 activateCountDown();
             }
+            return;
         }
         // TODO: refactor - combine multiple updates, performance?
         if (sceneData.point.wireframe != newSceneData.point.wireframe) {
@@ -801,7 +803,7 @@ function createDatGUI() {
     multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value => broadcast(sceneData));
     multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value => broadcast(sceneData));
     multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value => broadcast(sceneData));
-    multiScoreModeFolder.open();
+    // multiScoreModeFolder.open()
     const blindModeFolder = gui.addFolder("Blind mode");
     blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {
         updateBlindMode();
@@ -814,7 +816,7 @@ function createDatGUI() {
     blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(0.1).max(sceneData.blind.intervalReveal - 1).step(0.1).listen().name("reveal duration").onFinishChange(value => {
         broadcast(sceneData);
     });
-    blindModeFolder.open();
+    // blindModeFolder.open()
     const countdownModeFolder = gui.addFolder("Countdown mode");
     countdownModeFolder.add(sceneData.countdown, "enable", true).listen().onChange(value => {
         if (value)
@@ -832,7 +834,7 @@ function createDatGUI() {
         }
         broadcast(sceneData);
     });
-    countdownModeFolder.open();
+    // countdownModeFolder.open()
     const aisFolder = gui.addFolder("AIs");
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
     const deadPointsFolder = gui.addFolder("Dead points");
@@ -849,7 +851,7 @@ function createDatGUI() {
         sceneData.deadPoint.color = value;
         deadPointIds.forEach(id => points[id].material.color.setHex(Number(value.toString().replace('#', '0x'))));
     });
-    deadPointsFolder.open();
+    // deadPointsFolder.open()
     const appearanceFolder = gui.addFolder("Appearance");
     const pointsFolder = appearanceFolder.addFolder("Points");
     pointsFolder.add(sceneData.point, "wireframe", false).listen().onFinishChange(value => {
@@ -910,7 +912,7 @@ function createDatGUI() {
         broadcast(sceneData);
     });
     // barsFolder.open();
-    appearanceFolder.open();
+    // appearanceFolder.open()
 }
 function revealColor() {
     claimedPointIds.forEach(id => {
@@ -1494,4 +1496,4 @@ function getIntersectObjects(event) {
     raycaster.setFromCamera(mouse, camera);
     return raycaster.intersectObjects(points, false);
 }
-/* END EVENTS */
+/* END EVENTS */ 
