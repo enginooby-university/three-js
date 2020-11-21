@@ -46,6 +46,7 @@ var Event;
     Event["SYNC_AI"] = "tictactoe-syncAi";
     Event["SYNC_DEAD_POINTS"] = "tictactoe-syncDeadPoints";
     Event["PLAYER_MOVE"] = "tictactoe-playerMove";
+    Event["UPDATE_PLAYER"] = "tictactoe-updatePlayer";
 })(Event || (Event = {}));
 var BlindMode;
 (function (BlindMode) {
@@ -564,6 +565,12 @@ function setupSocket() {
         console.log(`Sync dead points:`);
         console.log(data.deadPointIds);
     });
+    socket.on(Event.UPDATE_PLAYER, (data) => {
+        players[data.id].isAi = data.isAi;
+        // kick off current player to move when being changed to AI
+        if (players[data.id].isAi && players[data.id].id == currentTurn)
+            kickOffAiMove();
+    });
     // when receive update from other sockets
     socket.on(Event.SYNC_SCENE_DATA, (newSceneData) => {
         // only process SceneData of this task
@@ -972,6 +979,7 @@ function updatePlayerNumber(value) {
             // kick off current player to move when being changed to AI
             if (newPlayer.isAi && newPlayer.id == currentTurn)
                 kickOffAiMove();
+            broadcast({ eventName: Event.UPDATE_PLAYER, id: newPlayer.id, isAi: newPlayer.isAi });
         });
         newPlayerFolder.addColor(data, 'colorHex').name("color").onFinishChange((value) => {
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')));

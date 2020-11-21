@@ -49,6 +49,7 @@ enum Event {
     SYNC_AI = "tictactoe-syncAi",
     SYNC_DEAD_POINTS = "tictactoe-syncDeadPoints",
     PLAYER_MOVE = "tictactoe-playerMove",
+    UPDATE_PLAYER = "tictactoe-updatePlayer"
 }
 
 enum BlindMode { DISABLE, ONE_PLAYER, AI_PLAYERS, NON_AI_PLAYERS, ALL_PLAYERS }
@@ -244,7 +245,7 @@ window.onload = () => {
 let countDownLoop: NodeJS.Timeout
 let currentTurnCountDown: number
 function activateCountDown() {
-    if(players.length==0) return
+    if (players.length == 0) return
 
     countdownElement.style.display = "block"
     countdownElement.style.color = "#" + players[currentTurn].color.getHexString()
@@ -673,6 +674,12 @@ function setupSocket() {
         console.log(data.deadPointIds)
     })
 
+    socket.on(Event.UPDATE_PLAYER, (data: any) => {
+        players[data.id].isAi = data.isAi
+        // kick off current player to move when being changed to AI
+        if (players[data.id].isAi &&players[data.id].id == currentTurn) kickOffAiMove()
+    })
+
     // when receive update from other sockets
     socket.on(Event.SYNC_SCENE_DATA, (newSceneData: SceneData) => {
         // only process SceneData of this task
@@ -744,8 +751,8 @@ function setupSocket() {
             }
         }
 
-        if(sceneData.countdown.time!= newSceneData.countdown.time){
-            sceneData.countdown.time= newSceneData.countdown.time
+        if (sceneData.countdown.time != newSceneData.countdown.time) {
+            sceneData.countdown.time = newSceneData.countdown.time
             if (sceneData.countdown.enable) {
                 clearInterval(countDownLoop)
                 activateCountDown()
@@ -1141,6 +1148,8 @@ function updatePlayerNumber(value: number) {
         newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen().onChange(value => {
             // kick off current player to move when being changed to AI
             if (newPlayer.isAi && newPlayer.id == currentTurn) kickOffAiMove()
+
+            broadcast({ eventName: Event.UPDATE_PLAYER, id: newPlayer.id, isAi: newPlayer.isAi })
         })
         newPlayerFolder.addColor(data, 'colorHex').name("color").onFinishChange((value) => {
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')))
