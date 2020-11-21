@@ -152,10 +152,7 @@ export function init() {
     players[1].isAi = false;
     // kick off first player if AI
     if (players[0].isAi) {
-        setTimeout(() => {
-            aiMove();
-            nextTurn();
-        }, sceneData.ai.delay);
+        kickOffAiMove();
     }
 }
 export function setupControls() {
@@ -578,9 +575,9 @@ function setupSocket() {
         // changes requiring doing stuffs
         if (sceneData.playerNumber != newSceneData.playerNumber) {
             sceneData.playerNumber = newSceneData.playerNumber;
-            currentTurn = 0;
             updatePlayerNumber(sceneData.playerNumber);
             resetGame();
+            currentTurn = 0;
         }
         if (sceneData.dimension != newSceneData.dimension) {
             sceneData.dimension = newSceneData.dimension;
@@ -745,10 +742,10 @@ function createDatGUI() {
         }
     });
     gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
-        currentTurn = 0;
         updatePlayerNumber(value);
         resetGame();
         broadcast(sceneData);
+        currentTurn = 0;
     });
     playersFolder = gui.addFolder("Players");
     playersFolder.open();
@@ -947,8 +944,11 @@ function updatePlayerNumber(value) {
         players.push(newPlayer);
         const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`);
         playerFolders.push(newPlayerFolder);
-        // TODO: kick off current player to move when being changed to AI
-        newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen();
+        newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen().onChange(value => {
+            // kick off current player to move when being changed to AI
+            if (newPlayer.isAi && newPlayer.id == currentTurn)
+                kickOffAiMove();
+        });
         newPlayerFolder.addColor(data, 'colorHex').name("color").onFinishChange((value) => {
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')));
             // update countdown text color
@@ -1164,10 +1164,7 @@ function resetGame() {
     // winner in previous game goes last in new game
     currentTurn = getNextTurn(currentTurn);
     if (players[currentTurn].isAi) {
-        setTimeout(() => {
-            aiMove();
-            nextTurn();
-        }, sceneData.ai.delay);
+        kickOffAiMove();
     }
 }
 function nextTurn() {
@@ -1187,10 +1184,7 @@ function nextTurn() {
         }
         console.log(`Current turn: ${currentTurn}`);
         if (players[currentTurn].isAi) {
-            setTimeout(() => {
-                aiMove();
-                nextTurn();
-            }, sceneData.ai.delay);
+            kickOffAiMove();
         }
     }
 }
@@ -1255,6 +1249,14 @@ function createHighlightBorder(point) {
 }
 /* END GAME PLAY */
 /* AI */
+function kickOffAiMove() {
+    // removeEvents()
+    setTimeout(() => {
+        aiMove();
+        nextTurn();
+        // addEvents()
+    }, sceneData.ai.delay);
+}
 function aiMove() {
     for (let winCombination of winCombinations) {
         countClaims(winCombination);
@@ -1382,6 +1384,8 @@ export function removeEvents() {
     window.removeEventListener('contextmenu', claimPoint, false);
 }
 function claimPoint(event) {
+    if (players[currentTurn].isAi)
+        return;
     event.preventDefault();
     if (event.button != 2)
         return; // right click only
@@ -1424,6 +1428,8 @@ function updateClaimedPoint(selectedPoint) {
 }
 let hoveredPoint;
 function hoverPoint(event) {
+    if (players[currentTurn].isAi)
+        return;
     const intersectObjects = getIntersectObjects(event);
     if (intersectObjects.length) {
         const currentHoveredPoint = intersectObjects[0].object;

@@ -452,9 +452,9 @@ function updateScenePostProcessing() {
     composer.addPass(smaaPass);
 
     outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), currentScene, camera);
-    outlinePass.edgeGlow = 3
+    outlinePass.edgeGlow = 3.9
     outlinePass.pulsePeriod = 3
-    outlinePass.edgeStrength = 2
+    outlinePass.edgeStrength = 2.7
     composer.addPass(outlinePass);
 
     createPostProcessingFolder()

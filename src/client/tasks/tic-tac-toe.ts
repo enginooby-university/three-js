@@ -208,10 +208,7 @@ export function init() {
 
     // kick off first player if AI
     if (players[0].isAi) {
-        setTimeout(() => {
-            aiMove()
-            nextTurn()
-        }, sceneData.ai.delay)
+        kickOffAiMove()
     }
 }
 
@@ -682,9 +679,9 @@ function setupSocket() {
         // changes requiring doing stuffs
         if (sceneData.playerNumber != newSceneData.playerNumber) {
             sceneData.playerNumber = newSceneData.playerNumber
-            currentTurn = 0
             updatePlayerNumber(sceneData.playerNumber)
             resetGame()
+            currentTurn = 0
         }
 
         if (sceneData.dimension != newSceneData.dimension) {
@@ -877,10 +874,10 @@ function createDatGUI() {
     })
 
     gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
-        currentTurn = 0
         updatePlayerNumber(value)
         resetGame()
         broadcast(sceneData)
+        currentTurn = 0
     })
 
     playersFolder = gui.addFolder("Players")
@@ -1112,8 +1109,10 @@ function updatePlayerNumber(value: number) {
 
         const newPlayerFolder = playersFolder.addFolder(`Player ${i + 1}`)
         playerFolders.push(newPlayerFolder)
-        // TODO: kick off current player to move when being changed to AI
-        newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen()
+        newPlayerFolder.add(newPlayer, "isAi", false).name("AI").listen().onChange(value => {
+            // kick off current player to move when being changed to AI
+            if (newPlayer.isAi && newPlayer.id == currentTurn) kickOffAiMove()
+        })
         newPlayerFolder.addColor(data, 'colorHex').name("color").onFinishChange((value) => {
             newPlayer.color.setHex(Number(value.toString().replace('#', '0x')))
 
@@ -1360,10 +1359,7 @@ function resetGame() {
     currentTurn = getNextTurn(currentTurn)
 
     if (players[currentTurn].isAi) {
-        setTimeout(() => {
-            aiMove()
-            nextTurn()
-        }, sceneData.ai.delay)
+        kickOffAiMove()
     }
 }
 
@@ -1386,10 +1382,7 @@ function nextTurn() {
         console.log(`Current turn: ${currentTurn}`)
 
         if (players[currentTurn].isAi) {
-            setTimeout(() => {
-                aiMove()
-                nextTurn()
-            }, sceneData.ai.delay)
+            kickOffAiMove()
         }
     }
 }
@@ -1458,7 +1451,16 @@ function createHighlightBorder(point: THREE.Mesh) {
 }
 /* END GAME PLAY */
 
+
 /* AI */
+function kickOffAiMove() {
+    // removeEvents()
+    setTimeout(() => {
+        aiMove()
+        nextTurn()
+        // addEvents()
+    }, sceneData.ai.delay)
+}
 function aiMove() {
     for (let winCombination of winCombinations) {
         countClaims(winCombination);
@@ -1594,6 +1596,8 @@ export function removeEvents() {
 }
 
 function claimPoint(event: MouseEvent) {
+    if (players[currentTurn].isAi) return;
+
     event.preventDefault()
     if (event.button != 2) return // right click only
 
@@ -1645,6 +1649,8 @@ function updateClaimedPoint(selectedPoint: THREE.Mesh) {
 
 let hoveredPoint: THREE.Mesh | null
 function hoverPoint(event: MouseEvent) {
+    if (players[currentTurn].isAi) return;
+
     const intersectObjects: THREE.Intersection[] = getIntersectObjects(event)
 
     if (intersectObjects.length) {
