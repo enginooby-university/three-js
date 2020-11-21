@@ -10,8 +10,6 @@ TODO:
         + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
     - Fix:
         + Size point not update when change size board
-        + Game reseting animation (y scaling)
-        + Disable events on AI turns
         + Turn is different in different sockets in new game
     - Dat:
         + Add highlight options (OutlinePass)
@@ -21,6 +19,7 @@ TODO:
         + Add cool effects/animations for game events (start, reset)
         + Enhance bars (with MeshLine...)
     - Extra (optional):
+        + Game reseting animation (y scaling)
         + Dead point color, visible [socket]
         + Sounds
         + VR support
@@ -614,6 +613,23 @@ function setupSocket() {
             sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration);
             return;
         }
+        if (sceneData.countdown.enable != newSceneData.countdown.enable) {
+            console.log("sync countdown");
+            sceneData.countdown.enable = newSceneData.countdown.enable;
+            if (sceneData.countdown.enable)
+                activateCountDown();
+            else {
+                countdownElement.style.display = "none";
+                clearInterval(countDownLoop);
+            }
+        }
+        if (sceneData.countdown.time != newSceneData.countdown.time) {
+            sceneData.countdown.time = newSceneData.countdown.time;
+            if (sceneData.countdown.enable) {
+                clearInterval(countDownLoop);
+                activateCountDown();
+            }
+        }
         // TODO: refactor - combine multiple updates, performance?
         if (sceneData.point.wireframe != newSceneData.point.wireframe) {
             sceneData.point.wireframe = newSceneData.point.wireframe;
@@ -788,18 +804,20 @@ function createDatGUI() {
     blindModeFolder.open();
     const countdownModeFolder = gui.addFolder("Countdown mode");
     countdownModeFolder.add(sceneData.countdown, "enable", true).listen().onChange(value => {
-        if (value == true)
+        if (value)
             activateCountDown();
         else {
             countdownElement.style.display = "none";
             clearInterval(countDownLoop);
         }
+        broadcast(sceneData);
     });
     countdownModeFolder.add(sceneData.countdown, "time", 1, 60, 1).listen().onFinishChange(value => {
         if (sceneData.countdown.enable) {
             clearInterval(countDownLoop);
             activateCountDown();
         }
+        broadcast(sceneData);
     });
     countdownModeFolder.open();
     const aisFolder = gui.addFolder("AIs");
