@@ -113,7 +113,7 @@ let sceneData: SceneData = {
     boardSize: 8,
     pointsToScore: 5,
     ai: {
-        delay: 2000,
+        delay: 1500,
     },
     blind: {
         mode: BlindMode.DISABLE,
@@ -977,27 +977,10 @@ function createDatGUI() {
 
     const multiScoreModeFolder = gui.addFolder("Multi-score mode")
     const maxScoresToWin: number = Math.pow(sceneData.boardSize, sceneData.dimension) / (sceneData.playerNumber * sceneData.pointsToScore)
-    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("Highest score").listen().onChange(value => broadcast(sceneData))
-    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("Scores to win").listen().onChange(value => broadcast(sceneData))
     multiScoreModeFolder.add(sceneData.multiScore, "overlapping", false).listen().onChange(value => broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "highestScoreToWin", false).name("highest score").listen().onChange(value => broadcast(sceneData))
+    multiScoreModeFolder.add(sceneData.multiScore, "scoresToWin", 1, maxScoresToWin, 1).name("scores to win").listen().onChange(value => broadcast(sceneData))
     // multiScoreModeFolder.open()
-
-    const blindModeFolder: GUI = gui.addFolder("Blind mode")
-    blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {
-        updateBlindMode()
-        broadcast(sceneData)
-    }).setValue(sceneData.blind.mode) // kick off init mode
-
-    blindModeFolder.add(sceneData.blind, "intervalReveal", 1.1, 60, 0.1).name("interval reveal").listen().onFinishChange(value => {
-        updateIntervalReveal()
-        broadcast(sceneData)
-    })
-
-    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(0.1).max(sceneData.blind.intervalReveal - 1).step(0.1).listen().name("reveal duration").onFinishChange(value => {
-        broadcast(sceneData)
-    })
-
-    // blindModeFolder.open()
 
     const countdownModeFolder = gui.addFolder("Countdown mode")
     countdownModeFolder.add(sceneData.countdown, "enable", true).listen().onChange(value => {
@@ -1019,6 +1002,23 @@ function createDatGUI() {
         broadcast(sceneData)
     })
 
+    const blindModeFolder: GUI = gui.addFolder("Blind mode")
+    blindModeController = blindModeFolder.add(sceneData.blind, "mode", datOptions.blind.mode).listen().onChange(value => {
+        updateBlindMode()
+        broadcast(sceneData)
+    }).setValue(sceneData.blind.mode) // kick off init mode
+
+    blindModeFolder.add(sceneData.blind, "intervalReveal", 1.1, 60, 0.1).name("interval reveal").listen().onFinishChange(value => {
+        updateIntervalReveal()
+        broadcast(sceneData)
+    })
+
+    blindRevealDurationController = blindModeFolder.add(sceneData.blind, "revealDuration").min(0.1).max(sceneData.blind.intervalReveal - 1).step(0.1).listen().name("reveal duration").onFinishChange(value => {
+        broadcast(sceneData)
+    })
+
+    // blindModeFolder.open()
+
     // countdownModeFolder.open()
 
     const destroyModeFolder = gui.addFolder("Destroy mode")
@@ -1028,7 +1028,7 @@ function createDatGUI() {
     destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1).listen().onFinishChange(value=>{
         broadcast(sceneData)
     })
-    destroyModeFolder.open()
+    // destroyModeFolder.open()
 
     const deadPointsFolder = gui.addFolder("Dead points")
 

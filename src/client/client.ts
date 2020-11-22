@@ -204,7 +204,7 @@ export function attachToDragControls(objects: THREE.Object3D[] | THREE.Mesh[]) {
 
 function createCamera() {
     const newCamera = new THREE.PerspectiveCamera(CAMERA_FOV, window.innerWidth / window.innerHeight, CAMERA_NEAR, CAMERA_FAR)
-    newCamera.position.set(25, 3, 0)
+    newCamera.position.set(45, 8, 0)
     cameraHelper = new THREE.CameraHelper(newCamera)
     cameraHelper.visible = false
 
