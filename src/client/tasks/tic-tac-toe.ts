@@ -61,6 +61,7 @@ type SceneData = {
     pointsToScore: number,
     ai: {
         delay: number,
+        defensive: number,
     },
     blind: {
         mode: BlindMode,
@@ -114,6 +115,7 @@ let sceneData: SceneData = {
     pointsToScore: 5,
     ai: {
         delay: 1500,
+        defensive: 2,
     },
     blind: {
         mode: BlindMode.DISABLE,
@@ -698,7 +700,7 @@ function setupSocket() {
         console.log(`Sync dead point ids:`)
         console.log(data.deadPointIds)
 
-        toDestroyIds=data.toDestroyIds
+        toDestroyIds = data.toDestroyIds
         console.log(`Sync to destroy ids:`)
         console.log(data.toDestroyIds)
     })
@@ -734,6 +736,8 @@ function setupSocket() {
 
         if (sceneData.pointsToScore != newSceneData.pointsToScore) {
             sceneData.pointsToScore = newSceneData.pointsToScore
+            aiDefensiveController.setValue(2)
+            aiDefensiveController.max(sceneData.pointsToScore - 1)
             generateWinCombinations()
         }
 
@@ -881,6 +885,8 @@ function broadcast(data: any) {
 
 // sync data that do not require doing other stuffs e.g. reset game... (controller onChange only for broadcasting)
 function copySceneData(currentSceneData: SceneData, newSceneData: SceneData) {
+    currentSceneData.ai.defensive = newSceneData.ai.defensive
+
     currentSceneData.multiScore.highestScoreToWin = newSceneData.multiScore.highestScoreToWin
     currentSceneData.multiScore.scoresToWin = newSceneData.multiScore.scoresToWin
     currentSceneData.multiScore.overlapping = newSceneData.multiScore.overlapping
@@ -894,10 +900,14 @@ function copySceneData(currentSceneData: SceneData, newSceneData: SceneData) {
 /* DAT GUI */
 let playerFolders: GUI[] = []
 let playersFolder: GUI
+
+// controllers need to be updated limitations when other params change
 let blindModeController: GUIController
 let blindRevealDurationController: GUIController
 let deadPointNumberController: GUIController
+let aiDefensiveController: GUIController
 let barColorController: GUIController
+
 let revealColorLoop: NodeJS.Timeout
 const datOptions = {
     dimension: {
@@ -951,6 +961,9 @@ function createDatGUI() {
 
     const aisFolder: GUI = gui.addFolder("AI setting")
     aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
+    aiDefensiveController = aisFolder.add(sceneData.ai, "defensive", 1, sceneData.pointsToScore - 1, 1).listen().onFinishChange(value => {
+        broadcast(sceneData)
+    })
 
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
         resetDeadPointsController()
@@ -971,6 +984,8 @@ function createDatGUI() {
     })
 
     pointsToScoreController = gui.add(sceneData, "pointsToScore").min(3).max(sceneData.boardSize).step(1).name("Points to score").listen().onFinishChange(value => {
+        aiDefensiveController.setValue(2)
+        aiDefensiveController.max(sceneData.pointsToScore - 1)
         generateWinCombinations()
         broadcast(sceneData)
     })
@@ -1022,10 +1037,10 @@ function createDatGUI() {
     // countdownModeFolder.open()
 
     const destroyModeFolder = gui.addFolder("Destroy mode")
-    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1).listen().onFinishChange(value=>{
+    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1).listen().onFinishChange(value => {
         broadcast(sceneData)
     })
-    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1).listen().onFinishChange(value=>{
+    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1).listen().onFinishChange(value => {
         broadcast(sceneData)
     })
     // destroyModeFolder.open()
@@ -1586,44 +1601,33 @@ function aiMove() {
         }
     }
 
-    for (let winCombination of winCombinations) {
-        countClaims(winCombination);
-        // defensing move (when opponent is 1 point away from win point)
-        if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - 1 && ClaimCounter.currentPlayerCount == 0) {
-            console.log("AI: defensing move [1]")
-            for (let id of winCombination) {
-                if (points[id].userData.claim == UNCLAIMED) {
-                    updateClaimedPoint(points[id])
+    // defensing move (when opponent is i points away from pointsToScore)
+    for (let i = 1; i <= sceneData.ai.defensive; i++) {
+        for (let winCombination of winCombinations) {
+            countClaims(winCombination);
+            if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - i && ClaimCounter.currentPlayerCount == 0) {
+                console.log(`AI: defensing move [${i}]`)
+                // the seleted point index among possible points
+                let idToMove: number = 99999
+                winCombination.forEach(function (id) {
+                    if (points[id].userData.claim == UNCLAIMED) {
+                        // selet the closest point
+                        if (Math.abs(id - lastClaimedPoint.userData.id) < idToMove) {
+                            idToMove = id
+                        }
+                    }
+                });
+                // console.log(`idToMove: ${idToMove}`)
+                if (idToMove != 99999) {
+                    updateClaimedPoint(points[idToMove])
                     return
                 }
-            };
-        }
-    }
-
-    for (let winCombination of winCombinations) {
-        countClaims(winCombination);
-        // defensing move (when opponent is 2 points away from win point)
-        if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - 2 && ClaimCounter.currentPlayerCount == 0) {
-            console.log("AI: defensing move [2]")
-            // the seleted point index among possible points
-            let idToMove: number = 99999
-            winCombination.forEach(function (id) {
-                if (points[id].userData.claim == UNCLAIMED) {
-                    // selet the closest point
-                    if (Math.abs(id - lastClaimedPoint.userData.id) < idToMove) {
-                        idToMove = id
-                    }
-                }
-            });
-            // console.log(`idToMove: ${idToMove}`)
-            if (idToMove != 99999) {
-                updateClaimedPoint(points[idToMove])
-                return
             }
         }
     }
 
-    // pre-defined move (position meets the most win combination, e.g. center)
+
+    // pre-defined/prefferred move (position meets the most win combination, e.g. center)
     // TODO: generate preferredIndexes to improve AI
     for (let index of aiPreferredMoves) {
         if (points[index].userData.claim == UNCLAIMED) {
