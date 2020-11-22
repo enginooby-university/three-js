@@ -131,8 +131,8 @@ let sceneData: SceneData = {
         overlapping: false, // different combination can share the same points
     },
     destroy: {
-        amount: 3,
-        frequency: 2,
+        amount: 0,
+        frequency: 1,
     },
     deadPoint: {
         amount: 16,
@@ -943,6 +943,9 @@ function createDatGUI() {
     playersFolder = gui.addFolder("Players")
     playersFolder.open()
 
+    const aisFolder: GUI = gui.addFolder("AI setting")
+    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
+
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
         resetDeadPointsController()
         initGame()
@@ -1012,13 +1015,18 @@ function createDatGUI() {
 
     // countdownModeFolder.open()
 
-    const aisFolder: GUI = gui.addFolder("AIs")
-    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)")
+    const destroyModeFolder = gui.addFolder("Destroy mode")
+    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1)
+    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1)
+    destroyModeFolder.open()
 
     const deadPointsFolder = gui.addFolder("Dead points")
 
     deadPointsFolder.add(sceneData.deadPoint, "visible", true).onChange(value => {
         deadPointIds.forEach(id => points[id].visible = sceneData.deadPoint.visible)
+        for (let i = 0; i < destroyCount; i++) { // destroyed points
+            points[toDestroyIds[i]].visible = sceneData.deadPoint.visible
+        }
     })
 
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5)
@@ -1031,8 +1039,10 @@ function createDatGUI() {
 
     deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {
         sceneData.deadPoint.color = value;
-        deadPointIds.forEach(id => ((points[id].material as THREE.LineBasicMaterial).color as THREE.Color).setHex(Number(value.toString().replace('#', '0x')))
-        )
+        deadPointIds.forEach(id => ((points[id].material as THREE.MeshPhysicalMaterial).color as THREE.Color).setHex(Number(value.toString().replace('#', '0x'))))
+        for (let i = 0; i < destroyCount; i++) { // destroyed points
+            ((points[toDestroyIds[i]].material as THREE.MeshPhysicalMaterial).color as THREE.Color).setHex(Number(value.toString().replace('#', '0x')))
+        }
     })
     // deadPointsFolder.open()
 

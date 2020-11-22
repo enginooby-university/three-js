@@ -83,8 +83,8 @@ let sceneData = {
         overlapping: false,
     },
     destroy: {
-        amount: 3,
-        frequency: 2,
+        amount: 0,
+        frequency: 1,
     },
     deadPoint: {
         amount: 16,
@@ -799,6 +799,8 @@ function createDatGUI() {
     });
     playersFolder = gui.addFolder("Players");
     playersFolder.open();
+    const aisFolder = gui.addFolder("AI setting");
+    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
     gui.add(sceneData, "dimension", datOptions.dimension).name("Dimension").listen().onChange(value => {
         resetDeadPointsController();
         initGame();
@@ -854,11 +856,16 @@ function createDatGUI() {
         broadcast(sceneData);
     });
     // countdownModeFolder.open()
-    const aisFolder = gui.addFolder("AIs");
-    aisFolder.add(sceneData.ai, "delay", 0, 2000, 100).name("delay (ms)");
+    const destroyModeFolder = gui.addFolder("Destroy mode");
+    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1);
+    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1);
+    destroyModeFolder.open();
     const deadPointsFolder = gui.addFolder("Dead points");
     deadPointsFolder.add(sceneData.deadPoint, "visible", true).onChange(value => {
         deadPointIds.forEach(id => points[id].visible = sceneData.deadPoint.visible);
+        for (let i = 0; i < destroyCount; i++) { // destroyed points
+            points[toDestroyIds[i]].visible = sceneData.deadPoint.visible;
+        }
     });
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5);
     deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "amount").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
@@ -869,6 +876,9 @@ function createDatGUI() {
     deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {
         sceneData.deadPoint.color = value;
         deadPointIds.forEach(id => points[id].material.color.setHex(Number(value.toString().replace('#', '0x'))));
+        for (let i = 0; i < destroyCount; i++) { // destroyed points
+            points[toDestroyIds[i]].material.color.setHex(Number(value.toString().replace('#', '0x')));
+        }
     });
     // deadPointsFolder.open()
     const appearanceFolder = gui.addFolder("Appearance");
