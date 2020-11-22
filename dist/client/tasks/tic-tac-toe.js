@@ -4,7 +4,6 @@ TODO:
         + Win shapes (instead of straght line)
     - AI:
         + Customize intelligent level
-        + Track all players' claim count (for now only previous player)
     - Fix:
         + Size point not update when change size board
         + Turn is different in different sockets in new game
@@ -1380,7 +1379,7 @@ function aiMove() {
     for (let i = 1; i <= sceneData.ai.defensive; i++) {
         for (let winCombination of winCombinations) {
             countClaims(winCombination);
-            if (ClaimCounter.previousPlayerCount == sceneData.pointsToScore - i && ClaimCounter.currentPlayerCount == 0) {
+            if (ClaimCounter.previousPlayersMaxCount == sceneData.pointsToScore - i && ClaimCounter.currentPlayerCount == 0) {
                 console.log(`AI: defensing move [${i}]`);
                 // the seleted point index among possible points
                 let idToMove = 99999;
@@ -1447,25 +1446,28 @@ function shuffleArray(array) {
     return array;
 }
 // to indentify how many points claimed in each winCombination for previous and current players
-// TODO: indentify counts for all players and choose the largest
 const ClaimCounter = {
-    previousPlayerCount: 0,
+    previousPlayersMaxCount: 0,
     currentPlayerCount: 0
 };
 function countClaims(winCombination) {
-    let previousTurn;
-    if (currentTurn == 0) {
-        previousTurn = players.length - 1; // loop
-    }
-    else {
-        previousTurn = currentTurn - 1;
-    }
     ClaimCounter.currentPlayerCount = 0;
-    ClaimCounter.previousPlayerCount = 0;
-    winCombination.forEach(function (index) {
-        if (points[index].userData.claim == previousTurn) {
-            ClaimCounter.previousPlayerCount++;
+    ClaimCounter.previousPlayersMaxCount = 0;
+    let tempMaxCount = 0;
+    players.forEach(player => {
+        if (player.id != currentTurn) {
+            winCombination.forEach(function (index) {
+                if (points[index].userData.claim == player.id) {
+                    tempMaxCount++;
+                }
+            });
+            if (tempMaxCount > ClaimCounter.previousPlayersMaxCount) {
+                ClaimCounter.previousPlayersMaxCount = tempMaxCount;
+            }
+            tempMaxCount = 0;
         }
+    });
+    winCombination.forEach(index => {
         if (points[index].userData.claim == currentTurn) {
             ClaimCounter.currentPlayerCount++;
         }
