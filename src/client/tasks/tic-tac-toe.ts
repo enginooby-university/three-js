@@ -1,10 +1,7 @@
 /* 
 TODO: 
     - Main features:
-        + Remote multi-player mode 
         + Win shapes (instead of straght line)
-        + Bomb mode
-        + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed) 
     - AI:
         + Customize intelligent level
         + Track all players' claim count (for now only previous player)
@@ -19,6 +16,8 @@ TODO:
         + Add cool effects/animations for game events (start, reset)
         + Enhance bars (with MeshLine...)
     - Extra (optional):
+        + Room for Remote Multi-player Mode
+        + Enable/disable to destroy claimed points for Destroy Mode
         + Game reseting animation (y scaling)
         + Dead point color, visible [socket]
         + Sounds
@@ -47,7 +46,7 @@ export const setSelectedObjectId = (index: number) => selectedObjectId = index
 enum Event {
     SYNC_SCENE_DATA = "tictactoe-syncSceneData",
     SYNC_AI = "tictactoe-syncAi",
-    SYNC_DEAD_POINTS = "tictactoe-syncDeadPoints",
+    SYNC_DEAD_POINTS_AND_TO_DESTROY = "tictactoe-syncDeadPointsAndToDestroy",
     PLAYER_MOVE = "tictactoe-playerMove",
     UPDATE_PLAYER = "tictactoe-updatePlayer"
 }
@@ -249,7 +248,7 @@ function initGame() {
 
     if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
         socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves })
-        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds })
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, deadPointIds: deadPointIds, toDestroyIds: toDestroyIds })
     }
 }
 
@@ -682,7 +681,7 @@ function setupSocket() {
         console.log(data.aiPreferredMoves)
     })
 
-    socket.on(Event.SYNC_DEAD_POINTS, (data: any) => {
+    socket.on(Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, (data: any) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER) return
         resetGame()
         destroyCount = 0
@@ -696,8 +695,12 @@ function setupSocket() {
         sceneData.deadPoint.amount = deadPointIds.length
         deadPointNumberController.updateDisplay()
 
-        console.log(`Sync dead points:`)
+        console.log(`Sync dead point ids:`)
         console.log(data.deadPointIds)
+
+        toDestroyIds=data.toDestroyIds
+        console.log(`Sync to destroy ids:`)
+        console.log(data.toDestroyIds)
     })
 
     socket.on(Event.UPDATE_PLAYER, (data: any) => {
@@ -881,6 +884,9 @@ function copySceneData(currentSceneData: SceneData, newSceneData: SceneData) {
     currentSceneData.multiScore.highestScoreToWin = newSceneData.multiScore.highestScoreToWin
     currentSceneData.multiScore.scoresToWin = newSceneData.multiScore.scoresToWin
     currentSceneData.multiScore.overlapping = newSceneData.multiScore.overlapping
+
+    currentSceneData.destroy.amount = newSceneData.destroy.amount
+    currentSceneData.destroy.frequency = newSceneData.destroy.frequency
 }
 /* END SOCKET */
 
@@ -929,7 +935,7 @@ function createDatGUI() {
 
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
             socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves })
-            socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds })
+            socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, deadPointIds: deadPointIds })
         }
     })
 
@@ -1016,8 +1022,12 @@ function createDatGUI() {
     // countdownModeFolder.open()
 
     const destroyModeFolder = gui.addFolder("Destroy mode")
-    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1)
-    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1)
+    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1).listen().onFinishChange(value=>{
+        broadcast(sceneData)
+    })
+    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1).listen().onFinishChange(value=>{
+        broadcast(sceneData)
+    })
     destroyModeFolder.open()
 
     const deadPointsFolder = gui.addFolder("Dead points")
@@ -1034,7 +1044,7 @@ function createDatGUI() {
         generateDeadPointAndToDestroyIds()
         resetGame()
 
-        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds })
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, deadPointIds: deadPointIds })
     })
 
     deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {

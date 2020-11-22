@@ -324,7 +324,7 @@ function createPostProcessingFolder() {
         outlinePass.hiddenEdgeColor.set(value);
     });
     outlinePassFolder.open();
-    // postProcessingFolder.open()
+    postProcessingFolder.open();
 }
 function switchScene(scenceIndex) {
     // if switch scene at least one time

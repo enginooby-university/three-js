@@ -1,10 +1,7 @@
 /*
 TODO:
     - Main features:
-        + Remote multi-player mode
         + Win shapes (instead of straght line)
-        + Bomb mode
-        + Blind mode (no color) for 1/all sides with/without marks (shows that points are claimed)
     - AI:
         + Customize intelligent level
         + Track all players' claim count (for now only previous player)
@@ -19,6 +16,8 @@ TODO:
         + Add cool effects/animations for game events (start, reset)
         + Enhance bars (with MeshLine...)
     - Extra (optional):
+        + Room for Remote Multi-player Mode
+        + Enable/disable to destroy claimed points for Destroy Mode
         + Game reseting animation (y scaling)
         + Dead point color, visible [socket]
         + Sounds
@@ -44,7 +43,7 @@ var Event;
 (function (Event) {
     Event["SYNC_SCENE_DATA"] = "tictactoe-syncSceneData";
     Event["SYNC_AI"] = "tictactoe-syncAi";
-    Event["SYNC_DEAD_POINTS"] = "tictactoe-syncDeadPoints";
+    Event["SYNC_DEAD_POINTS_AND_TO_DESTROY"] = "tictactoe-syncDeadPointsAndToDestroy";
     Event["PLAYER_MOVE"] = "tictactoe-playerMove";
     Event["UPDATE_PLAYER"] = "tictactoe-updatePlayer";
 })(Event || (Event = {}));
@@ -185,7 +184,7 @@ function initGame() {
     }
     if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
         socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
-        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, deadPointIds: deadPointIds, toDestroyIds: toDestroyIds });
     }
 }
 window.onload = () => {
@@ -567,7 +566,7 @@ function setupSocket() {
         console.log(`Sync AI:`);
         console.log(data.aiPreferredMoves);
     });
-    socket.on(Event.SYNC_DEAD_POINTS, (data) => {
+    socket.on(Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, (data) => {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER)
             return;
         resetGame();
@@ -581,8 +580,11 @@ function setupSocket() {
         // update controller
         sceneData.deadPoint.amount = deadPointIds.length;
         deadPointNumberController.updateDisplay();
-        console.log(`Sync dead points:`);
+        console.log(`Sync dead point ids:`);
         console.log(data.deadPointIds);
+        toDestroyIds = data.toDestroyIds;
+        console.log(`Sync to destroy ids:`);
+        console.log(data.toDestroyIds);
     });
     socket.on(Event.UPDATE_PLAYER, (data) => {
         players[data.id].isAi = data.isAi;
@@ -745,6 +747,8 @@ function copySceneData(currentSceneData, newSceneData) {
     currentSceneData.multiScore.highestScoreToWin = newSceneData.multiScore.highestScoreToWin;
     currentSceneData.multiScore.scoresToWin = newSceneData.multiScore.scoresToWin;
     currentSceneData.multiScore.overlapping = newSceneData.multiScore.overlapping;
+    currentSceneData.destroy.amount = newSceneData.destroy.amount;
+    currentSceneData.destroy.frequency = newSceneData.destroy.frequency;
 }
 /* END SOCKET */
 /* DAT GUI */
@@ -788,7 +792,7 @@ function createDatGUI() {
         gameMode = value;
         if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
             socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
-            socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
+            socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, deadPointIds: deadPointIds });
         }
     });
     gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
@@ -857,8 +861,12 @@ function createDatGUI() {
     });
     // countdownModeFolder.open()
     const destroyModeFolder = gui.addFolder("Destroy mode");
-    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1);
-    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1);
+    destroyModeFolder.add(sceneData.destroy, "amount", 0, 10, 1).listen().onFinishChange(value => {
+        broadcast(sceneData);
+    });
+    destroyModeFolder.add(sceneData.destroy, "frequency", 1, 10, 1).listen().onFinishChange(value => {
+        broadcast(sceneData);
+    });
     destroyModeFolder.open();
     const deadPointsFolder = gui.addFolder("Dead points");
     deadPointsFolder.add(sceneData.deadPoint, "visible", true).onChange(value => {
@@ -871,7 +879,7 @@ function createDatGUI() {
     deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "amount").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
         generateDeadPointAndToDestroyIds();
         resetGame();
-        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS_AND_TO_DESTROY, deadPointIds: deadPointIds });
     });
     deadPointsFolder.addColor(datOptions.color, 'deadPoint').name("color").onFinishChange(value => {
         sceneData.deadPoint.color = value;

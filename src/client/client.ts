@@ -373,7 +373,7 @@ function createPostProcessingFolder() {
 
     outlinePassFolder.open()
 
-    // postProcessingFolder.open()
+    postProcessingFolder.open()
 }
 
 function switchScene(scenceIndex: number) {
