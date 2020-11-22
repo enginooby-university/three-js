@@ -3,10 +3,8 @@ TODO:
     - Main features:
         + Win shapes (instead of straght line)
     - AI:
-        + Customize intelligent level
     - Fix:
         + Size point not update when change size board
-        + Turn is different in different sockets in new game
     - Dat:
         + Add highlight options (OutlinePass)
         + Lock some Dat options when start game to prevent cheating (pointsToScore, sizeboard)
