@@ -82,8 +82,12 @@ let sceneData = {
         scoresToWin: 1,
         overlapping: false,
     },
+    destroy: {
+        amount: 3,
+        frequency: 2,
+    },
     deadPoint: {
-        number: 16,
+        amount: 16,
         visible: true,
         color: new THREE.Color(0x000000)
     },
@@ -112,14 +116,15 @@ var GameMode;
     GameMode[GameMode["LOCAL_MULTIPLAYER"] = 0] = "LOCAL_MULTIPLAYER";
     GameMode[GameMode["REMOTE_MULTIPLAYER"] = 1] = "REMOTE_MULTIPLAYER";
 })(GameMode || (GameMode = {}));
-let gameMode = GameMode.LOCAL_MULTIPLAYER;
+let gameMode = GameMode.REMOTE_MULTIPLAYER;
 const DEAD = -3; // points which could not be claimed
 const CLAIMED = -2;
 const UNCLAIMED = -1;
 let currentTurn = 0;
 let aiPreferredMoves; // array of point indexes for aiMove()
 var gameOver = false;
-let turnCount = 0; // keep track when all point are claimed
+let destroyCount = 0; // keep track number of points are destroyed
+let frequencyDestroyCount = 0; // count each turn until start destroying
 /*
     Conbinations when win point = board size
     This set already includes all lines parallel to x/y/z axis, xy/xz/yz face and 4 diagonal lines
@@ -134,7 +139,8 @@ let pointGeometry;
 let points = [];
 let highlightBorders = [];
 let claimedPointIds = [];
-let deadPointIds = [4, 7, 10, 19, 20, 32, 36, 45, 60];
+let deadPointIds = [];
+let toDestroyIds = [];
 let lastClaimedPoint;
 export function init() {
     isInitialized = true;
@@ -163,18 +169,23 @@ export function setupControls() {
 }
 function initGame() {
     claimedPointIds = [];
-    turnCount = 0;
+    destroyCount = 0;
+    frequencyDestroyCount = 0;
     resetHighlightBorders();
     createPoints();
     createBars();
-    generateDeadPointIds();
-    generateDeadPoints();
+    generateDeadPointAndToDestroyIds();
+    createDeadPoints();
     generateFullWinCombinations(); // invoke when update board size
     generateWinCombinations(); // invoke when update board size or win point
     generateAiPreferredMoves();
     if (sceneData.countdown.enable) {
         clearInterval(countDownLoop);
         activateCountDown();
+    }
+    if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
+        socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
+        socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
     }
 }
 window.onload = () => {
@@ -207,23 +218,30 @@ function clearDeadPoints() {
     });
 }
 // mark points as DEAD when deadPointIds is availble
-function generateDeadPoints() {
-    deadPointIds.forEach(id => {
-        points[id].userData.claim = DEAD;
-        points[id].material.color.set(sceneData.deadPoint.color);
-        points[id].visible = sceneData.deadPoint.visible;
-    });
+function createDeadPoints() {
+    deadPointIds.forEach(id => { destroyPoint(id); });
 }
-function generateDeadPointIds() {
+function destroyPoint(id) {
+    points[id].userData.claim = DEAD;
+    points[id].material.color.set(sceneData.deadPoint.color);
+    points[id].visible = sceneData.deadPoint.visible;
+}
+function generateDeadPointAndToDestroyIds() {
     // reset 
     deadPointIds = [];
-    console.log("Generating dead point ids...");
-    while (deadPointIds.length < sceneData.deadPoint.number) {
+    toDestroyIds = generateRandomIds();
+    while (deadPointIds.length < sceneData.deadPoint.amount) {
         const random = Math.floor(Math.random() * Math.pow(sceneData.boardSize, sceneData.dimension));
-        if (deadPointIds.indexOf(random) === -1)
+        if (deadPointIds.indexOf(random) === -1) {
             deadPointIds.push(random);
+            // remove id of already-dead point from toDestroy
+            toDestroyIds.splice(random, 1);
+        }
     }
+    console.log("Generating dead point ids...");
     console.log(deadPointIds);
+    console.log("Generating to destroy ids...");
+    console.log(toDestroyIds);
 }
 function generateFullWinCombinations() {
     const n = sceneData.boardSize;
@@ -553,14 +571,15 @@ function setupSocket() {
         if (gameMode != GameMode.REMOTE_MULTIPLAYER)
             return;
         resetGame();
+        destroyCount = 0;
         currentTurn = 0;
         // clear current dead points of current socket
         clearDeadPoints();
         // sync and generate dead points from other sockets
         deadPointIds = data.deadPointIds;
-        generateDeadPoints();
+        createDeadPoints();
         // update controller
-        sceneData.deadPoint.number = deadPointIds.length;
+        sceneData.deadPoint.amount = deadPointIds.length;
         deadPointNumberController.updateDisplay();
         console.log(`Sync dead points:`);
         console.log(data.deadPointIds);
@@ -762,7 +781,7 @@ const datOptions = {
 };
 function createDatGUI() {
     const selectedGameMode = {
-        name: GameMode.LOCAL_MULTIPLAYER,
+        name: GameMode.REMOTE_MULTIPLAYER,
     };
     gui = new GUI();
     gui.add(selectedGameMode, "name", datOptions.gameMode).name("Game mode").onChange(value => {
@@ -842,8 +861,8 @@ function createDatGUI() {
         deadPointIds.forEach(id => points[id].visible = sceneData.deadPoint.visible);
     });
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 5);
-    deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "number").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
-        generateDeadPointIds();
+    deadPointNumberController = deadPointsFolder.add(sceneData.deadPoint, "amount").min(0).max(deadPointMax).step(1).listen().onFinishChange(value => {
+        generateDeadPointAndToDestroyIds();
         resetGame();
         socket.emit("broadcast", { eventName: Event.SYNC_DEAD_POINTS, deadPointIds: deadPointIds });
     });
@@ -939,7 +958,7 @@ function updateIntervalReveal() {
     sceneData.blind.revealDuration = Math.min(sceneData.blind.intervalReveal - 1, sceneData.blind.revealDuration);
 }
 function resetDeadPointsController() {
-    sceneData.deadPoint.number = 0;
+    sceneData.deadPoint.amount = 0;
     const deadPointMax = Math.floor(Math.pow(sceneData.boardSize, sceneData.dimension) / 4);
     deadPointNumberController.max(deadPointMax);
 }
@@ -1179,7 +1198,8 @@ function resetGame() {
     // restore players' scores
     players.forEach(player => player.score = 0);
     // gameOver = false
-    turnCount = 0;
+    destroyCount = 0;
+    frequencyDestroyCount = 0;
     // yScaleAnimation(600, 300)
     points.forEach(function (point) {
         point.userData.claim = UNCLAIMED;
@@ -1188,8 +1208,8 @@ function resetGame() {
     });
     // not generate new dead point array since can not sync it for now
     if (gameMode != GameMode.REMOTE_MULTIPLAYER)
-        generateDeadPointIds();
-    generateDeadPoints();
+        generateDeadPointAndToDestroyIds();
+    createDeadPoints();
     outlinePass.selectedObjects = [];
     addEvents();
     // fix last claimed point in previous disappear in new game
@@ -1205,9 +1225,26 @@ function resetGame() {
         kickOffAiMove();
     }
 }
+function getUnclaimedPointNumber() {
+    let count = 0;
+    points.forEach(point => {
+        if (point.userData.claim == UNCLAIMED)
+            count++;
+    });
+    return count;
+}
 function nextTurn() {
+    frequencyDestroyCount++;
+    // destroy mode
+    if (getUnclaimedPointNumber() != 0 && frequencyDestroyCount == sceneData.destroy.frequency) {
+        for (let i = 0; i < sceneData.destroy.amount; i++) {
+            if (destroyCount < toDestroyIds.length)
+                destroyPoint(toDestroyIds[destroyCount++]);
+        }
+        frequencyDestroyCount = 0;
+    }
     // game over
-    if (checkWin() || turnCount == Math.pow(sceneData.boardSize, sceneData.dimension) - deadPointIds.length) {
+    if (checkWin() || getUnclaimedPointNumber() == 0) {
         // gameOver = true;
         lastClaimedPoint.material.emissive.setHex(0x000000);
         // prevent selecting/hovering points when reseting game
@@ -1368,15 +1405,22 @@ function aiMove() {
 }
 // just randomize for now
 function generateAiPreferredMoves() {
-    const legitIndexes = [];
-    for (let i = 0; i < Math.pow(sceneData.boardSize, sceneData.dimension); i++) {
-        legitIndexes.push(i);
-    }
-    aiPreferredMoves = shuffleArray(legitIndexes);
+    aiPreferredMoves = generateRandomIds();
+    console.log("Generating AI preferred moves...");
+    console.log(aiPreferredMoves);
     if (gameMode == GameMode.REMOTE_MULTIPLAYER) {
         socket.emit("broadcast", { eventName: Event.SYNC_AI, aiPreferredMoves: aiPreferredMoves });
     }
 }
+// utility
+function generateRandomIds() {
+    const legitIds = [];
+    for (let i = 0; i < Math.pow(sceneData.boardSize, sceneData.dimension); i++) {
+        legitIds.push(i);
+    }
+    return shuffleArray(legitIds);
+}
+// utility
 // Randomize array in-place using Durstenfeld shuffle algorithm
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -1442,7 +1486,6 @@ function claimPoint(event) {
     }
 }
 function updateClaimedPoint(selectedPoint) {
-    turnCount++;
     if (sceneData.blind.mode != BlindMode.ALL_PLAYERS) {
         selectedPoint.material.color.set(players[currentTurn].color);
     }
