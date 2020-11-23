@@ -133,7 +133,7 @@ let sceneData: SceneData = {
         frequency: 1,
     },
     deadPoint: {
-        amount: 16,
+        amount: 0,
         visible: true,
         color: new THREE.Color(0x000000)
     },
@@ -211,12 +211,35 @@ export function init() {
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber)
     players[0].isAi = false
-    players[1].isAi = true
+    players[1].isAi = false
+
+    // demonstrateAi1()
+    // startDemonstration()
 
     // kick off first player if AI
     if (players[0].isAi) {
         kickOffAiMove()
     }
+}
+
+let aiDemoSet: number[]
+let playerDemoSet: number[]
+
+function demonstrateAi1() {
+    aiDemoSet = [493, 485, 477, 469]
+    playerDemoSet = [492, 484, 476, 468, 491, 483, 475]
+}
+
+function startDemonstration() {
+    sceneData.multiScore.highestScoreToWin = true
+    aiDemoSet.forEach(index => {
+        points[index].userData.claim = players[1].id;
+        (points[index].material as any).color.set(players[1].color);
+    })
+    playerDemoSet.forEach(index => {
+        points[index].userData.claim = players[0].id;
+        (points[index].material as any).color.set(players[0].color);
+    })
 }
 
 export function setupControls() {
@@ -946,7 +969,7 @@ function createDatGUI() {
         }
     })
 
-    gui.add(sceneData, "playerNumber", 2, 10, 1).name("Player number").listen().onFinishChange(value => {
+    gui.add(sceneData, "playerNumber", 1, 10, 1).name("Player number").listen().onFinishChange(value => {
         updatePlayerNumber(value)
         resetGame()
         broadcast(sceneData)
@@ -1586,13 +1609,14 @@ function kickOffAiMove() {
 function aiMove() {
     // scan combinations not be blocked first
     for (let blocked = 0; blocked <= 1; blocked++) {
+
+        // offensive move when AI has more claimed points than opponents
         for (let i = 1; i <= sceneData.ai.defensive; i++) {
             for (let winCombination of winCombinations) {
                 countClaims(winCombination);
 
-                // offensive move when AI has more claimed points than opponents
-                if (ClaimCounter.currentPlayerCount == sceneData.pointsToScore - i && ClaimCounter.previousPlayersMaxCount == blocked) {
-                    console.log(`AI: attacking move [AI: ${sceneData.pointsToScore - i + 1}; blocked: ${blocked}]`)
+                if (ClaimCounter.currentPlayerCount == sceneData.pointsToScore - i - 1 && ClaimCounter.previousPlayersMaxCount == blocked) {
+                    console.log(`AI: attacking move [AI: ${sceneData.pointsToScore - i}; blocked: ${blocked}]`)
                     let idToMove: number = 99999
                     winCombination.forEach(function (id) {
                         if (points[id].userData.claim == UNCLAIMED) {
@@ -1607,9 +1631,14 @@ function aiMove() {
                         updateClaimedPoint(points[idToMove])
                         return
                     }
-                }
 
-                // defensing move (when opponent is i points away from pointsToScore)
+                }
+            }
+
+             // defensing move (when opponent is i points away from pointsToScore)
+             for (let winCombination of winCombinations) {
+                countClaims(winCombination);
+
                 if (ClaimCounter.previousPlayersMaxCount == sceneData.pointsToScore - i && ClaimCounter.currentPlayerCount == blocked) {
                     console.log(`AI: defensing move [opponent: ${sceneData.pointsToScore - i}; blocked: ${blocked + 1}]`)
                     // the seleted point index among possible points
@@ -1629,8 +1658,10 @@ function aiMove() {
                     }
                 }
             }
-        }
     }
+        }
+
+       
 
     // pre-defined/prefferred move (position meets the most win combination, e.g. center)
     // TODO: generate preferredIndexes to improve AI
@@ -1692,6 +1723,12 @@ function countClaims(winCombination: number[]) {
     ClaimCounter.previousPlayersMaxCount = 0
     let tempMaxCount: number = 0
 
+    winCombination.forEach(index => {
+        if (points[index].userData.claim == currentTurn) {
+            ClaimCounter.currentPlayerCount++
+        }
+    })
+
     players.forEach(player => {
         if (player.id != currentTurn) {
             winCombination.forEach(function (index) {
@@ -1704,12 +1741,6 @@ function countClaims(winCombination: number[]) {
                 ClaimCounter.previousPlayersMaxCount = tempMaxCount
             }
             tempMaxCount = 0
-        }
-    })
-
-    winCombination.forEach(index => {
-        if (points[index].userData.claim == currentTurn) {
-            ClaimCounter.currentPlayerCount++
         }
     })
     // console.log(`${ClaimCounter.previousPlayerCount} ${ClaimCounter.currentPlayerCount}`)
@@ -1793,7 +1824,7 @@ function hoverPoint(event: MouseEvent) {
                 (hoveredPoint.material as any).emissive.set((hoveredPoint as any).currentHex);
             hoveredPoint = currentHoveredPoint;
             (hoveredPoint as any).currentHex = (hoveredPoint.material as any).emissive.getHex();
-            // console.log(`Point id: ${hoveredPoint.userData.id}`);
+            console.log(`Point id: ${hoveredPoint.userData.id}`);
 
             (hoveredPoint.material as any).emissive.set(players[currentTurn].color);
 
