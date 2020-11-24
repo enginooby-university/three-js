@@ -92,7 +92,7 @@ let texture_lf: THREE.Texture
 let materialArray: THREE.MeshBasicMaterial[]
 
 const Param = {
-    Skybox: "arid",
+    Skybox: "dust",
     BloomPass: {
         opacity: 1
     },

@@ -32,7 +32,7 @@ import { socket, socketEnabled, outlinePass, raycaster, mouse, camera, transform
 export const scene: THREE.Scene = new THREE.Scene()
 export let isInitialized: boolean = false
 export let gui: GUI
-export let skybox: string = 'arid'
+export let skybox: string = 'dust'
 export const setSkybox = (name: string) => skybox = name
 
 // group of objects affected by DragControls & TransformControls
@@ -133,7 +133,7 @@ let sceneData: SceneData = {
         frequency: 1,
     },
     deadPoint: {
-        amount: 0,
+        amount: 20,
         visible: true,
         color: new THREE.Color(0x000000)
     },
@@ -211,7 +211,7 @@ export function init() {
     // sample setup for n-multi-player
     updatePlayerNumber(sceneData.playerNumber)
     players[0].isAi = false
-    players[1].isAi = false
+    players[1].isAi = true
 
     // demonstrateAi1()
     // startDemonstration()
@@ -222,25 +222,25 @@ export function init() {
     }
 }
 
-let aiDemoSet: number[]
-let playerDemoSet: number[]
+// let aiDemoSet: number[]
+// let playerDemoSet: number[]
 
-function demonstrateAi1() {
-    aiDemoSet = [493, 485, 477, 469]
-    playerDemoSet = [492, 484, 476, 468, 491, 483, 475]
-}
+// function demonstrateAi1() {
+//     aiDemoSet = [493, 485, 477, 469]
+//     playerDemoSet = [492, 484, 476, 468, 491, 483, 475]
+// }
 
-function startDemonstration() {
-    sceneData.multiScore.highestScoreToWin = true
-    aiDemoSet.forEach(index => {
-        points[index].userData.claim = players[1].id;
-        (points[index].material as any).color.set(players[1].color);
-    })
-    playerDemoSet.forEach(index => {
-        points[index].userData.claim = players[0].id;
-        (points[index].material as any).color.set(players[0].color);
-    })
-}
+// function startDemonstration() {
+//     sceneData.multiScore.highestScoreToWin = true
+//     aiDemoSet.forEach(index => {
+//         points[index].userData.claim = players[1].id;
+//         (points[index].material as any).color.set(players[1].color);
+//     })
+//     playerDemoSet.forEach(index => {
+//         points[index].userData.claim = players[0].id;
+//         (points[index].material as any).color.set(players[0].color);
+//     })
+// }
 
 export function setupControls() {
     attachToDragControls(transformableObjects)
